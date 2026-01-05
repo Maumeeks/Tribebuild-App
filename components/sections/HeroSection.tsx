@@ -9,7 +9,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({
-  videoUrl = 'https://www.youtube.com/embed/htPQlb2u-rQ?si=wlsD-u5CThCJ1IvG&controls=1&rel=0&modestbranding=1',
+  videoUrl = 'https://www.youtube.com/embed/hBp4dgE7Bho?si=prVREhXGCWN0naEy',
   onCTAClick,
 }) => {
   const navigate = useNavigate();
