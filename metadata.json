@@ -1,0 +1,7 @@
+{
+  "name": "TribeBuild SaaS",
+  "description": "A premium white-label SaaS platform that allows digital creators to build, customize, and manage their own Progressive Web Apps (PWAs) without coding.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
