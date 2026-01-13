@@ -1,5 +1,6 @@
 import React from 'react';
 import { Zap, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Lista de integrações
 const integrations = [
@@ -23,40 +24,40 @@ const IntegrationsSection: React.FC = () => {
   return (
     <section id="integracoes" className="py-24 relative overflow-hidden bg-slate-50 dark:bg-[#0B1120] transition-colors">
       
-      {/* Background Sutil */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-blue/5 via-transparent to-transparent pointer-events-none"></div>
+      {/* Background Sutil (Efeito de luz da marca) */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-blue/10 via-transparent to-transparent pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10 mb-12 text-center">
+      <div className="max-w-7xl mx-auto px-4 relative z-10 mb-16 text-center">
         
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue text-xs font-bold uppercase tracking-widest rounded-full mb-6 border border-brand-blue/20">
-          <Zap className="w-4 h-4" />
-          Compatível com tudo
+        {/* Badge - Estilo Aceternity mas com COR DA MARCA */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue text-xs font-bold uppercase tracking-widest rounded-full mb-8 border border-brand-blue/20 backdrop-blur-sm">
+          <Zap className="w-3.5 h-3.5" />
+          Integração Automática
         </div>
         
-        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
+        {/* Título - Tipografia Clean + Gradiente da Marca */}
+        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
           Conecte Com Sua{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-coral">
             Plataforma Favorita
           </span>
         </h2>
         
-        <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
-          Detectamos o pagamento e liberamos o acesso no app. <br/>
-          Sem planilhas, sem trabalho manual.
+        <p className="mt-4 text-center text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+          Detectamos o pagamento e liberamos o acesso no app automaticamente.
+          <br className="hidden md:block" /> Sem planilhas, sem trabalho manual.
         </p>
       </div>
 
-      {/* --- INÍCIO DO MARQUEE INFINITO --- */}
-      <div className="relative flex flex-col gap-8 overflow-hidden py-8">
+      {/* --- MARQUEE INFINITO (Glassmorphism Cards) --- */}
+      <div className="relative flex flex-col gap-6 overflow-hidden py-4">
         
-        {/* Fileira 1 - Indo para a Esquerda */}
-        <div className="flex w-max hover:pause" style={{ animation: 'scroll-left 40s linear infinite' }}>
-          {/* Renderizamos 2x para garantir o loop infinito sem buracos */}
+        {/* Fileira 1 - Esquerda */}
+        <div className="flex w-max hover:pause" style={{ animation: 'scroll-left 50s linear infinite' }}>
           {[...integrations, ...integrations].map((integration, idx) => (
             <div
               key={`${integration.name}-${idx}`}
-              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10"
+              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-md px-6 py-4 transition-all duration-300 hover:border-brand-blue/50 hover:bg-white hover:shadow-xl hover:shadow-brand-blue/10 hover:-translate-y-1 dark:border-white/5 dark:bg-white/5 dark:hover:border-brand-blue/30 dark:hover:bg-white/10"
             >
               <img
                 src={integration.logo}
@@ -67,13 +68,12 @@ const IntegrationsSection: React.FC = () => {
           ))}
         </div>
 
-        {/* Fileira 2 - Indo para a Direita (Opcional, se quiser mais movimento) */}
-        {/* Se quiser só uma linha, pode apagar este bloco div abaixo */}
-        <div className="flex w-max hover:pause" style={{ animation: 'scroll-right 40s linear infinite' }}>
+        {/* Fileira 2 - Direita */}
+        <div className="flex w-max hover:pause" style={{ animation: 'scroll-right 50s linear infinite' }}>
           {[...integrations.reverse(), ...integrations].map((integration, idx) => (
             <div
               key={`rev-${integration.name}-${idx}`}
-              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10"
+              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-md px-6 py-4 transition-all duration-300 hover:border-brand-blue/50 hover:bg-white hover:shadow-xl hover:shadow-brand-blue/10 hover:-translate-y-1 dark:border-white/5 dark:bg-white/5 dark:hover:border-brand-blue/30 dark:hover:bg-white/10"
             >
               <img
                 src={integration.logo}
@@ -84,21 +84,22 @@ const IntegrationsSection: React.FC = () => {
           ))}
         </div>
 
-        {/* Gradientes Laterais (Fade) para suavizar a entrada/saída */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-slate-50 dark:from-[#0B1120] to-transparent"></div>
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-slate-50 dark:from-[#0B1120] to-transparent"></div>
+        {/* Fades Laterais (Suaviza o corte) */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-slate-50 dark:from-[#0B1120] to-transparent"></div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-slate-50 dark:from-[#0B1120] to-transparent"></div>
       </div>
-      {/* --- FIM DO MARQUEE --- */}
 
       {/* CTA Final */}
       <div className="text-center mt-12 relative z-10">
-        <button className="group inline-flex items-center gap-2 px-6 py-3 text-brand-blue hover:text-brand-coral font-bold transition-colors">
+        <Link 
+          to="/api-docs" 
+          className="group inline-flex items-center gap-2 px-6 py-3 text-brand-blue hover:text-brand-coral font-bold transition-colors"
+        >
           <span>Ver documentação da API</span>
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </button>
+        </Link>
       </div>
 
-      {/* Estilos de Animação (Injetados aqui para garantir que funcione sem configurar tailwind.config) */}
       <style>{`
         @keyframes scroll-left {
           0% { transform: translateX(0); }
