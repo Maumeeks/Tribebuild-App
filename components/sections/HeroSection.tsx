@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ShieldCheck, Users, Zap, Clock, Play, Star } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Users, Play, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface HeroSectionProps {
@@ -97,31 +96,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             <span className="font-semibold text-slate-800 dark:text-slate-200">Apenas mudando COMO você entrega.</span>
           </p>
 
-          {/* CTAs Otimizados */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 animate-slide-up" style={{ animationDelay: '200ms' }}>
-            <button
-              onClick={handleCTA}
-              className="group px-8 py-4 bg-brand-coral hover:bg-brand-coral-dark text-white rounded-full font-bold text-lg shadow-xl shadow-brand-coral/30 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-coral/40 font-display flex items-center gap-3"
-            >
-              CRIAR MEU APP EM 17 MINUTOS
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button
-              className="px-8 py-4 bg-white dark:bg-white/5 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-white/10 hover:border-brand-blue dark:hover:border-brand-blue rounded-full font-bold text-lg transition-all font-display flex items-center gap-2"
-              onClick={() => document.getElementById('demo-apps')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              <Play className="w-5 h-5" />
-              Ver Apps de Clientes
-            </button>
-          </div>
-
-          {/* Micro-compromisso */}
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-16 animate-slide-up" style={{ animationDelay: '250ms' }}>
-            ✓ 7 dias grátis · ✓ Cancele quando quiser · ✓ Suporte via WhatsApp
-          </p>
-
-          {/* Vídeo / Mockup Container */}
-          <div className="relative w-full max-w-5xl mx-auto animate-slide-up" style={{ animationDelay: '300ms' }}>
+          {/* Vídeo / Mockup Container (MOVIDO PARA CIMA) */}
+          <div className="relative w-full max-w-5xl mx-auto mb-12 animate-slide-up" style={{ animationDelay: '200ms' }}>
             {/* Decorative Elements */}
             <div className="absolute -top-10 -left-10 w-24 h-24 bg-brand-blue/20 dark:bg-brand-blue/30 rounded-3xl blur-2xl animate-float"></div>
             <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-brand-coral/20 dark:bg-brand-coral/20 rounded-3xl blur-2xl animate-float" style={{ animationDelay: '3s' }}></div>
@@ -142,8 +118,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({
               <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-900/20 pointer-events-none group-hover:opacity-0 transition-opacity"></div>
             </div>
 
-            {/* Trust Badges - Mais Específicos */}
-            <div className="mt-10 flex flex-wrap justify-center gap-3 md:gap-6 px-2">
+            {/* Trust Badges - Logo abaixo do vídeo */}
+            <div className="mt-6 flex flex-wrap justify-center gap-3 md:gap-6 px-2">
               <div className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
                 <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
                 <span className="font-bold text-slate-700 dark:text-slate-300 text-xs md:text-sm">SSL 256-bit</span>
@@ -158,6 +134,30 @@ const HeroSection: React.FC<HeroSectionProps> = ({
               </div>
             </div>
           </div>
+
+          {/* CTAs Otimizados (MOVIDO PARA BAIXO DO VÍDEO) */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
+            <button
+              onClick={handleCTA}
+              className="group px-8 py-4 bg-brand-coral hover:bg-brand-coral-dark text-white rounded-full font-bold text-lg shadow-xl shadow-brand-coral/30 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-coral/40 font-display flex items-center gap-3"
+            >
+              CRIAR MEU APP EM 17 MINUTOS
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button
+              className="px-8 py-4 bg-white dark:bg-white/5 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-white/10 hover:border-brand-blue dark:hover:border-brand-blue rounded-full font-bold text-lg transition-all font-display flex items-center gap-2"
+              onClick={() => document.getElementById('demo-apps')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <Play className="w-5 h-5" />
+              Ver Apps de Clientes
+            </button>
+          </div>
+
+          {/* Micro-compromisso */}
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-16 animate-slide-up" style={{ animationDelay: '400ms' }}>
+            ✓ 7 dias grátis · ✓ Cancele quando quiser · ✓ Suporte via WhatsApp
+          </p>
+
         </div>
       </div>
     </section>
