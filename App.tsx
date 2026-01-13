@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // <--- Mudou aqui de HashRouter para BrowserRouter
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppsProvider } from './contexts/AppsContext';
@@ -62,7 +62,8 @@ const App: React.FC = () => {
     <ThemeProvider>
       <AuthProvider>
         <AppsProvider>
-          <HashRouter> 
+          {/* MUDANÇA AQUI: BrowserRouter para URLs limpas */}
+          <BrowserRouter> 
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
@@ -131,7 +132,7 @@ const App: React.FC = () => {
               {/* Catch-all redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </HashRouter>
+          </BrowserRouter>
         </AppsProvider>
       </AuthProvider>
     </ThemeProvider>
