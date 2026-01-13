@@ -1,72 +1,73 @@
-
 import React from 'react';
-import { Instagram, Twitter, Facebook, Youtube } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import TribeBuildLogo from './TribeBuildLogo';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="relative border-t border-brand-blue/10 dark:border-white/5 pt-20 pb-10 transition-colors">
-      {/* Background overlay */}
-      <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm"></div>
-      
-      <div className="max-w-7xl mx-auto px-4 relative z-10">
-        <div className="flex flex-col items-center text-center">
+    <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 pt-16 pb-8 transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-12">
           
-          {/* Logo + Descrição */}
-          <div className="mb-10 max-w-xl">
-            <div className="flex items-center justify-center mb-6">
-              <TribeBuildLogo size="lg" showText={true} />
+          {/* Coluna 1: Marca e Missão */}
+          <div className="col-span-1 md:col-span-1">
+            <div className="mb-4">
+              <TribeBuildLogo />
             </div>
-            <p className="text-slate-500 dark:text-slate-400 text-lg leading-relaxed">
-              A plataforma definitiva para criadores digitais transformarem seus infoprodutos em experiências mobile exclusivas. Sem código, sem complicações.
+            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+              A plataforma completa para infoprodutores transformarem cursos em aplicativos profissionais de alta conversão.
             </p>
           </div>
 
-          {/* Links */}
-          <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-10">
-            <a href="#termos" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-brand-blue dark:hover:text-brand-coral transition-colors uppercase tracking-widest">
-              Termos de Uso
-            </a>
-            <a href="#privacidade" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-brand-blue dark:hover:text-brand-coral transition-colors uppercase tracking-widest">
-              Política de Privacidade
-            </a>
-            <a href="#cookies" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-brand-blue dark:hover:text-brand-coral transition-colors uppercase tracking-widest">
-              Cookies
-            </a>
-            <a href="#suporte" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-brand-blue dark:hover:text-brand-coral transition-colors uppercase tracking-widest">
-              Central de Ajuda
-            </a>
+          {/* Coluna 2: Produto */}
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-white mb-4">Produto</h4>
+            <ul className="space-y-2">
+              <li><a href="#funcionalidades" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Funcionalidades</a></li>
+              <li><a href="#integracoes" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Integrações</a></li>
+              <li><a href="#precos" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Planos</a></li>
+              <li><Link to="/bonus" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Bônus Exclusivos</Link></li>
+            </ul>
           </div>
 
-          {/* Social */}
-          <div className="flex items-center gap-5 mb-12">
-            {[
-              { icon: Instagram, href: 'https://instagram.com/tribebuild', label: 'Instagram' },
-              { icon: Twitter, href: '#', label: 'Twitter' },
-              { icon: Facebook, href: '#', label: 'Facebook' },
-              { icon: Youtube, href: '#', label: 'Youtube' },
-            ].map((social, idx) => (
-              <a 
-                key={idx}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-brand-blue dark:hover:text-brand-coral hover:bg-blue-50 dark:hover:bg-slate-700 transition-all duration-300 group"
-                aria-label={social.label}
-              >
-                <social.icon size={22} className="group-hover:scale-110 transition-transform" />
-              </a>
-            ))}
+          {/* Coluna 3: Legal (Aqui entram seus links futuros) */}
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-white mb-4">Legal</h4>
+            <ul className="space-y-2">
+              <li><Link to="/termos" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Termos de Uso</Link></li>
+              <li><Link to="/privacidade" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Política de Privacidade</Link></li>
+              <li><Link to="/cookies" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Cookies</Link></li>
+            </ul>
           </div>
 
-          {/* Divider */}
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent mb-8"></div>
+          {/* Coluna 4: Suporte */}
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-white mb-4">Suporte</h4>
+            <ul className="space-y-2">
+              <li>
+                <a 
+                  href="https://wa.me/5561982199922" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors flex items-center gap-2"
+                >
+                  Central de Ajuda
+                </a>
+              </li>
+              <li><span className="text-slate-400 text-sm">suporte@tribebuild.pro</span></li>
+            </ul>
+          </div>
+        </div>
 
-          {/* Copyright */}
-          <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
-            © {new Date().getFullYear()} TribeBuild SaaS. Desenvolvido com foco em alta performance para infoprodutores.
+        {/* Linha Divisória e Copyright */}
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-slate-400 dark:text-slate-500 text-xs text-center md:text-left">
+            © {currentYear} TribeBuild Tecnologia Ltda. Todos os direitos reservados. CNPJ: XX.XXX.XXX/0001-XX
           </p>
+          <div className="flex gap-4">
+            {/* Ícones sociais podem entrar aqui futuramente */}
+          </div>
         </div>
       </div>
     </footer>
