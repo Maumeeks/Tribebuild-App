@@ -1,77 +1,122 @@
 import React from 'react';
-import TribeBuildLogo from './TribeBuildLogo';
+import { Zap, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const Footer: React.FC = () => {
-  const currentYear = new Date().getFullYear();
+// Lista de integrações
+const integrations = [
+  { name: 'Kiwify', logo: '/images/integrations/kiwify.png' },
+  { name: 'Eduzz', logo: '/images/integrations/eduzz.png' },
+  { name: 'Perfect Pay', logo: '/images/integrations/perfectpay.png' },
+  { name: 'Kirvano', logo: '/images/integrations/kirvano.png' },
+  { name: 'Ticto', logo: '/images/integrations/ticto.png' },
+  { name: 'Cakto', logo: '/images/integrations/cakto.png' },
+  { name: 'Cartpanda', logo: '/images/integrations/cartpanda.png' },
+  { name: 'Payt', logo: '/images/integrations/payt.png' },
+  { name: 'Mundpay', logo: '/images/integrations/mundpay.png' },
+  { name: 'TriboPay', logo: '/images/integrations/tribopay.png' },
+  { name: 'Lastlink', logo: '/images/integrations/lastlink.png' },
+  { name: 'B4You', logo: '/images/integrations/b4you.png' },
+  { name: 'Disrupty', logo: '/images/integrations/disrupty.png' },
+  { name: 'Frendz', logo: '/images/integrations/frendz.png' },
+];
 
+const IntegrationsSection: React.FC = () => {
   return (
-    <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 pt-16 pb-8 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-12">
-          
-          {/* Coluna 1: Marca e Missão */}
-          <div className="col-span-1 md:col-span-1">
-            <div className="mb-4">
-              <TribeBuildLogo />
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              A plataforma completa para infoprodutores transformarem cursos em aplicativos profissionais de alta conversão.
-            </p>
-          </div>
+    <section id="integracoes" className="py-24 relative overflow-hidden bg-slate-50 dark:bg-[#0B1120] transition-colors">
+      
+      {/* Background Sutil */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-blue/5 via-transparent to-transparent pointer-events-none"></div>
 
-          {/* Coluna 2: Produto */}
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-white mb-4">Produto</h4>
-            <ul className="space-y-2">
-              <li><a href="#funcionalidades" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Funcionalidades</a></li>
-              <li><a href="#integracoes" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Integrações</a></li>
-              <li><a href="#precos" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Planos</a></li>
-              <li><Link to="/bonus" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Bônus Exclusivos</Link></li>
-            </ul>
-          </div>
-
-          {/* Coluna 3: Legal (Aqui entram seus links futuros) */}
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-white mb-4">Legal</h4>
-            <ul className="space-y-2">
-              <li><Link to="/termos" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Termos de Uso</Link></li>
-              <li><Link to="/privacidade" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Política de Privacidade</Link></li>
-              <li><Link to="/cookies" className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors">Cookies</Link></li>
-            </ul>
-          </div>
-
-          {/* Coluna 4: Suporte */}
-          <div>
-            <h4 className="font-bold text-slate-900 dark:text-white mb-4">Suporte</h4>
-            <ul className="space-y-2">
-              <li>
-                <a 
-                  href="https://wa.me/5561982199922" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-slate-500 hover:text-brand-blue dark:text-slate-400 dark:hover:text-brand-blue text-sm transition-colors flex items-center gap-2"
-                >
-                  Central de Ajuda
-                </a>
-              </li>
-              <li><span className="text-slate-400 text-sm">suporte@tribebuild.pro</span></li>
-            </ul>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 relative z-10 mb-12 text-center">
+        
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue text-xs font-bold uppercase tracking-widest rounded-full mb-6 border border-brand-blue/20">
+          <Zap className="w-4 h-4" />
+          Compatível com tudo
         </div>
-
-        {/* Linha Divisória e Copyright */}
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-400 dark:text-slate-500 text-xs text-center md:text-left">
-            © {currentYear} TribeBuild Tecnologia Ltda. Todos os direitos reservados. CNPJ: XX.XXX.XXX/0001-XX
-          </p>
-          <div className="flex gap-4">
-            {/* Ícones sociais podem entrar aqui futuramente */}
-          </div>
-        </div>
+        
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
+          Conecte Com Sua{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-coral">
+            Plataforma Favorita
+          </span>
+        </h2>
+        
+        <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+          Detectamos o pagamento e liberamos o acesso no app. <br/>
+          Sem planilhas, sem trabalho manual.
+        </p>
       </div>
-    </footer>
+
+      {/* --- INÍCIO DO MARQUEE INFINITO --- */}
+      <div className="relative flex flex-col gap-8 overflow-hidden py-8">
+        
+        {/* Fileira 1 - Indo para a Esquerda */}
+        <div className="flex w-max hover:pause" style={{ animation: 'scroll-left 40s linear infinite' }}>
+          {[...integrations, ...integrations].map((integration, idx) => (
+            <div
+              key={`${integration.name}-${idx}`}
+              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10"
+            >
+              <img
+                src={integration.logo}
+                alt={integration.name}
+                loading="lazy"
+                className="max-h-10 w-auto object-contain transition-all opacity-80 hover:opacity-100 hover:scale-110 dark:brightness-200" 
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Fileira 2 - Indo para a Direita */}
+        <div className="flex w-max hover:pause" style={{ animation: 'scroll-right 40s linear infinite' }}>
+          {[...integrations.reverse(), ...integrations].map((integration, idx) => (
+            <div
+              key={`rev-${integration.name}-${idx}`}
+              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10"
+            >
+              <img
+                src={integration.logo}
+                alt={integration.name}
+                loading="lazy"
+                className="max-h-10 w-auto object-contain transition-all opacity-80 hover:opacity-100 hover:scale-110 dark:brightness-200"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Gradientes Laterais (Fade) */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-slate-50 dark:from-[#0B1120] to-transparent"></div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-slate-50 dark:from-[#0B1120] to-transparent"></div>
+      </div>
+      {/* --- FIM DO MARQUEE --- */}
+
+      {/* CTA Final - Otimizado com Link */}
+      <div className="text-center mt-12 relative z-10">
+        <Link 
+          to="/api-docs" 
+          className="group inline-flex items-center gap-2 px-6 py-3 text-brand-blue hover:text-brand-coral font-bold transition-colors"
+        >
+          <span>Ver documentação da API</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </div>
+
+      <style>{`
+        @keyframes scroll-left {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes scroll-right {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+        .hover\\:pause:hover {
+          animation-play-state: paused !important;
+        }
+      `}</style>
+    </section>
   );
 };
 
-export default Footer;
+export default IntegrationsSection;
