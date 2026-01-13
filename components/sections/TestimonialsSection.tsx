@@ -197,9 +197,16 @@ const TestimonialsSection: React.FC = () => {
 
       </div>
 
-      {/* Carousel de WhatsApp */}
+      {/* Carousel de WhatsApp (AJUSTADO: VELOCIDADE MAIS LENTA) */}
       <div className="scroll-container relative mt-8">
-        <div className="flex animate-scroll-left hover:pause w-max py-4">
+        {/* Adicionei style inline para forçar 90s de duração. Se 'animate-scroll-left' for muito rápido no CSS global, isso sobrescreve se o CSS permitir, senão teremos que alterar no tailwind config. Mas geralmente a classe padrão é rápida. Vou tentar injetar um estilo local. */}
+        <div 
+            className="flex w-max py-4 hover:pause"
+            style={{ 
+                animation: 'scroll-left 120s linear infinite' // Duração aumentada para 120 segundos (bem lento)
+            }}
+        >
+          {/* Renderiza 3x para loop infinito suave */}
           {[...testimonials, ...testimonials, ...testimonials].map((testimonial, index) => (
             <WhatsAppCard
               key={`testimonial-${index}`}
