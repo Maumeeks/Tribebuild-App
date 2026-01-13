@@ -34,7 +34,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
 
   // Dados do usuário (mock)
   const user = {
-    name: 'João Silva',
+    name: 'João Alves',
     email: 'joao@tribebuild.com',
     initials: 'JS'
   };

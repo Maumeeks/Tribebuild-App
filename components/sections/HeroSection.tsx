@@ -13,10 +13,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   onCTAClick,
 }) => {
   const navigate = useNavigate();
-  
+
   // Contador regressivo - próxima segunda-feira às 23:59
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  
+
   useEffect(() => {
     const getNextMonday = () => {
       const now = new Date();
@@ -25,13 +25,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({
       nextMonday.setHours(23, 59, 59, 999);
       return nextMonday;
     };
-    
+
     const targetDate = getNextMonday();
-    
+
     const timer = setInterval(() => {
       const now = new Date().getTime();
       const distance = targetDate.getTime() - now;
-      
+
       if (distance > 0) {
         setTimeLeft({
           days: Math.floor(distance / (1000 * 60 * 60 * 24)),
@@ -41,7 +41,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         });
       }
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, []);
 
@@ -54,8 +54,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   };
 
   return (
-    <section 
-      id="inicio" 
+    <section
+      id="inicio"
       className="relative px-4 pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-x-hidden overflow-y-visible bg-transparent"
     >
       {/* Overlay sutil para legibilidade */}
@@ -66,7 +66,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
 
       <div className="container mx-auto max-w-6xl relative z-10">
         <div className="flex flex-col items-center text-center">
-          
+
           {/* Badge de Urgência com Contador */}
           <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-full border border-brand-coral/30 backdrop-blur-md mb-8 animate-fade-in">
             <span className="relative flex h-2.5 w-2.5">
@@ -74,7 +74,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-coral"></span>
             </span>
             <span className="text-xs font-bold tracking-wide text-brand-coral font-display">
-              🔥 PREÇO DE LANÇAMENTO ACABA EM: 
+              🔥 PREÇO DE LANÇAMENTO ACABA EM:
               <span className="ml-2 font-black">
                 {String(timeLeft.days).padStart(2, '0')}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m {String(timeLeft.seconds).padStart(2, '0')}s
               </span>
@@ -106,7 +106,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
               CRIAR MEU APP EM 17 MINUTOS
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-            <button 
+            <button
               className="px-8 py-4 bg-white dark:bg-white/5 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-white/10 hover:border-brand-blue dark:hover:border-brand-blue rounded-full font-bold text-lg transition-all font-display flex items-center gap-2"
               onClick={() => document.getElementById('demo-apps')?.scrollIntoView({ behavior: 'smooth' })}
             >
@@ -137,30 +137,32 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                 allowFullScreen
                 className="w-full h-full"
               ></iframe>
-              
+
               {/* Overlay on hover/load */}
               <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-900/20 pointer-events-none group-hover:opacity-0 transition-opacity"></div>
             </div>
 
             {/* Trust Badges - Mais Específicos */}
-            <div className="mt-10 flex flex-wrap justify-center gap-6 md:gap-10">
-               <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
-                 <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                 <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">SSL 256-bit</span>
-               </div>
-               <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
-                 <Users className="w-5 h-5 text-brand-blue" />
-                 <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">1.247 criadores em 23 países</span>
-               </div>
-               <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
-                 <Star className="w-5 h-5 text-amber-500" />
-                 <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">4.9/5 (312 avaliações)</span>
-               </div>
+            <div className="mt-10 flex flex-wrap justify-center gap-3 md:gap-6 px-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
+                <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+                <span className="font-bold text-slate-700 dark:text-slate-300 text-xs md:text-sm">SSL 256-bit</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-brand-blue" />
+                <span className="font-bold text-slate-700 dark:text-slate-300 text-xs md:text-sm">1.247 criadores</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
+                <Star className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />
+                <span className="font-bold text-slate-700 dark:text-slate-300 text-xs md:text-sm">4.9/5 (312)</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+      </div >
+    </section >
   );
 };
 
