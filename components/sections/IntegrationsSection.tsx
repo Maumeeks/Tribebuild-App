@@ -61,6 +61,7 @@ const IntegrationsSection: React.FC = () => {
               <img
                 src={integration.logo}
                 alt={integration.name}
+                loading="lazy"
                 className="max-h-10 w-auto object-contain transition-all opacity-80 hover:opacity-100 hover:scale-110 dark:brightness-200" 
               />
             </div>
@@ -77,6 +78,7 @@ const IntegrationsSection: React.FC = () => {
               <img
                 src={integration.logo}
                 alt={integration.name}
+                loading="lazy"
                 className="max-h-10 w-auto object-contain transition-all opacity-80 hover:opacity-100 hover:scale-110 dark:brightness-200"
               />
             </div>
@@ -89,7 +91,7 @@ const IntegrationsSection: React.FC = () => {
       </div>
       {/* --- FIM DO MARQUEE --- */}
 
-      {/* CTA Final */}
+      {/* CTA Final - Otimizado com Link */}
       <div className="text-center mt-12 relative z-10">
         <Link 
           to="/api-docs" 
@@ -100,7 +102,6 @@ const IntegrationsSection: React.FC = () => {
         </Link>
       </div>
 
-      {/* Estilos de Animação */}
       <style>{`
         @keyframes scroll-left {
           0% { transform: translateX(0); }
