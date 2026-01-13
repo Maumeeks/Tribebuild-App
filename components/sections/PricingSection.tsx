@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, Rocket, Info, Shield, Gift, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import ScrollReveal from '../ScrollReveal';
+import { useNavigate } from 'react-router-dom';
 
 const plans = [
   {
@@ -104,6 +105,7 @@ const plans = [
 
 const PricingSection: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const navigate = useNavigate();
 
   // Contador regressivo para urgência
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
@@ -134,6 +136,23 @@ const PricingSection: React.FC = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  const handlePlanClick = (plan: typeof plans[0]) => {
+    // Se for Enterprise (WhatsApp), abre em nova aba
+    if (plan.whatsapp) {
+      window.open(plan.whatsapp, '_blank');
+      return;
+    }
+
+    // Para todos os outros, redireciona para criar conta
+    // Podemos passar o plano escolhido via state se quisermos pré-selecionar depois
+    navigate('/register', { 
+      state: { 
+        selectedPlan: plan.id,
+        billingCycle: isAnnual ? 'yearly' : 'monthly'
+      } 
+    });
+  };
 
   return (
     <section id="precos" className="py-20 relative overflow-hidden transition-colors">
@@ -283,47 +302,21 @@ const PricingSection: React.FC = () => {
                 </div>
               )}
 
-              {/* CTA (Lógica Condicional Corrigida) */}
-              {plan.whatsapp ? (
-                <a
-                  href={plan.whatsapp}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 text-center
-                    bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/40
-                    active:scale-95
-                  `}
-                >
-                  {plan.cta}
-                </a>
-              ) : plan.stripeMonthly ? (
-                <a
-                  href={isAnnual ? plan.stripeYearly : plan.stripeMonthly}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 text-center
-                    ${plan.highlighted
+              {/* CTA (Agora redireciona para Registro) */}
+              <button
+                onClick={() => handlePlanClick(plan)}
+                className={`block w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 text-center
+                  ${plan.whatsapp
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/40'
+                    : plan.highlighted
                       ? 'bg-brand-blue text-white hover:bg-brand-blue-dark shadow-xl shadow-brand-blue/30 hover:shadow-2xl hover:shadow-brand-blue/40'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm'
-                    }
-                    active:scale-95
-                  `}
-                >
-                  {plan.cta}
-                </a>
-              ) : (
-                <button
-                  className={`w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300
-                    ${plan.highlighted
-                      ? 'bg-brand-blue text-white hover:bg-brand-blue-dark shadow-xl shadow-brand-blue/30 hover:shadow-2xl hover:shadow-brand-blue/40'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm'
-                    }
-                    active:scale-95
-                  `}
-                >
-                  {plan.cta}
-                </button>
-              )}
+                  }
+                  active:scale-95
+                `}
+              >
+                {plan.cta}
+              </button>
             </div>
           ))}
         </div>
