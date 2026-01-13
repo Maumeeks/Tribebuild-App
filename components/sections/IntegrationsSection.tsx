@@ -69,7 +69,7 @@ const IntegrationsSection: React.FC = () => {
           </div>
         </ScrollReveal>
 
-        {/* Grid de Logos */}
+        {/* Grid de Logos (CORRIGIDO: Fundo branco para visibilidade) */}
         <ScrollReveal delay={100}>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 md:gap-6">
             {integrations.map((integration, index) => (
@@ -78,11 +78,14 @@ const IntegrationsSection: React.FC = () => {
                 className="group bg-white dark:bg-slate-800/50 rounded-2xl p-4 md:p-6 flex items-center justify-center border border-slate-100 dark:border-slate-700 hover:border-brand-blue/50 dark:hover:border-brand-blue/50 hover:shadow-lg hover:shadow-brand-blue/10 transition-all duration-300 hover:-translate-y-1 aspect-[4/3]"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <img
-                  src={integration.logo}
-                  alt={`Logo ${integration.name}`}
-                  className="max-h-8 md:max-h-10 w-auto object-contain grayscale group-hover:grayscale-0 opacity-70 group-hover:opacity-100 transition-all duration-300"
-                />
+                {/* Container Branco interno para garantir contraste do logo */}
+                <div className="w-full h-full flex items-center justify-center bg-white rounded-xl p-2 md:p-3 shadow-inner">
+                   <img
+                    src={integration.logo}
+                    alt={`Logo ${integration.name}`}
+                    className="max-h-8 md:max-h-12 w-auto object-contain transition-all duration-300 group-hover:scale-110"
+                  />
+                </div>
               </div>
             ))}
           </div>
