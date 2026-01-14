@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, CreditCard, Phone, Lock, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
@@ -132,6 +131,8 @@ const RegisterPage: React.FC = () => {
         email: formData.email,
         password: formData.password,
         options: {
+          // AQUI ESTÁ A CORREÇÃO: Redirecionamento explícito para /plans
+          emailRedirectTo: 'https://tribebuild.pro/plans',
           data: {
             full_name: formData.name,
             cpf: formData.cpf.replace(/\D/g, ''),
