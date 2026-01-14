@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -73,7 +72,7 @@ const AppsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 font-['Inter']">
+    <div className="space-y-8 font-['Inter'] pb-20"> {/* pb-20 para dar espaço no mobile */}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
         <div>
@@ -95,7 +94,7 @@ const AppsPage: React.FC = () => {
           <div className="flex flex-col items-end gap-2">
             <button
               disabled
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-200 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-sm cursor-not-allowed shadow-none"
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-200 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-sm cursor-not-allowed shadow-none w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
               Novo App
@@ -107,7 +106,7 @@ const AppsPage: React.FC = () => {
         ) : (
           <Link
             to="/dashboard/builder"
-            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 whitespace-nowrap w-full sm:w-auto"
           >
             <Plus className="w-5 h-5" />
             Novo App
@@ -129,7 +128,7 @@ const AppsPage: React.FC = () => {
           </div>
           <Link
             to="/dashboard/plans"
-            className="flex items-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-amber-600/20 whitespace-nowrap"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-amber-600/20 whitespace-nowrap w-full md:w-auto"
           >
             Fazer Upgrade Agora
             <ChevronRight className="w-4 h-4" />
@@ -140,7 +139,7 @@ const AppsPage: React.FC = () => {
       {/* Lista de Apps ou Estado Vazio */}
       {apps.length === 0 ? (
         /* Estado Vazio */
-        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-16 text-center shadow-sm animate-fade-in">
+        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-8 md:p-16 text-center shadow-sm animate-fade-in">
           <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
             <Snowflake className="w-10 h-10 text-brand-blue" />
           </div>
@@ -152,7 +151,7 @@ const AppsPage: React.FC = () => {
           </p>
           <Link
             to="/dashboard/builder"
-            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300"
+            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 w-full md:w-auto"
           >
             <Plus className="w-5 h-5" />
             Criar meu primeiro app
@@ -160,7 +159,7 @@ const AppsPage: React.FC = () => {
         </div>
       ) : (
         /* Grid de Apps */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
           {apps.map((app, index) => (
             <div 
               key={app.id}
@@ -168,7 +167,7 @@ const AppsPage: React.FC = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* App Header / Identity */}
-              <div className="p-8 pb-6 flex flex-col items-center">
+              <div className="p-6 md:p-8 pb-6 flex flex-col items-center">
                 <div className="relative mb-6">
                   {app.logo ? (
                     <img 
@@ -200,7 +199,7 @@ const AppsPage: React.FC = () => {
               </div>
 
               {/* Link de Acesso Copiável */}
-              <div className="px-8 pb-6">
+              <div className="px-6 md:px-8 pb-6">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Endereço de Acesso</p>
                 <div className="flex items-center gap-3 bg-slate-50/80 border border-slate-100 dark:border-slate-700 rounded-2xl p-3 group/link">
                   <span className="text-sm font-bold text-slate-600 truncate flex-1 ml-1">
@@ -232,7 +231,7 @@ const AppsPage: React.FC = () => {
               </div>
 
               {/* Grid de Ações Rápidas */}
-              <div className="px-8 pb-8 space-y-3">
+              <div className="px-6 md:px-8 pb-8 space-y-3">
                 <Link
                   to="/dashboard/builder"
                   className="flex items-center justify-center gap-3 w-full py-3.5 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 text-slate-600 hover:text-brand-blue rounded-2xl font-bold transition-all border border-transparent hover:border-blue-100 text-sm"
@@ -288,23 +287,23 @@ const AppsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Confirmação de Exclusão */}
+      {/* Modal de Confirmação de Exclusão (Corrigido para Mobile) */}
       {deleteModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setDeleteModalOpen(false)}
           />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden">
+          <div className="relative bg-white dark:bg-slate-800 rounded-[2rem] shadow-2xl max-w-md w-full p-6 md:p-10 animate-slide-up overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-sm">
-              <Trash2 className="w-10 h-10 text-red-500 stroke-[2.5px]" />
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-sm">
+              <Trash2 className="w-8 h-8 md:w-10 md:h-10 text-red-500 stroke-[2.5px]" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
+            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
               Deseja apagar este app?
             </h3>
-            <p className="text-slate-500 text-center mb-10 font-medium leading-relaxed">
-              Esta ação é <span className="text-red-500 font-bold">irreversível</span>. Todos os dados, produtos e métricas vinculados a este app serão permanentemente excluídos do TribeBuild.
+            <p className="text-slate-500 text-center mb-8 md:mb-10 font-medium leading-relaxed text-sm md:text-base">
+              Esta ação é <span className="text-red-500 font-bold">irreversível</span>. Todos os dados vinculados a este app serão permanentemente excluídos.
             </p>
             <div className="flex flex-col gap-3">
               <button
@@ -315,7 +314,7 @@ const AppsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setDeleteModalOpen(false)}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
+                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
               >
                 Cancelar e Manter
               </button>

@@ -8,7 +8,7 @@ import { AlertCircle } from 'lucide-react';
 const PlansPage: React.FC = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-    const { user, profile } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const state = location.state as { expired?: boolean; message?: string };
 
@@ -165,25 +165,25 @@ const PlansPage: React.FC = () => {
 
   const currentPlans = plans[billingPeriod];
 
-    const handleSelectPlan = (baseLink: string, planId: string) => {
+  const handleSelectPlan = (baseLink: string, planId: string) => {
     setLoadingPlan(planId);
 
     let fullLink = baseLink;
 
-    // 1. Passa o ID do usuário (pra webhook saber quem ativar)
+    // 1. Passa o ID do usuário
     if (user?.id) {
       fullLink += (fullLink.includes('?') ? '&' : '?') + `client_reference_id=${user.id}`;
     }
 
-    // 2. Prefill do email (já tinha, deixa)
+    // 2. Prefill do email
     if (user?.email) {
       fullLink += (fullLink.includes('?') ? '&' : '?') + `prefilled_email=${encodeURIComponent(user.email)}`;
     }
 
-    // 3. URLs de retorno (pra voltar pro seu site depois do pagamento)
-    const baseUrl = window.location.origin + '/#';
+    // 3. URLs de retorno
+    const baseUrl = window.location.origin; // Removi o /# pois estamos usando BrowserRouter agora
     fullLink += (fullLink.includes('?') ? '&' : '?') +
-      `success_url=${encodeURIComponent(baseUrl + '/subscription/success')}` +
+      `success_url=${encodeURIComponent(baseUrl + '/subscription/success?session_id={CHECKOUT_SESSION_ID}')}` + // Adicionei a query session_id
       `&cancel_url=${encodeURIComponent(baseUrl + '/subscription/cancel')}`;
 
     // Redireciona
@@ -250,14 +250,19 @@ const PlansPage: React.FC = () => {
         </div>
 
         {/* Info Box */}
-        <div className="max-w-4xl mx-auto mb-10">
+        <div className="max-w-4xl mx-auto mb-10 space-y-4">
           <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl p-4 flex items-start gap-3">
             <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-blue-900 dark:text-blue-300">7 dias grátis para testar</p>
-                      {/* Mensagem se foi redirecionado por falta de plano */}
-        {state?.expired && (
-          <div className="max-w-4xl mx-auto mb-10">
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                Experimente todos os recursos sem compromisso. Cancele quando quiser.
+              </p>
+            </div>
+          </div>
+          
+          {/* Mensagem se foi redirecionado por falta de plano */}
+          {state?.expired && (
             <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
               <div>
@@ -269,13 +274,7 @@ const PlansPage: React.FC = () => {
                 </p>
               </div>
             </div>
-          </div>
-        )}
-              <p className="text-sm text-blue-700 dark:text-blue-400">
-                Experimente todos os recursos sem compromisso. Cancele quando quiser.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Plans Grid */}
@@ -287,7 +286,7 @@ const PlansPage: React.FC = () => {
             return (
               <div
                 key={plan.id}
-                className={`relative bg-white dark:bg-slate-800 rounded-3xl shadow-xl border-2 transition-all hover:scale-[1.02] hover:shadow-2xl ${
+                className={`relative bg-white dark:bg-slate-800 rounded-3xl shadow-xl border-2 transition-all hover:scale-[1.02] hover:shadow-2xl flex flex-col ${
                   isPopular
                     ? 'border-brand-coral dark:border-brand-coral'
                     : 'border-slate-200 dark:border-slate-700'
@@ -295,14 +294,14 @@ const PlansPage: React.FC = () => {
               >
                 {/* Popular Badge */}
                 {isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                     <span className="bg-brand-coral text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">
                       RECOMENDADO
                     </span>
                   </div>
                 )}
 
-                <div className="p-6 md:p-8">
+                <div className="p-6 md:p-8 flex flex-col h-full">
                   {/* Plan Header */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-12 h-12 rounded-2xl bg-${plan.color}/10 dark:bg-${plan.color}/20 flex items-center justify-center`}>
@@ -344,8 +343,8 @@ const PlansPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Features */}
-                  <ul className="space-y-3 mb-8">
+                  {/* Features (Com flex-1 para empurrar botão) */}
+                  <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -360,7 +359,7 @@ const PlansPage: React.FC = () => {
                   <button
                     onClick={() => handleSelectPlan(plan.stripeLink, plan.id)}
                     disabled={loadingPlan !== null}
-                    className={`w-full py-4 px-6 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`w-full py-4 px-6 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-auto ${
                       isPopular
                         ? 'bg-brand-coral hover:bg-brand-coral/90 text-white shadow-lg shadow-brand-coral/25'
                         : 'bg-brand-blue hover:bg-brand-blue-dark text-white shadow-lg shadow-brand-blue/25'
