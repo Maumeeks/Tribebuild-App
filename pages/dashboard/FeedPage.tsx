@@ -87,7 +87,7 @@ const FeedPage: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [isScheduled, setIsScheduled] = useState(false);
   
-  // Estado único para Data e Hora (datetime-local)
+  // MUDANÇA: Estado único para Data e Hora (datetime-local)
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   
   // Ref para upload de imagem
@@ -304,7 +304,7 @@ const FeedPage: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Opção de Agendamento - VERSÃO COMPACTA UNIFICADA */}
+                    {/* Opção de Agendamento - VERSÃO NATIVA OPÇÃO A */}
                     <div className={cn(
                         "rounded-[2rem] border transition-all duration-300 overflow-hidden",
                         isScheduled 
@@ -337,20 +337,20 @@ const FeedPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Corpo do Agendamento - INPUT ÚNICO */}
+                        {/* Corpo do Agendamento - INPUT NATIVO ÚNICO */}
                         {isScheduled && (
                             <div className="px-5 pb-6 md:px-6 animate-slide-up">
                                 <div className="border-t border-orange-200/50 dark:border-orange-900/30 pt-5 space-y-4">
                                     
                                     <div className="space-y-2">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
-                                            Data e Hora da Publicação
+                                            Data e Hora
                                         </label>
                                         <input
                                             type="datetime-local"
                                             value={scheduleDateTime}
                                             onChange={(e) => setScheduleDateTime(e.target.value)}
-                                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold text-sm transition-all box-border"
+                                            className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold text-sm transition-all"
                                         />
                                     </div>
 
