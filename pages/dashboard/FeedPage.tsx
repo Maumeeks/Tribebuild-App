@@ -193,7 +193,7 @@ const FeedPage: React.FC = () => {
           className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
         >
           <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
-              <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
           </div>
           Voltar para Meus Apps
         </button>
@@ -205,34 +205,34 @@ const FeedPage: React.FC = () => {
 
       {/* Tabs Design */}
       <div className="bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center w-fit animate-slide-up overflow-x-auto max-w-full no-scrollbar" style={{ animationDelay: '50ms' }}>
-          <button
-            onClick={() => setActiveTab('create')}
-            className={cn(
-                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                activeTab === 'create' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            Criar Post
-          </button>
-          <button
-            onClick={() => setActiveTab('list')}
-            className={cn(
-                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                activeTab === 'list' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            Lista de Posts
-          </button>
-          <button
-            onClick={() => setActiveTab('scheduled')}
-            className={cn(
-                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
-                activeTab === 'scheduled' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            <Calendar className="w-4 h-4 hidden sm:block" />
-            Agendados
-          </button>
+        <button
+          onClick={() => setActiveTab('create')}
+          className={cn(
+            "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
+            activeTab === 'create' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          )}
+        >
+          Criar Post
+        </button>
+        <button
+          onClick={() => setActiveTab('list')}
+          className={cn(
+            "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
+            activeTab === 'list' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          )}
+        >
+          Lista de Posts
+        </button>
+        <button
+          onClick={() => setActiveTab('scheduled')}
+          className={cn(
+            "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+            activeTab === 'scheduled' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          )}
+        >
+          <Calendar className="w-4 h-4 hidden sm:block" />
+          Agendados
+        </button>
       </div>
 
       <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
@@ -240,152 +240,151 @@ const FeedPage: React.FC = () => {
         {activeTab === 'create' && (
           <div className="space-y-8 max-w-4xl">
             {/* Editor de Conteúdo */}
-            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Conteúdo do Post</label>
-                    
-                    {/* Toolbar Fake / Estilizada */}
-                    <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Italic size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Underline size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><Strikethrough size={18} /></button>
-                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center hidden sm:block" />
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><List size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><AlignLeft size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white ml-auto"><LinkIcon size={18} /></button>
-                    </div>
+            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden isolate">
+              <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Conteúdo do Post</label>
+                
+                {/* Toolbar Fake / Estilizada */}
+                <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Italic size={18} /></button>
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Underline size={18} /></button>
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><Strikethrough size={18} /></button>
+                  <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center hidden sm:block" />
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><List size={18} /></button>
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><AlignLeft size={18} /></button>
+                  <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white ml-auto"><LinkIcon size={18} /></button>
+                </div>
 
-                    <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="O que você quer contar para seus alunos hoje?"
-                        rows={8}
-                        className="w-full p-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="O que você quer contar para seus alunos hoje?"
+                  rows={8}
+                  className="w-full p-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
+                />
+              </div>
+
+              <div className="p-6 md:p-8 space-y-8">
+                {/* Upload de Imagem */}
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Imagem de Destaque (Opcional)</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-8 md:p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      accept="image/*"
+                      className="hidden"
                     />
-                </div>
-
-                <div className="p-6 md:p-8 space-y-8">
-                    {/* Upload de Imagem */}
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Imagem de Destaque (Opcional)</label>
-                        <div 
-                          onClick={() => fileInputRef.current?.click()}
-                          className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-8 md:p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
-                        >
-                            <input 
-                              type="file" 
-                              ref={fileInputRef}
-                              onChange={handleImageUpload}
-                              accept="image/*"
-                              className="hidden"
-                            />
-                            
-                            {image ? (
-                              <div className="relative group/image">
-                                <img src={image} alt="Preview" className="mx-auto max-h-64 object-contain rounded-xl shadow-lg" />
-                                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
-                                  <p className="text-white font-bold text-xs">Trocar Imagem</p>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <Upload className="w-10 h-10 md:w-12 md:h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                                <p className="text-slate-900 dark:text-white font-black tracking-tight text-base md:text-lg">Arraste uma imagem ou clique aqui</p>
-                                <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-widest leading-loose">Recomendado: 1280x720 (16:9)</p>
-                              </>
-                            )}
+                    
+                    {image ? (
+                      <div className="relative group/image">
+                        <img src={image} alt="Preview" className="mx-auto max-h-64 object-contain rounded-xl shadow-lg" />
+                        <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
+                          <p className="text-white font-bold text-xs">Trocar Imagem</p>
                         </div>
-                        {image && (
-                          <button 
-                            onClick={() => setImage(null)}
-                            className="mt-3 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
-                          >
-                            <X className="w-3 h-3" /> Remover imagem
-                          </button>
-                        )}
-                    </div>
-
-                    {/* Bloco de Agendamento */}
-                    <div>
-                        {/* Toggle */}
-                        <div 
-                            className={cn(
-                                "p-6 rounded-[2rem] border transition-all duration-300 cursor-pointer select-none",
-                                isScheduled 
-                                  ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30" 
-                                  : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
-                            )}
-                            onClick={() => setIsScheduled(!isScheduled)}
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
-                                    <div className={cn("w-12 h-6 rounded-full transition-colors", isScheduled ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700")}></div>
-                                    <div className={cn("absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform", isScheduled ? "translate-x-6" : "")}></div>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
-                                        <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
-                                            Agendar publicação
-                                        </span>
-                                    </div>
-                                    <span className="text-[10px] text-slate-400 sm:ml-2 font-medium">para data futura</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Campos de Data/Hora - Layout vertical em mobile */}
-                        {isScheduled && (
-                            <div className="mt-4 space-y-4 animate-slide-up overflow-hidden">
-                                {/* Data */}
-                                <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Data da Publicação</label>
-                                    <input
-                                        type="date"
-                                        value={scheduleDate}
-                                        onChange={(e) => setScheduleDate(e.target.value)}
-                                        className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
-                                    />
-                                </div>
-                                
-                                {/* Horário */}
-                                <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Horário</label>
-                                    <input
-                                        type="time"
-                                        value={scheduleTime}
-                                        onChange={(e) => setScheduleTime(e.target.value)}
-                                        className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
-                                    />
-                                </div>
-
-                                {/* Info */}
-                                <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
-                                    <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
-                                        O post será publicado automaticamente no feed no horário de Brasília.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="p-6 md:p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
-                    <Button
-                        onClick={handlePublish}
-                        className={cn(
-                            "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
-                            isScheduled 
-                                ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20" 
-                                : "bg-brand-blue hover:bg-brand-blue-dark shadow-blue-500/20"
-                        )}
-                        leftIcon={isScheduled ? Clock : Send}
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-10 h-10 md:w-12 md:h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
+                        <p className="text-slate-900 dark:text-white font-black tracking-tight text-base md:text-lg">Arraste uma imagem ou clique aqui</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-widest leading-loose">Recomendado: 1280x720 (16:9)</p>
+                      </>
+                    )}
+                  </div>
+                  {image && (
+                    <button 
+                      onClick={() => setImage(null)}
+                      className="mt-3 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
                     >
-                        {isScheduled ? 'Agendar Post' : 'Publicar Agora'}
-                    </Button>
+                      <X className="w-3 h-3" /> Remover imagem
+                    </button>
+                  )}
                 </div>
+
+                {/* Bloco de Agendamento - COM WRAPPER DE CLIPPING */}
+                <div className="overflow-hidden rounded-[2rem]">
+                  <div
+                    className={cn(
+                      "p-6 rounded-[2rem] border transition-all duration-300 cursor-pointer select-none",
+                      isScheduled 
+                        ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30" 
+                        : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
+                    )}
+                    onClick={() => setIsScheduled(!isScheduled)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div className={cn("w-12 h-6 rounded-full transition-colors", isScheduled ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700")}></div>
+                        <div className={cn("absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform", isScheduled ? "translate-x-6" : "")}></div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
+                          <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
+                            Agendar publicação
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 sm:ml-2 font-medium">para data futura</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Campos que aparecem quando agendado */}
+                  {isScheduled && (
+                    <div className="mt-4 space-y-4 animate-slide-up bg-white dark:bg-slate-900 p-6 rounded-b-[2rem]">
+                      {/* Data */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Data da Publicação</label>
+                        <input
+                          type="date"
+                          value={scheduleDate}
+                          onChange={(e) => setScheduleDate(e.target.value)}
+                          className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
+                        />
+                      </div>
+                      
+                      {/* Horário */}
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Horário</label>
+                        <input
+                          type="time"
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                          className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
+                        />
+                      </div>
+
+                      {/* Info */}
+                      <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
+                        <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
+                          O post será publicado automaticamente no feed no horário de Brasília.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 md:p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
+                <Button
+                  onClick={handlePublish}
+                  className={cn(
+                    "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
+                    isScheduled 
+                        ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20" 
+                        : "bg-brand-blue hover:bg-brand-blue-dark shadow-blue-500/20"
+                  )}
+                  leftIcon={isScheduled ? Clock : Send}
+                >
+                  {isScheduled ? 'Agendar Post' : 'Publicar Agora'}
+                </Button>
+              </div>
             </div>
           </div>
         )}
