@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Plus,
@@ -21,7 +20,6 @@ import {
   HelpCircle,
   ExternalLink,
   Info,
-  CheckCircle2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -33,6 +31,7 @@ interface Content {
   type: 'video' | 'pdf' | 'audio' | 'link' | 'html' | 'file';
   url?: string;
   description?: string;
+  thumbnail?: string | null;
 }
 
 interface Product {
@@ -76,10 +75,10 @@ const initialProducts: Product[] = [
 
 // Configuração de tipos de oferta
 const offerTypeConfig = {
-  main: { label: 'Produto principal', color: 'bg-blue-50 text-blue-600 border-blue-100' },
-  bonus: { label: 'Bônus', color: 'bg-green-50 text-green-600 border-green-100' },
-  order_bump: { label: 'Order Bump', color: 'bg-purple-50 text-purple-600 border-purple-100' },
-  upsell_downsell: { label: 'Upsell/Downsell', color: 'bg-orange-50 text-orange-600 border-orange-100' }
+  main: { label: 'Produto principal', color: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800' },
+  bonus: { label: 'Bônus', color: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' },
+  order_bump: { label: 'Order Bump', color: 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-800' },
+  upsell_downsell: { label: 'Upsell/Downsell', color: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800' }
 };
 
 // Ícones por tipo de conteúdo
@@ -93,7 +92,6 @@ const contentTypeIcons = {
 };
 
 const ProductsPage: React.FC = () => {
-  const { appId } = useParams();
   const navigate = useNavigate();
   
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -104,15 +102,29 @@ const ProductsPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'product' | 'content'; id: string; productId?: string } | null>(null);
 
-  // Estado do formulário de novo produto atualizado
+  // Refs para Upload
+  const productLogoInputRef = useRef<HTMLInputElement>(null);
+  const contentThumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  // Estado do formulário de novo produto
   const [newProduct, setNewProduct] = useState({
     name: '',
+    logo: null as string | null,
     releaseType: 'immediate' as 'immediate' | 'days_after' | 'exact_date',
     releaseDays: '',
     releaseDate: '',
     offerType: 'main' as 'main' | 'bonus' | 'order_bump' | 'upsell_downsell',
-    platformIds: [''], // Array de IDs
+    platformIds: [''], 
     salesPageUrl: ''
+  });
+
+  // Estado do formulário de novo conteúdo
+  const [newContent, setNewContent] = useState({
+    name: '',
+    type: 'video' as Content['type'],
+    url: '',
+    description: '',
+    thumbnail: null as string | null
   });
 
   // Funções para gerenciar múltiplos IDs
@@ -138,14 +150,6 @@ const ProductsPage: React.FC = () => {
     setNewProduct({ ...newProduct, platformIds: updated });
   };
 
-  // Estado do formulário de novo conteúdo
-  const [newContent, setNewContent] = useState({
-    name: '',
-    type: 'video' as Content['type'],
-    url: '',
-    description: ''
-  });
-
   const toggleExpand = (productId: string) => {
     setExpandedProducts(prev =>
       prev.includes(productId)
@@ -154,32 +158,39 @@ const ProductsPage: React.FC = () => {
     );
   };
 
+  // Upload Handlers
+  const handleProductLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewProduct(prev => ({ ...prev, logo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleContentThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewContent(prev => ({ ...prev, thumbnail: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddProduct = () => {
     if (!newProduct.name) {
       alert('Digite o nome do produto');
       return;
     }
 
-    if (newProduct.releaseType === 'days_after' && !newProduct.releaseDays) {
-      alert('Digite o número de dias para liberação');
-      return;
-    }
-
-    if (newProduct.releaseType === 'exact_date' && !newProduct.releaseDate) {
-      alert('Selecione a data de liberação');
-      return;
-    }
-
-    // Validação por tipo
-    if (newProduct.offerType === 'main' && !newProduct.platformIds.some(id => id.trim())) {
-      alert('Digite pelo menos um ID do produto para Produto Principal');
-      return;
-    }
-
     const product: Product = {
       id: Math.random().toString(36).substr(2, 9),
       name: newProduct.name,
-      logo: null,
+      logo: newProduct.logo,
       releaseType: newProduct.releaseType,
       releaseDays: newProduct.releaseDays ? parseInt(newProduct.releaseDays) : undefined,
       releaseDate: newProduct.releaseDate || undefined,
@@ -192,6 +203,7 @@ const ProductsPage: React.FC = () => {
     setProducts([...products, product]);
     setNewProduct({ 
       name: '', 
+      logo: null,
       releaseType: 'immediate', 
       releaseDays: '', 
       releaseDate: '', 
@@ -210,7 +222,8 @@ const ProductsPage: React.FC = () => {
       name: newContent.name,
       type: newContent.type,
       url: newContent.url,
-      description: newContent.description
+      description: newContent.description,
+      // thumbnail: newContent.thumbnail // Adicionar se a interface suportar exibição
     };
 
     setProducts(products.map(p =>
@@ -219,7 +232,7 @@ const ProductsPage: React.FC = () => {
         : p
     ));
 
-    setNewContent({ name: '', type: 'video', url: '', description: '' });
+    setNewContent({ name: '', type: 'video', url: '', description: '', thumbnail: null });
     setIsContentModalOpen(false);
     setSelectedProductId(null);
   };
@@ -247,7 +260,7 @@ const ProductsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
+    <div className="space-y-10 font-['Inter'] pb-20">
       {/* Header com Botão Voltar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
         <div className="space-y-3">
@@ -255,13 +268,13 @@ const ProductsPage: React.FC = () => {
             onClick={() => navigate('/dashboard/apps')}
             className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
           >
-            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-50 group-hover:text-brand-blue transition-colors">
+            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
                 <ArrowLeft className="w-4 h-4" />
             </div>
             Voltar para Meus Apps
           </button>
           <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Produtos do Seu App</h1>
-          <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
+          <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
             Gerencie os produtos e conteúdos do seu aplicativo. Arraste os itens para reordená-los conforme sua preferência de exibição para os alunos.
           </p>
         </div>
@@ -277,13 +290,13 @@ const ProductsPage: React.FC = () => {
       {/* Grid de Produtos ou Estado Vazio */}
       {products.length === 0 ? (
         <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-16 text-center shadow-sm animate-fade-in">
-          <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <Snowflake className="w-10 h-10 text-brand-blue" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
             Você ainda não criou nenhum produto.
           </h3>
-          <p className="text-slate-500 mb-10 max-w-md mx-auto font-medium leading-relaxed">
+          <p className="text-slate-500 dark:text-slate-400 mb-10 max-w-md mx-auto font-medium leading-relaxed">
             Adicione cursos, mentorias ou bônus para começar a organizar o conteúdo premium do seu aplicativo.
           </p>
           <Button
@@ -299,21 +312,21 @@ const ProductsPage: React.FC = () => {
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               {/* Header do Produto / Accordion Trigger */}
               <div className="p-6 flex flex-col md:flex-row md:items-center gap-6">
                 {/* Drag & Identity */}
                 <div className="flex items-center gap-4 flex-1">
-                    <button className="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing p-1">
+                    <button className="text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab active:cursor-grabbing p-1">
                         <GripVertical className="w-5 h-5" />
                     </button>
 
                     {product.logo ? (
-                    <img src={product.logo} alt={product.name} className="w-14 h-14 rounded-2xl object-cover shadow-sm" />
+                    <img src={product.logo} alt={product.name} className="w-14 h-14 rounded-2xl object-cover shadow-sm bg-slate-100 dark:bg-slate-700" />
                     ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-100 dark:border-slate-700 flex items-center justify-center flex-shrink-0">
-                        <Package className="w-7 h-7 text-slate-400" />
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 border border-slate-100 dark:border-slate-600 flex items-center justify-center flex-shrink-0">
+                        <Package className="w-7 h-7 text-slate-400 dark:text-slate-500" />
                     </div>
                     )}
 
@@ -346,8 +359,8 @@ const ProductsPage: React.FC = () => {
                 </div>
 
                 {/* Ações do Produto */}
-                <div className="flex items-center justify-end gap-2 border-t md:border-t-0 pt-4 md:pt-0">
-                  <button className="p-3 text-slate-400 hover:text-brand-blue hover:bg-blue-50 rounded-xl transition-all" title="Editar informações do produto">
+                <div className="flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0">
+                  <button className="p-3 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all" title="Editar informações do produto">
                     <Edit3 className="w-5 h-5" />
                   </button>
                   <button
@@ -355,7 +368,7 @@ const ProductsPage: React.FC = () => {
                       setItemToDelete({ type: 'product', id: product.id });
                       setDeleteModalOpen(true);
                     }}
-                    className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                     title="Remover produto"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -365,8 +378,8 @@ const ProductsPage: React.FC = () => {
                     className={cn(
                         "p-3 rounded-xl transition-all",
                         expandedProducts.includes(product.id) 
-                            ? "bg-slate-900 text-white shadow-lg" 
-                            : "bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                            ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" 
+                            : "bg-slate-50 dark:bg-slate-900/50 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                     )}
                   >
                     {expandedProducts.includes(product.id) ? (
@@ -380,7 +393,7 @@ const ProductsPage: React.FC = () => {
 
               {/* Conteúdos do Produto (Expandido) */}
               {expandedProducts.includes(product.id) && (
-                <div className="border-t border-slate-50 p-8 bg-slate-50/30 animate-fade-in">
+                <div className="border-t border-slate-50 dark:border-slate-700 p-8 bg-slate-50/30 dark:bg-slate-900/20 animate-fade-in">
                   <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-blue-400"></div>
@@ -388,7 +401,7 @@ const ProductsPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => openContentModal(product.id)}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 text-brand-blue text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-sm"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-blue-200 text-brand-blue text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-sm"
                     >
                       <Plus className="w-4 h-4" />
                       Novo Conteúdo
@@ -396,7 +409,7 @@ const ProductsPage: React.FC = () => {
                   </div>
 
                   {product.contents.length === 0 ? (
-                    <div className="text-center py-10 bg-white/50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div className="text-center py-10 bg-white/50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                         <p className="text-slate-400 text-sm font-medium">Nenhum conteúdo adicionado a este produto ainda.</p>
                     </div>
                   ) : (
@@ -406,17 +419,17 @@ const ProductsPage: React.FC = () => {
                         return (
                           <div
                             key={content.id}
-                            className="group flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 hover:shadow-md transition-all"
+                            className="group flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md transition-all"
                           >
-                            <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-50 transition-colors">
+                            <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-colors">
                               <Icon className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <span className="block text-sm font-bold text-slate-700 truncate">{content.name}</span>
+                                <span className="block text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{content.name}</span>
                                 <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{content.type}</span>
                             </div>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all">
                                 <Edit3 className="w-4 h-4" />
                                 </button>
                                 <button
@@ -424,7 +437,7 @@ const ProductsPage: React.FC = () => {
                                     setItemToDelete({ type: 'content', id: content.id, productId: product.id });
                                     setDeleteModalOpen(true);
                                 }}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                                 >
                                 <Trash2 className="w-4 h-4" />
                                 </button>
@@ -446,24 +459,45 @@ const ProductsPage: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsProductModalOpen(false)} />
           <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Novo Produto</h3>
                 <p className="text-sm text-slate-400 font-medium">Categorize seu conteúdo premium</p>
               </div>
-              <button onClick={() => setIsProductModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-700 rounded-2xl transition-colors">
+              <button onClick={() => setIsProductModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-colors">
                 <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>
 
             <div className="p-8 space-y-8">
-              {/* Logo / Capa do Produto */}
+              {/* Logo / Capa do Produto (UPLOAD REAL) */}
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Logo / Capa do Produto</label>
-                <div className="border-4 border-dashed border-slate-100 rounded-[2rem] p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 transition-all cursor-pointer group">
-                  <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                  <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Arraste ou clique para upload</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-widest">Recomendado: 1:1 (Quadrado)</p>
+                <div 
+                  onClick={() => productLogoInputRef.current?.click()}
+                  className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                >
+                  <input 
+                    type="file" 
+                    ref={productLogoInputRef} 
+                    onChange={handleProductLogoUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                  {newProduct.logo ? (
+                    <div className="relative group/image">
+                      <img src={newProduct.logo} alt="Preview" className="mx-auto h-32 w-auto object-contain rounded-xl shadow-lg" />
+                      <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
+                        <p className="text-white font-bold text-xs">Trocar Imagem</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
+                      <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Arraste ou clique para upload</p>
+                      <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-widest">Recomendado: 1:1 (Quadrado)</p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -585,14 +619,14 @@ const ProductsPage: React.FC = () => {
                         className={cn(
                           "flex-1 px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all",
                           newProduct.offerType === 'bonus' 
-                            ? "bg-slate-100 dark:bg-slate-700 border-slate-100 text-slate-400 cursor-not-allowed" 
-                            : "bg-slate-50 dark:bg-slate-900 border-slate-100 text-slate-900 dark:text-white focus:border-brand-blue"
+                            ? "bg-slate-100 dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 cursor-not-allowed" 
+                            : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700 text-slate-900 dark:text-white focus:border-brand-blue"
                         )}
                       />
                       {newProduct.platformIds.length > 1 && newProduct.offerType !== 'bonus' && (
                         <button
                           onClick={() => removePlatformId(index)}
-                          className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                           title="Remover ID"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -601,7 +635,7 @@ const ProductsPage: React.FC = () => {
                       {index === newProduct.platformIds.length - 1 && newProduct.offerType !== 'bonus' && (
                         <button
                           onClick={addPlatformId}
-                          className="p-3 text-brand-blue hover:bg-blue-50 rounded-xl transition-all border border-blue-100 bg-white shadow-sm"
+                          className="p-3 text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all border border-blue-100 dark:border-blue-900 bg-white dark:bg-slate-800 shadow-sm"
                           title="Adicionar outro ID"
                         >
                           <Plus className="w-5 h-5" />
@@ -640,7 +674,7 @@ const ProductsPage: React.FC = () => {
               )}
             </div>
 
-            <div className="p-8 border-t border-slate-100 bg-slate-50/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
+            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
               <Button
                 variant="ghost"
                 onClick={() => setIsProductModalOpen(false)}
@@ -664,23 +698,44 @@ const ProductsPage: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsContentModalOpen(false)} />
           <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Novo Conteúdo</h3>
                 <p className="text-sm text-slate-400 font-medium">Adicione aulas ou materiais</p>
               </div>
-              <button onClick={() => setIsContentModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-700 rounded-2xl transition-colors">
+              <button onClick={() => setIsContentModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-colors">
                 <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>
 
             <div className="p-8 space-y-8">
-              {/* Upload Capa */}
+              {/* Upload Capa (UPLOAD REAL) */}
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Miniatura do Conteúdo</label>
-                <div className="border-4 border-dashed border-slate-100 rounded-3xl p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 transition-all cursor-pointer group">
-                  <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                  <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Clique para carregar</p>
+                <div 
+                  onClick={() => contentThumbnailInputRef.current?.click()}
+                  className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-3xl p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                >
+                  <input 
+                    type="file" 
+                    ref={contentThumbnailInputRef} 
+                    onChange={handleContentThumbnailUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                  {newContent.thumbnail ? (
+                    <div className="relative group/image">
+                      <img src={newContent.thumbnail} alt="Thumbnail Preview" className="mx-auto h-32 w-auto object-contain rounded-xl shadow-lg" />
+                      <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
+                        <p className="text-white font-bold text-xs">Trocar Imagem</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
+                      <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Clique para carregar</p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -743,7 +798,7 @@ const ProductsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 bg-slate-50/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
+            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
               <Button
                 variant="ghost"
                 onClick={() => setIsContentModalOpen(false)}
@@ -786,7 +841,7 @@ const ProductsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setDeleteModalOpen(false)}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
               >
                 Cancelar e Manter
               </button>

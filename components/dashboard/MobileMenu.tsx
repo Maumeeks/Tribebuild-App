@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { X, LogOut, GraduationCap, Settings, Gift, LucideIcon } from 'lucide-react';
@@ -57,14 +56,14 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl z-[101] lg:hidden flex flex-col"
+            className="fixed inset-y-0 right-0 w-full max-w-sm bg-white dark:bg-slate-900 shadow-2xl z-[101] lg:hidden flex flex-col border-l border-transparent dark:border-slate-800"
           >
             {/* Header do Menu */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
               <TribeBuildLogo size="md" showText={true} />
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+                className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
                 aria-label="Fechar menu"
               >
                 <X className="w-6 h-6" />
@@ -72,14 +71,14 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </div>
 
             {/* Info do Usuário */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-brand-blue flex items-center justify-center text-white text-xl font-black shadow-lg shadow-blue-500/10">
+                <div className="w-14 h-14 rounded-2xl bg-brand-blue flex items-center justify-center text-white text-xl font-black shadow-lg shadow-blue-500/10 uppercase">
                   {user.initials}
                 </div>
-                <div>
-                  <p className="font-black text-slate-900 tracking-tight">{user.name}</p>
-                  <p className="text-sm text-slate-500 font-medium truncate">{user.email}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-slate-900 dark:text-white tracking-tight truncate">{user.name}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate">{user.email}</p>
                 </div>
               </div>
             </div>
@@ -96,17 +95,17 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     className={`flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold transition-all ${
                       isActive(item.href)
                         ? 'bg-brand-blue text-white shadow-xl shadow-blue-500/20'
-                        : 'text-slate-600 hover:bg-blue-50 hover:text-brand-blue'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-brand-blue dark:hover:text-blue-400'
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 ${isActive(item.href) ? 'text-white' : 'text-slate-400'}`} />
+                    <item.icon className={`w-5 h-5 ${isActive(item.href) ? 'text-white' : 'text-slate-400 group-hover:text-brand-blue'}`} />
                     {item.name}
                   </Link>
                 ))}
               </div>
 
               {/* Divider */}
-              <div className="my-8 border-t border-slate-100" />
+              <div className="my-8 border-t border-slate-100 dark:border-slate-800" />
               
               {/* Bônus Especial */}
               <Link
@@ -115,7 +114,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 className={`flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold transition-all mb-4 ${
                   isActive('/dashboard/bonus')
                     ? 'bg-gradient-to-r from-brand-coral to-orange-500 text-white shadow-xl shadow-orange-500/30'
-                    : 'bg-brand-coral/10 text-brand-coral border border-brand-coral/20'
+                    : 'bg-brand-coral/10 dark:bg-brand-coral/20 text-brand-coral border border-brand-coral/20'
                 }`}
               >
                 <Gift className="w-5 h-5" />
@@ -128,7 +127,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <div className="space-y-1">
                 <a
                   href="#/academia"
-                  className="flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold text-slate-600 hover:bg-blue-50 hover:text-brand-blue transition-all"
+                  className="flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-brand-blue transition-all"
                 >
                   <GraduationCap className="w-5 h-5 text-slate-400" />
                   Academia TribeBuild
@@ -136,7 +135,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 <Link
                   to="/dashboard/settings"
                   onClick={onClose}
-                  className="flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold text-slate-600 hover:bg-blue-50 hover:text-brand-blue transition-all"
+                  className="flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-brand-blue transition-all"
                 >
                   <Settings className="w-5 h-5 text-slate-400" />
                   Configurações
@@ -145,13 +144,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </nav>
 
             {/* Footer - Botão Sair */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50/30">
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50">
               <button
                 onClick={() => {
                   onClose();
                   onLogout();
                 }}
-                className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-sm"
+                className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-sm"
               >
                 <LogOut className="w-5 h-5" />
                 Sair da conta
