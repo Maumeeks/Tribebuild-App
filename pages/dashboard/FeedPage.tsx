@@ -9,6 +9,7 @@ import {
   List,
   AlignLeft,
   Link as LinkIcon,
+  Type,
   Image as ImageIcon,
   Calendar,
   Clock,
@@ -19,6 +20,7 @@ import {
   Send,
   X,
   Upload,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -86,9 +88,8 @@ const FeedPage: React.FC = () => {
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isScheduled, setIsScheduled] = useState(false);
-  
-  // MUDANÇA: Estado único para Data e Hora (datetime-local)
-  const [scheduleDateTime, setScheduleDateTime] = useState('');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
   
   // Ref para upload de imagem
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,14 +123,14 @@ const FeedPage: React.FC = () => {
       content,
       image,
       createdAt: new Date().toISOString(),
-      scheduledFor: isScheduled ? scheduleDateTime : null,
+      scheduledFor: isScheduled ? `${scheduleDate}T${scheduleTime}:00` : null,
       status: isScheduled ? 'scheduled' : 'published',
       likes: 0,
       comments: 0
     };
 
     if (isScheduled) {
-      if (!scheduleDateTime) {
+      if (!scheduleDate || !scheduleTime) {
         alert('Preencha a data e hora do agendamento');
         return;
       }
@@ -144,7 +145,8 @@ const FeedPage: React.FC = () => {
     setContent('');
     setImage(null);
     setIsScheduled(false);
-    setScheduleDateTime('');
+    setScheduleDate('');
+    setScheduleTime('');
     setActiveTab(isScheduled ? 'scheduled' : 'list');
   };
 
@@ -304,62 +306,66 @@ const FeedPage: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Opção de Agendamento - VERSÃO NATIVA OPÇÃO A */}
-                    <div className={cn(
-                        "rounded-[2rem] border transition-all duration-300 overflow-hidden",
-                        isScheduled 
-                          ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30 shadow-inner" 
-                          : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
-                    )}>
-                        {/* Header do Agendamento */}
+                    {/* Bloco de Agendamento */}
+                    <div>
+                        {/* Toggle */}
                         <div 
-                            className="p-5 md:p-6 flex items-center gap-4 cursor-pointer select-none"
+                            className={cn(
+                                "p-6 rounded-[2rem] border transition-all duration-300 cursor-pointer select-none",
+                                isScheduled 
+                                  ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30" 
+                                  : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
+                            )}
                             onClick={() => setIsScheduled(!isScheduled)}
                         >
-                            <div className="relative flex-shrink-0">
-                                <input
-                                    type="checkbox"
-                                    checked={isScheduled}
-                                    onChange={(e) => setIsScheduled(e.target.checked)}
-                                    className="peer sr-only"
-                                />
-                                <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-checked:bg-orange-500 rounded-full transition-colors"></div>
-                                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></div>
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className={cn("w-5 h-5 flex-shrink-0", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
-                                    <span className={cn("text-sm font-black uppercase tracking-tight truncate", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
-                                        Agendar publicação
-                                    </span>
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className={cn("w-12 h-6 rounded-full transition-colors", isScheduled ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700")}></div>
+                                    <div className={cn("absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform", isScheduled ? "translate-x-6" : "")}></div>
                                 </div>
-                                <span className="text-[10px] text-slate-400 sm:ml-2 font-medium truncate">para data futura</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
+                                        <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
+                                            Agendar publicação
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 sm:ml-2 font-medium">para data futura</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Corpo do Agendamento - INPUT NATIVO ÚNICO */}
+                        {/* Campos de Data/Hora - Layout vertical em mobile */}
                         {isScheduled && (
-                            <div className="px-5 pb-6 md:px-6 animate-slide-up">
-                                <div className="border-t border-orange-200/50 dark:border-orange-900/30 pt-5 space-y-4">
-                                    
-                                    <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
-                                            Data e Hora
-                                        </label>
-                                        <input
-                                            type="datetime-local"
-                                            value={scheduleDateTime}
-                                            onChange={(e) => setScheduleDateTime(e.target.value)}
-                                            className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold text-sm transition-all"
-                                        />
-                                    </div>
+                            <div className="mt-4 space-y-4 animate-slide-up overflow-hidden">
+                                {/* Data */}
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Data da Publicação</label>
+                                    <input
+                                        type="date"
+                                        value={scheduleDate}
+                                        onChange={(e) => setScheduleDate(e.target.value)}
+                                        className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
+                                    />
+                                </div>
+                                
+                                {/* Horário */}
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Horário</label>
+                                    <input
+                                        type="time"
+                                        value={scheduleTime}
+                                        onChange={(e) => setScheduleTime(e.target.value)}
+                                        className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
+                                    />
+                                </div>
 
-                                    <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
-                                        <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
-                                        <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
-                                            O post será publicado automaticamente no feed no horário de Brasília.
-                                        </p>
-                                    </div>
+                                {/* Info */}
+                                <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
+                                    <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
+                                        O post será publicado automaticamente no feed no horário de Brasília.
+                                    </p>
                                 </div>
                             </div>
                         )}
