@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,7 +9,6 @@ import {
   List,
   AlignLeft,
   Link as LinkIcon,
-  Type,
   Image as ImageIcon,
   Calendar,
   Clock,
@@ -20,7 +19,6 @@ import {
   Send,
   X,
   Upload,
-  ChevronRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -88,15 +86,30 @@ const FeedPage: React.FC = () => {
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isScheduled, setIsScheduled] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [scheduleTime, setScheduleTime] = useState('');
   
+  // Estado único para Data e Hora (datetime-local)
+  const [scheduleDateTime, setScheduleDateTime] = useState('');
+  
+  // Ref para upload de imagem
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Estado de exclusão
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; postId: string | null; type: 'post' | 'scheduled' }>({
     open: false,
     postId: null,
     type: 'post'
   });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handlePublish = () => {
     if (!content.trim()) {
@@ -109,14 +122,14 @@ const FeedPage: React.FC = () => {
       content,
       image,
       createdAt: new Date().toISOString(),
-      scheduledFor: isScheduled ? `${scheduleDate}T${scheduleTime}:00` : null,
+      scheduledFor: isScheduled ? scheduleDateTime : null,
       status: isScheduled ? 'scheduled' : 'published',
       likes: 0,
       comments: 0
     };
 
     if (isScheduled) {
-      if (!scheduleDate || !scheduleTime) {
+      if (!scheduleDateTime) {
         alert('Preencha a data e hora do agendamento');
         return;
       }
@@ -131,8 +144,7 @@ const FeedPage: React.FC = () => {
     setContent('');
     setImage(null);
     setIsScheduled(false);
-    setScheduleDate('');
-    setScheduleTime('');
+    setScheduleDateTime('');
     setActiveTab(isScheduled ? 'scheduled' : 'list');
   };
 
@@ -171,31 +183,31 @@ const FeedPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
+    <div className="space-y-10 font-['Inter'] pb-20">
       {/* Header */}
       <div className="space-y-3 animate-slide-up">
         <button
           onClick={() => navigate('/dashboard/apps')}
           className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
         >
-          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-50 group-hover:text-brand-blue transition-colors">
+          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
               <ArrowLeft className="w-4 h-4" />
           </div>
           Voltar para Meus Apps
         </button>
         <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Gerenciar Feed</h1>
-        <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
+        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
           Mantenha seus alunos engajados com atualizações em tempo real. Crie posts oficiais, novidades e avisos que aparecem direto no aplicativo.
         </p>
       </div>
 
       {/* Tabs Design */}
-      <div className="bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center w-fit animate-slide-up" style={{ animationDelay: '50ms' }}>
+      <div className="bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center w-fit animate-slide-up overflow-x-auto max-w-full no-scrollbar" style={{ animationDelay: '50ms' }}>
           <button
             onClick={() => setActiveTab('create')}
             className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeTab === 'create' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                activeTab === 'create' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
             Criar Post
@@ -203,8 +215,8 @@ const FeedPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('list')}
             className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeTab === 'list' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                activeTab === 'list' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
             Lista de Posts
@@ -212,11 +224,11 @@ const FeedPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('scheduled')}
             className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                activeTab === 'scheduled' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
+                activeTab === 'scheduled' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-4 h-4 hidden sm:block" />
             Agendados
           </button>
       </div>
@@ -227,19 +239,19 @@ const FeedPage: React.FC = () => {
           <div className="space-y-8 max-w-4xl">
             {/* Editor de Conteúdo */}
             <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+                <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Conteúdo do Post</label>
                     
                     {/* Toolbar Fake / Estilizada */}
-                    <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Bold size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Italic size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Underline size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Strikethrough size={18} /></button>
-                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center" />
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><List size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><AlignLeft size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white ml-auto"><LinkIcon size={18} /></button>
+                    <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Italic size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Underline size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><Strikethrough size={18} /></button>
+                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center hidden sm:block" />
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><List size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><AlignLeft size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white ml-auto"><LinkIcon size={18} /></button>
                     </div>
 
                     <textarea
@@ -247,83 +259,118 @@ const FeedPage: React.FC = () => {
                         onChange={(e) => setContent(e.target.value)}
                         placeholder="O que você quer contar para seus alunos hoje?"
                         rows={8}
-                        className="w-full p-6 bg-white text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
+                        className="w-full p-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
                     />
                 </div>
 
-                <div className="p-8 space-y-8">
+                <div className="p-6 md:p-8 space-y-8">
                     {/* Upload de Imagem */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Imagem de Destaque (Opcional)</label>
-                        <div className="border-4 border-dashed border-slate-50 rounded-[2rem] p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 transition-all cursor-pointer group">
-                            <Upload className="w-12 h-12 text-slate-200 mx-auto mb-4 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                            <p className="text-slate-900 dark:text-white font-black tracking-tight text-lg">Arraste uma imagem ou clique aqui</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-widest leading-loose">Recomendado: 1200x630 (Formato Paisagem)</p>
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-8 md:p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                        >
+                            <input 
+                              type="file" 
+                              ref={fileInputRef}
+                              onChange={handleImageUpload}
+                              accept="image/*"
+                              className="hidden"
+                            />
+                            
+                            {image ? (
+                              <div className="relative group/image">
+                                <img src={image} alt="Preview" className="mx-auto max-h-64 object-contain rounded-xl shadow-lg" />
+                                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
+                                  <p className="text-white font-bold text-xs">Trocar Imagem</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <Upload className="w-10 h-10 md:w-12 md:h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
+                                <p className="text-slate-900 dark:text-white font-black tracking-tight text-base md:text-lg">Arraste uma imagem ou clique aqui</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-widest leading-loose">Recomendado: 1280x720 (16:9)</p>
+                              </>
+                            )}
                         </div>
-                    </div>
-
-                    {/* Toggle de Agendamento */}
-                    <div 
-                        className={cn(
-                            "p-5 rounded-2xl border transition-all duration-300 cursor-pointer select-none",
-                            isScheduled 
-                              ? "bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-900/30" 
-                              : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
+                        {image && (
+                          <button 
+                            onClick={() => setImage(null)}
+                            className="mt-3 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" /> Remover imagem
+                          </button>
                         )}
-                        onClick={() => setIsScheduled(!isScheduled)}
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="relative flex-shrink-0">
-                                <div className={cn("w-11 h-6 rounded-full transition-colors", isScheduled ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700")}></div>
-                                <div className={cn("absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform", isScheduled ? "translate-x-5" : "")}></div>
-                            </div>
-                            <div className="flex items-center gap-2 min-w-0">
-                                <Calendar className={cn("w-5 h-5 flex-shrink-0", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
-                                <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
-                                    Agendar publicação
-                                </span>
-                            </div>
-                        </div>
                     </div>
 
-                    {/* Campos de Data/Hora - FORA do card para evitar overflow em mobile */}
-                    {isScheduled && (
-                        <div className="space-y-4 animate-fade-in">
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-2 pl-1">Data</label>
-                                    <input
-                                        type="date"
-                                        value={scheduleDate}
-                                        onChange={(e) => setScheduleDate(e.target.value)}
-                                        className="w-full px-4 py-3.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-orange-200 dark:border-orange-900/50 rounded-xl focus:border-orange-500 focus:outline-none font-bold transition-all text-sm"
-                                    />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-2 pl-1">Horário</label>
-                                    <input
-                                        type="time"
-                                        value={scheduleTime}
-                                        onChange={(e) => setScheduleTime(e.target.value)}
-                                        className="w-full px-4 py-3.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-orange-200 dark:border-orange-900/50 rounded-xl focus:border-orange-500 focus:outline-none font-bold transition-all text-sm"
-                                    />
-                                </div>
+                    {/* Opção de Agendamento - VERSÃO COMPACTA UNIFICADA */}
+                    <div className={cn(
+                        "rounded-[2rem] border transition-all duration-300 overflow-hidden",
+                        isScheduled 
+                          ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30 shadow-inner" 
+                          : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
+                    )}>
+                        {/* Header do Agendamento */}
+                        <div 
+                            className="p-5 md:p-6 flex items-center gap-4 cursor-pointer select-none"
+                            onClick={() => setIsScheduled(!isScheduled)}
+                        >
+                            <div className="relative flex-shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={isScheduled}
+                                    onChange={(e) => setIsScheduled(e.target.checked)}
+                                    className="peer sr-only"
+                                />
+                                <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-checked:bg-orange-500 rounded-full transition-colors"></div>
+                                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></div>
                             </div>
-                            <div className="bg-orange-50 dark:bg-orange-900/20 p-3.5 rounded-xl flex items-center gap-3 border border-orange-100 dark:border-orange-900/30">
-                                <Clock className="w-4 h-4 text-orange-500 dark:text-orange-400 flex-shrink-0" />
-                                <p className="text-xs text-orange-700 dark:text-orange-300 font-medium">
-                                    Publicação automática no horário de Brasília
-                                </p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className={cn("w-5 h-5 flex-shrink-0", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
+                                    <span className={cn("text-sm font-black uppercase tracking-tight truncate", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
+                                        Agendar publicação
+                                    </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 sm:ml-2 font-medium truncate">para data futura</span>
                             </div>
                         </div>
-                    )}
+
+                        {/* Corpo do Agendamento - INPUT ÚNICO */}
+                        {isScheduled && (
+                            <div className="px-5 pb-6 md:px-6 animate-slide-up">
+                                <div className="border-t border-orange-200/50 dark:border-orange-900/30 pt-5 space-y-4">
+                                    
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                                            Data e Hora da Publicação
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={scheduleDateTime}
+                                            onChange={(e) => setScheduleDateTime(e.target.value)}
+                                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold text-sm transition-all box-border"
+                                        />
+                                    </div>
+
+                                    <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
+                                        <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
+                                            O post será publicado automaticamente no feed no horário de Brasília.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="p-8 border-t border-slate-50 bg-slate-50/20 flex justify-end">
+                <div className="p-6 md:p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
                     <Button
                         onClick={handlePublish}
                         className={cn(
-                            "h-16 px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
+                            "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
                             isScheduled 
                                 ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20" 
                                 : "bg-brand-blue hover:bg-brand-blue-dark shadow-blue-500/20"
@@ -346,15 +393,19 @@ const FeedPage: React.FC = () => {
               </div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className="bg-white rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="p-8 flex flex-col md:flex-row gap-8">
+                <div key={post.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                     <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500"></div>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDate(post.createdAt)}</span>
                         </div>
-                        <p className="text-slate-700 font-bold leading-relaxed whitespace-pre-wrap text-lg">{post.content}</p>
+                        <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-base md:text-lg">{post.content}</p>
                         
+                        {post.image && (
+                          <img src={post.image} alt="Post content" className="w-full h-48 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700" />
+                        )}
+
                         <div className="flex items-center gap-6 pt-2">
                             <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
                                 <Heart className="w-4 h-4 text-red-400" />
@@ -367,11 +418,11 @@ const FeedPage: React.FC = () => {
                         </div>
                     </div>
                     
-                    <div className="flex items-start gap-2 border-t md:border-t-0 pt-4 md:pt-0">
-                        <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit3 size={20} /></button>
+                    <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0 justify-end md:justify-start">
+                        <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
                         <button 
                             onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'post' })}
-                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                         >
                             <Trash2 size={20} />
                         </button>
@@ -388,17 +439,17 @@ const FeedPage: React.FC = () => {
           <div className="space-y-6 max-w-4xl">
             {scheduled.length === 0 ? (
               <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-16 text-center shadow-sm">
-                <Calendar className="w-16 h-16 text-slate-100 mx-auto mb-4" />
+                <Calendar className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
                 <p className="text-slate-400 font-bold">Nenhum post agendado no momento.</p>
               </div>
             ) : (
               scheduled.map((post) => (
-                <div key={post.id} className="bg-white rounded-[2rem] border border-orange-100/50 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
+                <div key={post.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-orange-100/50 dark:border-orange-900/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
                   <div className="absolute top-0 left-0 w-2 h-full bg-orange-400"></div>
-                  <div className="p-8 flex flex-col md:flex-row gap-8">
+                  <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                     <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-600 text-[9px] font-black uppercase tracking-widest rounded-full border border-orange-100">
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-orange-100 dark:border-orange-900/30">
                                 <Clock className="w-3 h-3" />
                                 Agendado
                             </span>
@@ -406,14 +457,17 @@ const FeedPage: React.FC = () => {
                                 para {formatScheduledDate(post.scheduledFor!)}
                             </span>
                         </div>
-                        <p className="text-slate-700 font-bold leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                        <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                        {post.image && (
+                          <img src={post.image} alt="Scheduled post" className="w-full h-32 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 opacity-80" />
+                        )}
                     </div>
                     
-                    <div className="flex items-start gap-2 border-t md:border-t-0 pt-4 md:pt-0">
-                        <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit3 size={20} /></button>
+                    <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0 justify-end md:justify-start">
+                        <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
                         <button 
                             onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'scheduled' })}
-                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                         >
                             <Trash2 size={20} />
                         </button>
@@ -441,7 +495,7 @@ const FeedPage: React.FC = () => {
             <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
               Excluir este post?
             </h3>
-            <p className="text-slate-500 text-center mb-10 font-medium leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 text-center mb-10 font-medium leading-relaxed">
               Você está prestes a remover permanentemente este conteúdo do feed. Esta ação não poderá ser revertida.
             </p>
             <div className="flex flex-col gap-3">
@@ -453,7 +507,7 @@ const FeedPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setDeleteModal({ open: false, postId: null, type: 'post' })}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
               >
                 Cancelar e Manter
               </button>
