@@ -335,31 +335,30 @@ const FeedPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* 2. Os Campos de Configuração (Fora do bloco anterior) */}
+                        {/* 2. Os Campos de Configuração (CORRIGIDO PARA NÃO VAZAR) */}
                         {isScheduled && (
-                            <div className="mt-4 space-y-4 animate-slide-up">
+                            <div className="mt-4 space-y-4 animate-slide-up overflow-hidden">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 min-w-0">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Data da Publicação</label>
                                         <input
                                             type="date"
                                             value={scheduleDate}
                                             onChange={(e) => setScheduleDate(e.target.value)}
-                                            className="w-full px-6 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all"
+                                            className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all box-border text-sm"
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 min-w-0">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Horário</label>
                                         <input
                                             type="time"
                                             value={scheduleTime}
                                             onChange={(e) => setScheduleTime(e.target.value)}
-                                            className="w-full px-6 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all"
+                                            className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all box-border text-sm"
                                         />
                                     </div>
                                 </div>
-                                
-                                <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 p-4 rounded-2xl flex items-start gap-3">
+                                <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
                                     <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
                                     <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
                                         O post será publicado automaticamente no feed no horário de Brasília.
