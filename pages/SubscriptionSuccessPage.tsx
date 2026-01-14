@@ -10,15 +10,25 @@ const SubscriptionSuccessPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // 1. Pega o ID da sessão que o Stripe manda
     const sessionId = searchParams.get('session_id');
+    
+    // 2. SEGURANÇA: Se não tiver ID (acesso manual direto), chuta para a Home
+    if (!sessionId) {
+      console.warn('Acesso não autorizado: Sem session_id');
+      navigate('/', { replace: true });
+      return;
+    }
+
     console.log('Stripe Session ID:', sessionId);
 
+    // Simula validação visual (o webhook real roda no backend)
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const handleAccessDashboard = () => {
     navigate('/dashboard');
