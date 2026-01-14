@@ -204,11 +204,11 @@ const FeedPage: React.FC = () => {
       </div>
 
       {/* Tabs Design */}
-      <div className="bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center w-fit animate-slide-up" style={{ animationDelay: '50ms' }}>
+      <div className="bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center w-fit animate-slide-up overflow-x-auto max-w-full" style={{ animationDelay: '50ms' }}>
           <button
             onClick={() => setActiveTab('create')}
             className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
                 activeTab === 'create' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
@@ -217,7 +217,7 @@ const FeedPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('list')}
             className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
                 activeTab === 'list' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
@@ -226,11 +226,11 @@ const FeedPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('scheduled')}
             className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                "px-6 md:px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap",
                 activeTab === 'scheduled' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-4 h-4 hidden sm:block" />
             Agendados
           </button>
       </div>
@@ -241,7 +241,7 @@ const FeedPage: React.FC = () => {
           <div className="space-y-8 max-w-4xl">
             {/* Editor de Conteúdo */}
             <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
+                <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Conteúdo do Post</label>
                     
                     {/* Toolbar Fake / Estilizada */}
@@ -249,10 +249,10 @@ const FeedPage: React.FC = () => {
                         <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
                         <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Italic size={18} /></button>
                         <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Underline size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Strikethrough size={18} /></button>
-                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center" />
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><Strikethrough size={18} /></button>
+                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center hidden sm:block" />
                         <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><List size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><AlignLeft size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white hidden sm:block"><AlignLeft size={18} /></button>
                         <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white ml-auto"><LinkIcon size={18} /></button>
                     </div>
 
@@ -265,13 +265,13 @@ const FeedPage: React.FC = () => {
                     />
                 </div>
 
-                <div className="p-8 space-y-8">
+                <div className="p-6 md:p-8 space-y-8">
                     {/* Upload de Imagem (FUNCIONAL) */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Imagem de Destaque (Opcional)</label>
                         <div 
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                          className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-8 md:p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
                         >
                             <input 
                               type="file" 
@@ -290,8 +290,8 @@ const FeedPage: React.FC = () => {
                               </div>
                             ) : (
                               <>
-                                <Upload className="w-12 h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                                <p className="text-slate-900 dark:text-white font-black tracking-tight text-lg">Arraste uma imagem ou clique aqui</p>
+                                <Upload className="w-10 h-10 md:w-12 md:h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
+                                <p className="text-slate-900 dark:text-white font-black tracking-tight text-base md:text-lg">Arraste uma imagem ou clique aqui</p>
                                 <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-widest leading-loose">Recomendado: 1280x720 (16:9)</p>
                               </>
                             )}
@@ -306,14 +306,14 @@ const FeedPage: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Opção de Agendamento */}
+                    {/* Opção de Agendamento - RESPONSIVO CORRIGIDO */}
                     <div className={cn(
                         "p-6 rounded-[2rem] border transition-all duration-300",
                         isScheduled 
                           ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30 shadow-inner" 
                           : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
                     )}>
-                        <label className="flex items-center gap-4 cursor-pointer">
+                        <label className="flex items-center gap-4 cursor-pointer select-none">
                             <div className="relative">
                                 <input
                                     type="checkbox"
@@ -324,16 +324,20 @@ const FeedPage: React.FC = () => {
                                 <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-checked:bg-orange-500 rounded-full transition-colors"></div>
                                 <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
-                                <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
-                                    Agendar publicação para data futura
-                                </span>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
+                                    <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
+                                        Agendar publicação
+                                    </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 sm:ml-2 font-medium">para data futura</span>
                             </div>
                         </label>
 
                         {isScheduled && (
                             <div className="mt-6 pt-6 border-t border-orange-200/50 dark:border-orange-900/30 space-y-4 animate-fade-in">
+                                {/* CORREÇÃO AQUI: flex-col no mobile, row no desktop */}
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     <div className="flex-1">
                                         <label className="block text-[10px] font-black text-orange-900 dark:text-orange-300 uppercase tracking-widest mb-2">Data</label>
@@ -365,11 +369,11 @@ const FeedPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
+                <div className="p-6 md:p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
                     <Button
                         onClick={handlePublish}
                         className={cn(
-                            "h-16 px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
+                            "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
                             isScheduled 
                                 ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20" 
                                 : "bg-brand-blue hover:bg-brand-blue-dark shadow-blue-500/20"
@@ -393,13 +397,13 @@ const FeedPage: React.FC = () => {
             ) : (
               posts.map((post) => (
                 <div key={post.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="p-8 flex flex-col md:flex-row gap-8">
+                  <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                     <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500"></div>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDate(post.createdAt)}</span>
                         </div>
-                        <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-lg">{post.content}</p>
+                        <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-base md:text-lg">{post.content}</p>
                         
                         {post.image && (
                           <img src={post.image} alt="Post content" className="w-full h-48 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700" />
@@ -417,7 +421,7 @@ const FeedPage: React.FC = () => {
                         </div>
                     </div>
                     
-                    <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0">
+                    <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0 justify-end md:justify-start">
                         <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
                         <button 
                             onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'post' })}
@@ -445,9 +449,9 @@ const FeedPage: React.FC = () => {
               scheduled.map((post) => (
                 <div key={post.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-orange-100/50 dark:border-orange-900/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
                   <div className="absolute top-0 left-0 w-2 h-full bg-orange-400"></div>
-                  <div className="p-8 flex flex-col md:flex-row gap-8">
+                  <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                     <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-orange-100 dark:border-orange-900/30">
                                 <Clock className="w-3 h-3" />
                                 Agendado
@@ -462,7 +466,7 @@ const FeedPage: React.FC = () => {
                         )}
                     </div>
                     
-                    <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0">
+                    <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0 justify-end md:justify-start">
                         <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
                         <button 
                             onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'scheduled' })}
