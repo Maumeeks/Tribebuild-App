@@ -306,54 +306,55 @@ const FeedPage: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Opção de Agendamento */}
-                    <div className={cn(
-                        "p-6 rounded-[2rem] border transition-all duration-300",
-                        isScheduled 
-                          ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30 shadow-inner" 
-                          : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
-                    )}>
-                        <label className="flex items-center gap-4 cursor-pointer select-none">
-                            <div className="relative">
-                                <input
-                                    type="checkbox"
-                                    checked={isScheduled}
-                                    onChange={(e) => setIsScheduled(e.target.checked)}
-                                    className="peer sr-only"
-                                />
-                                <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-checked:bg-orange-500 rounded-full transition-colors"></div>
-                                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></div>
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
-                                    <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
-                                        Agendar publicação
-                                    </span>
+                    {/* MUDANÇA: Bloco de Agendamento fora do estilo encapsulado */}
+                    <div>
+                        {/* 1. O Interruptor (Toggle) */}
+                        <div 
+                            className={cn(
+                                "p-6 rounded-[2rem] border transition-all duration-300 cursor-pointer select-none",
+                                isScheduled 
+                                  ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30" 
+                                  : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
+                            )}
+                            onClick={() => setIsScheduled(!isScheduled)}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className={cn("w-12 h-6 rounded-full transition-colors", isScheduled ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700")}></div>
+                                    <div className={cn("absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform", isScheduled ? "translate-x-6" : "")}></div>
                                 </div>
-                                <span className="text-[10px] text-slate-400 sm:ml-2 font-medium">para data futura</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className={cn("w-5 h-5", isScheduled ? "text-orange-600 dark:text-orange-400" : "text-slate-400")} />
+                                        <span className={cn("text-sm font-black uppercase tracking-tight", isScheduled ? "text-orange-900 dark:text-orange-300" : "text-slate-600 dark:text-slate-400")}>
+                                            Agendar publicação
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 sm:ml-2 font-medium">para data futura</span>
+                                </div>
                             </div>
-                        </label>
+                        </div>
 
+                        {/* 2. Os Campos de Configuração (AJUSTADO LARGURA) */}
                         {isScheduled && (
-                            <div className="mt-6 pt-6 border-t border-orange-200/50 dark:border-orange-900/30 space-y-4 animate-fade-in">
+                            <div className="mt-4 space-y-4 animate-slide-up w-full md:w-3/4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-orange-900 dark:text-orange-300 uppercase tracking-widest pl-2">Data da Publicação</label>
+                                    <div className="space-y-2 w-full">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Data da Publicação</label>
                                         <input
                                             type="date"
                                             value={scheduleDate}
                                             onChange={(e) => setScheduleDate(e.target.value)}
-                                            className="w-full px-5 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-100 dark:border-orange-900/30 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all"
+                                            className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all box-border text-sm"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-orange-900 dark:text-orange-300 uppercase tracking-widest pl-2">Horário</label>
+                                    <div className="space-y-2 w-full">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Horário</label>
                                         <input
                                             type="time"
                                             value={scheduleTime}
                                             onChange={(e) => setScheduleTime(e.target.value)}
-                                            className="w-full px-5 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-100 dark:border-orange-900/30 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all"
+                                            className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all box-border text-sm"
                                         />
                                     </div>
                                 </div>
