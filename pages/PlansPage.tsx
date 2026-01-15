@@ -3,7 +3,7 @@ import { Check, Info, Loader2, Crown, Zap, Building2, Rocket, AlertCircle } from
 import TribeBuildLogo from '../components/TribeBuildLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { cn } from '../../lib/utils';
+import { cn } from '../lib/utils';
 
 const PlansPage: React.FC = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -19,21 +19,20 @@ const PlansPage: React.FC = () => {
         name: 'Starter',
         price: 67,
         period: '/mês',
-        description: 'Perfeito para começar',
+        description: 'Quem está dando os primeiros passos.',
         icon: Zap,
         color: 'brand-blue',
         features: [
-          '1 aplicativo',
-          'Até 500 usuários ativos',
-          'Produtos ilimitados',
-          'Conteúdos ilimitados',
+          '1 Aplicativo',
+          '500 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Notificações Push ilimitadas',
-          'Integração Hotmart/Kiwify',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
           'Acesso a Tutoriais (Sem suporte humano)',
         ],
-        stripeLink: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00', // Substitua pelo link real
+        stripeLink: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
         popular: false,
       },
       {
@@ -41,21 +40,20 @@ const PlansPage: React.FC = () => {
         name: 'Professional',
         price: 127,
         period: '/mês',
-        description: 'Para criadores em crescimento',
+        description: 'Criadores em crescimento constante.',
         icon: Crown,
         color: 'brand-coral',
         features: [
-          '3 aplicativos',
-          'Até 1.500 usuários ativos',
-          'R$ 0,40 por usuário extra',
-          'Produtos ilimitados',
+          '3 Aplicativos',
+          '1.500 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Notificações Push ilimitadas',
-          'Integração Hotmart/Kiwify',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
           'Suporte via E-mail (48h)',
         ],
-        stripeLink: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01', // Substitua pelo link real
+        stripeLink: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
         popular: true,
       },
       {
@@ -63,21 +61,20 @@ const PlansPage: React.FC = () => {
         name: 'Business',
         price: 197,
         period: '/mês',
-        description: 'Para operações em escala',
+        description: 'Operações escalando sem limites.',
         icon: Building2,
         color: 'purple-500',
         features: [
-          '5 aplicativos',
-          'Até 2.800 usuários ativos',
-          'R$ 0,40 por usuário extra',
-          'Produtos ilimitados',
+          '5 Aplicativos',
+          '2.800 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Notificações Push ilimitadas',
-          'Integração Hotmart/Kiwify',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
-          'Suporte via E-mail (24h)',
+          'Suporte via E-mail (48h)',
         ],
-        stripeLink: 'LINK_STRIPE_BUSINESS_MENSAL', // CRIE NA STRIPE
+        stripeLink: 'LINK_STRIPE_BUSINESS_MENSAL',
         popular: false,
       },
       {
@@ -85,21 +82,21 @@ const PlansPage: React.FC = () => {
         name: 'Enterprise',
         price: 397,
         period: '/mês',
-        description: 'Máxima potência',
+        description: 'Máxima potência e exclusividade.',
         icon: Rocket,
         color: 'indigo-500',
         features: [
-          '10 aplicativos',
-          'Até 10.000 usuários ativos',
-          'R$ 0,30 por usuário extra (Desconto)',
-          'Produtos ilimitados',
+          '10 Aplicativos',
+          '6.000 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Notificações Push ilimitadas',
-          'Integração Hotmart/Kiwify',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
-          'Suporte Prioritário via E-mail',
+          'Suporte via E-mail (prioritário)',
+          'White Label (sem marca TribeBuild)',
         ],
-        stripeLink: 'LINK_STRIPE_ENTERPRISE_MENSAL', // CRIE NA STRIPE
+        stripeLink: 'LINK_STRIPE_ENTERPRISE_MENSAL',
         popular: false,
       },
     ],
@@ -111,19 +108,20 @@ const PlansPage: React.FC = () => {
         originalPrice: 67,
         period: '/mês',
         billedAs: 'R$ 672/ano',
-        description: 'Perfeito para começar',
+        description: 'Quem está dando os primeiros passos.',
         icon: Zap,
         color: 'brand-blue',
         features: [
-          '1 aplicativo',
-          'Até 500 usuários ativos',
-          'Produtos ilimitados',
+          '1 Aplicativo',
+          '500 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Push Ilimitado',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
-          'Acesso a Tutoriais',
+          'Acesso a Tutoriais (Sem suporte humano)',
         ],
-        stripeLink: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03', // Substitua pelo link real
+        stripeLink: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
         popular: false,
       },
       {
@@ -133,20 +131,20 @@ const PlansPage: React.FC = () => {
         originalPrice: 127,
         period: '/mês',
         billedAs: 'R$ 1.272/ano',
-        description: 'Para criadores em crescimento',
+        description: 'Criadores em crescimento constante.',
         icon: Crown,
         color: 'brand-coral',
         features: [
-          '3 aplicativos',
-          'Até 1.500 usuários ativos',
-          'R$ 0,40 por usuário extra',
-          'Produtos ilimitados',
+          '3 Aplicativos',
+          '1.500 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Push Ilimitado',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
-          'Suporte via E-mail',
+          'Suporte via E-mail (48h)',
         ],
-        stripeLink: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04', // Substitua pelo link real
+        stripeLink: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04',
         popular: true,
       },
       {
@@ -156,20 +154,20 @@ const PlansPage: React.FC = () => {
         originalPrice: 197,
         period: '/mês',
         billedAs: 'R$ 1.970/ano',
-        description: 'Para operações em escala',
+        description: 'Operações escalando sem limites.',
         icon: Building2,
         color: 'purple-500',
         features: [
-          '5 aplicativos',
-          'Até 2.800 usuários ativos',
-          'R$ 0,40 por usuário extra',
-          'Produtos ilimitados',
+          '5 Aplicativos',
+          '2.800 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Push Ilimitado',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
-          'Suporte via E-mail (24h)',
+          'Suporte via E-mail (48h)',
         ],
-        stripeLink: 'LINK_STRIPE_BUSINESS_ANUAL', // CRIE NA STRIPE
+        stripeLink: 'LINK_STRIPE_BUSINESS_ANUAL',
         popular: false,
       },
       {
@@ -179,20 +177,21 @@ const PlansPage: React.FC = () => {
         originalPrice: 397,
         period: '/mês',
         billedAs: 'R$ 3.970/ano',
-        description: 'Máxima potência',
+        description: 'Máxima potência e exclusividade.',
         icon: Rocket,
         color: 'indigo-500',
         features: [
-          '10 aplicativos',
-          'Até 10.000 usuários ativos',
-          'R$ 0,30 por usuário extra',
-          'Produtos ilimitados',
+          '10 Aplicativos',
+          '6.000 membros ativos',
+          'Produtos e cursos ilimitados',
           'Comunidade + Feed',
-          'Push Ilimitado',
+          'Notificações Push ilimitados',
+          'Integração (Hotmart/Kiwify)',
           'Domínio Personalizado',
-          'Suporte Prioritário',
+          'Suporte via E-mail (prioritário)',
+          'White Label (sem marca TribeBuild)',
         ],
-        stripeLink: 'LINK_STRIPE_ENTERPRISE_ANUAL', // CRIE NA STRIPE
+        stripeLink: 'LINK_STRIPE_ENTERPRISE_ANUAL',
         popular: false,
       },
     ],
@@ -202,8 +201,8 @@ const PlansPage: React.FC = () => {
 
   const handleSelectPlan = (baseLink: string, planId: string) => {
     if (baseLink.includes('LINK_STRIPE')) {
-        alert('Este plano estará disponível em breve. Por favor, entre em contato para liberar seu acesso.');
-        return;
+      alert('Este plano estará disponível em breve. Por favor, entre em contato para liberar seu acesso.');
+      return;
     }
     setLoadingPlan(planId);
 
@@ -218,7 +217,8 @@ const PlansPage: React.FC = () => {
     }
 
     const baseUrl = window.location.origin;
-    fullLink += (fullLink.includes('?') ? '&' : '?') +
+    fullLink +=
+      (fullLink.includes('?') ? '&' : '?') +
       `success_url=${encodeURIComponent(baseUrl + '/subscription/success?session_id={CHECKOUT_SESSION_ID}')}` +
       `&cancel_url=${encodeURIComponent(baseUrl + '/subscription/cancel')}`;
 
@@ -227,7 +227,6 @@ const PlansPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden font-['Inter']">
-      
       {/* Background Blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-20 left-[10%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-blue/10 dark:bg-brand-blue/20 rounded-full blur-[100px] animate-blob" />
@@ -240,7 +239,7 @@ const PlansPage: React.FC = () => {
           <div className="flex justify-center mb-6">
             <TribeBuildLogo size="lg" showText={true} />
           </div>
-          
+
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-3">
             Escolha seu plano
           </h1>
@@ -307,7 +306,7 @@ const PlansPage: React.FC = () => {
           {currentPlans.map((plan) => {
             const Icon = plan.icon;
             const isPopular = plan.popular;
-            
+
             return (
               <div
                 key={plan.id}
@@ -328,8 +327,20 @@ const PlansPage: React.FC = () => {
                 <div className="p-6 flex flex-col h-full">
                   {/* Plan Header */}
                   <div className="flex items-center gap-4 mb-6">
-                    <div className={`w-12 h-12 rounded-2xl bg-${plan.color}/10 dark:bg-slate-700/50 flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-6 h-6 text-${plan.color === 'brand-blue' ? 'blue-600' : plan.color === 'brand-coral' ? 'orange-500' : plan.color === 'purple-500' ? 'purple-500' : 'indigo-500'}`} />
+                    <div
+                      className={`w-12 h-12 rounded-2xl bg-${plan.color}/10 dark:bg-slate-700/50 flex items-center justify-center flex-shrink-0`}
+                    >
+                      <Icon
+                        className={`w-6 h-6 ${
+                          plan.color === 'brand-blue'
+                            ? 'text-blue-600'
+                            : plan.color === 'brand-coral'
+                            ? 'text-orange-500'
+                            : plan.color === 'purple-500'
+                            ? 'text-purple-500'
+                            : 'text-indigo-500'
+                        }`}
+                      />
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
@@ -345,12 +356,10 @@ const PlansPage: React.FC = () => {
                   <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
                     <div className="flex items-center justify-center gap-1 text-slate-900 dark:text-white">
                       <span className="text-xs font-bold text-slate-400">R$</span>
-                      <span className="text-4xl font-black tracking-tighter">
-                        {plan.price}
-                      </span>
+                      <span className="text-4xl font-black tracking-tighter">{plan.price}</span>
                       <span className="text-xs font-bold text-slate-400 self-end mb-1">{plan.period}</span>
                     </div>
-                    
+
                     {billingPeriod === 'annual' && 'originalPrice' in plan && (
                       <div className="mt-2 flex flex-col items-center gap-1">
                         <span className="text-[10px] font-bold bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -365,7 +374,7 @@ const PlansPage: React.FC = () => {
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3 group">
                         <div className="mt-0.5 p-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
-                            <Check className="w-3 h-3 stroke-[3px]" />
+                          <Check className="w-3 h-3 stroke-[3px]" />
                         </div>
                         <span className="text-slate-600 dark:text-slate-300 text-xs font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-relaxed">
                           {feature}

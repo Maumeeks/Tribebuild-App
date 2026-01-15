@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Sparkles, Zap, Crown, Building2, Rocket, Calendar, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../Button';
+import Button from '../../components/Button';
 
 const PricingSection: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(false);
