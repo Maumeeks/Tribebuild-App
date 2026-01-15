@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Zap, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
-// Lista de integrações
 const integrations = [
   { name: 'Kiwify', logo: '/images/integrations/kiwify.png' },
   { name: 'Eduzz', logo: '/images/integrations/eduzz.png' },
@@ -22,16 +20,25 @@ const integrations = [
 ];
 
 const IntegrationsSection: React.FC = () => {
-  const { elementRef, isVisible } = useIntersectionObserver();
+  // --- LÓGICA DE ANIMAÇÃO NATIVA ---
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        if (sectionRef.current) observer.unobserve(sectionRef.current);
+      }
+    }, { threshold: 0.1 });
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+  // ---------------------------------
 
   return (
-    <section 
-      id="integracoes" 
-      ref={elementRef}
-      className="py-24 relative overflow-hidden bg-slate-50 dark:bg-[#0B1120] transition-colors"
-    >
-      
-      {/* Background Sutil */}
+    <section id="integracoes" ref={sectionRef} className="py-24 relative overflow-hidden bg-slate-50 dark:bg-[#0B1120] transition-colors">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-blue/5 via-transparent to-transparent pointer-events-none"></div>
 
       <div 
@@ -42,27 +49,19 @@ const IntegrationsSection: React.FC = () => {
           transition: 'opacity 700ms ease-out, transform 700ms ease-out'
         }}
       >
-        
-        {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue text-xs font-bold uppercase tracking-widest rounded-full mb-6 border border-brand-blue/20">
           <Zap className="w-4 h-4" />
           Compatível com tudo
         </div>
-        
         <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
-          Conecte Com Sua{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-coral">
-            Plataforma Favorita
-          </span>
+          Conecte Com Sua{' '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-coral">Plataforma Favorita</span>
         </h2>
-        
         <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
           Detectamos o pagamento e liberamos o acesso no app. <br/>
           Sem planilhas, sem trabalho manual.
         </p>
       </div>
 
-      {/* --- INÍCIO DO MARQUEE INFINITO --- */}
       <div 
         className="relative flex flex-col gap-8 overflow-hidden py-8"
         style={{
@@ -71,79 +70,37 @@ const IntegrationsSection: React.FC = () => {
           transition: 'opacity 700ms ease-out 200ms, transform 700ms ease-out 200ms'
         }}
       >
-        
-        {/* Fileira 1 - Indo para a Esquerda */}
+        {/* Marquee Esquerda */}
         <div className="flex w-max hover:pause" style={{ animation: 'scroll-left 40s linear infinite' }}>
           {[...integrations, ...integrations].map((integration, idx) => (
-            <div
-              key={`${integration.name}-${idx}`}
-              // EFEITO GLASS CLEAN: dark:bg-white/5 (Fundo sutil branco transparente)
-              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20"
-            >
-              <img
-                src={integration.logo}
-                alt={integration.name}
-                loading="lazy"
-                // BRILHO ALTO: Garante que o logo salte aos olhos no fundo escuro
-                className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125" 
-              />
+            <div key={`${integration.name}-${idx}`} className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20">
+              <img src={integration.logo} alt={integration.name} loading="lazy" className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125" />
             </div>
           ))}
         </div>
-
-        {/* Fileira 2 - Indo para a Direita */}
+        {/* Marquee Direita */}
         <div className="flex w-max hover:pause" style={{ animation: 'scroll-right 40s linear infinite' }}>
           {[...integrations.reverse(), ...integrations].map((integration, idx) => (
-            <div
-              key={`rev-${integration.name}-${idx}`}
-              // EFEITO GLASS CLEAN: dark:bg-white/5 (Fundo sutil branco transparente)
-              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20"
-            >
-              <img
-                src={integration.logo}
-                alt={integration.name}
-                loading="lazy"
-                className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125"
-              />
+            <div key={`rev-${integration.name}-${idx}`} className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20">
+              <img src={integration.logo} alt={integration.name} loading="lazy" className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125" />
             </div>
           ))}
         </div>
-
-        {/* Gradientes Laterais (Fade) */}
         <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-slate-50 dark:from-[#0B1120] to-transparent"></div>
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-slate-50 dark:from-[#0B1120] to-transparent"></div>
       </div>
-      {/* --- FIM DO MARQUEE --- */}
 
-      {/* CTA Final */}
-      <div 
-        className="text-center mt-12 relative z-10"
-        style={{
-          opacity: isVisible ? 1 : 0,
-          transition: 'opacity 700ms ease-out 400ms'
-        }}
-      >
-        <Link 
-          to="/api-docs" 
-          className="group inline-flex items-center gap-2 px-6 py-3 text-brand-blue hover:text-brand-coral font-bold transition-colors"
-        >
+      <div className="text-center mt-12 relative z-10" style={{ opacity: isVisible ? 1 : 0, transition: 'opacity 700ms ease-out 400ms' }}>
+        <Link to="/api-docs" className="group inline-flex items-center gap-2 px-6 py-3 text-brand-blue hover:text-brand-coral font-bold transition-colors">
           <span>Ver documentação da API</span>
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
 
       <style>{`
-        @keyframes scroll-left {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes scroll-right {
-          0% { transform: translateX(-50%); }
-          100% { transform: translateX(0); }
-        }
-        .hover\\:pause:hover {
-          animation-play-state: paused !important;
-        }
+        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes scroll-right { 0% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
+        .hover\\:pause:hover { animation-play-state: paused !important; }
       `}</style>
     </section>
   );
