@@ -56,14 +56,14 @@ const IntegrationsSection: React.FC = () => {
           {[...integrations, ...integrations].map((integration, idx) => (
             <div
               key={`${integration.name}-${idx}`}
-              // MUDANÇA AQUI: dark:bg-brand-coral/5 e dark:border-brand-coral/10
-              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-brand-coral/5 dark:border-brand-coral/10 dark:hover:bg-brand-coral/10 dark:hover:border-brand-coral/30"
+              // MUDANÇA AQUI: dark:bg-white/5 (Vidro sutil) e dark:border-white/5
+              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20"
             >
               <img
                 src={integration.logo}
                 alt={integration.name}
                 loading="lazy"
-                // MUDANÇA AQUI: Aumentei para brightness-200 no dark mode para "acender" o logo
+                // Mantive o brilho alto para o logo saltar do fundo escuro
                 className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125" 
               />
             </div>
@@ -75,27 +75,26 @@ const IntegrationsSection: React.FC = () => {
           {[...integrations.reverse(), ...integrations].map((integration, idx) => (
             <div
               key={`rev-${integration.name}-${idx}`}
-              // MUDANÇA AQUI: dark:bg-brand-coral/5 e dark:border-brand-coral/10
-              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-brand-coral/5 dark:border-brand-coral/10 dark:hover:bg-brand-coral/10 dark:hover:border-brand-coral/30"
+              // MUDANÇA AQUI: dark:bg-white/5 (Vidro sutil) e dark:border-white/5
+              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20"
             >
               <img
                 src={integration.logo}
                 alt={integration.name}
                 loading="lazy"
-                // MUDANÇA AQUI: Aumentei para brightness-200 no dark mode para "acender" o logo
                 className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125"
               />
             </div>
           ))}
         </div>
 
-        {/* Gradientes Laterais (Fade) - Ajustado para combinar com o fundo */}
+        {/* Gradientes Laterais (Fade) */}
         <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-slate-50 dark:from-[#0B1120] to-transparent"></div>
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-slate-50 dark:from-[#0B1120] to-transparent"></div>
       </div>
       {/* --- FIM DO MARQUEE --- */}
 
-      {/* CTA Final - Otimizado com Link */}
+      {/* CTA Final */}
       <div className="text-center mt-12 relative z-10">
         <Link 
           to="/api-docs" 
