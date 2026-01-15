@@ -306,7 +306,7 @@ const FeedPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Bloco de Agendamento - Versão UNIFICADA com fundo laranja quando ativado */}
+                {/* Bloco de Agendamento - Com paddings padronizados para simetria */}
                 <div className={cn(
                   "overflow-hidden rounded-[2rem] transition-all duration-300 border",
                   isScheduled
@@ -350,30 +350,30 @@ const FeedPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Campos + Info - só quando ativado */}
+                  {/* Campos + Info - paddings simétricos, sem pl-2 extra */}
                   {isScheduled && (
-                    <div className="px-6 pb-6 pt-2 space-y-6 animate-slide-up">
+                    <div className="p-6 space-y-6 animate-slide-up">
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest pl-2">
+                        <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest">
                           DATA DA PUBLICAÇÃO
                         </label>
                         <input
                           type="date"
                           value={scheduleDate}
                           onChange={(e) => setScheduleDate(e.target.value)}
-                          className="w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
+                          className="w-full px-5 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest pl-2">
+                        <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest">
                           HORÁRIO
                         </label>
                         <input
                           type="time"
                           value={scheduleTime}
                           onChange={(e) => setScheduleTime(e.target.value)}
-                          className="w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
+                          className="w-full px-5 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
                         />
                       </div>
 
