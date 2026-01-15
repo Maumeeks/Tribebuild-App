@@ -306,11 +306,11 @@ const FeedPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Bloco de Agendamento - COM WRAPPER DE CLIPPING */}
-                <div className="overflow-hidden rounded-[2rem]">
+                {/* Bloco de Agendamento - Versão corrigida sem vazamento */}
+                <div className="overflow-hidden rounded-[2rem] isolate">
                   <div
                     className={cn(
-                      "p-6 rounded-[2rem] border transition-all duration-300 cursor-pointer select-none",
+                      "p-6 rounded-[2rem] border transition-all duration-300 cursor-pointer select-none border-inherit",
                       isScheduled 
                         ? "bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30" 
                         : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700"
@@ -334,12 +334,12 @@ const FeedPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Campos que aparecem quando agendado */}
                   {isScheduled && (
-                    <div className="mt-4 space-y-4 animate-slide-up bg-white dark:bg-slate-900 p-6 rounded-b-[2rem]">
-                      {/* Data */}
+                    <div className="mt-[-1px] space-y-4 animate-slide-up bg-white dark:bg-slate-900 p-6 rounded-b-[2rem] border-t-0 border-inherit">
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Data da Publicação</label>
+                        <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">
+                          Data da Publicação
+                        </label>
                         <input
                           type="date"
                           value={scheduleDate}
@@ -347,10 +347,11 @@ const FeedPage: React.FC = () => {
                           className="w-full px-4 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-900/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none font-bold transition-all text-sm"
                         />
                       </div>
-                      
-                      {/* Horário */}
+
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">Horário</label>
+                        <label className="block text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-2">
+                          Horário
+                        </label>
                         <input
                           type="time"
                           value={scheduleTime}
@@ -359,7 +360,6 @@ const FeedPage: React.FC = () => {
                         />
                       </div>
 
-                      {/* Info */}
                       <div className="bg-orange-100/50 dark:bg-orange-900/20 p-4 rounded-xl flex items-start gap-3">
                         <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
                         <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
@@ -369,21 +369,21 @@ const FeedPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="p-6 md:p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
-                <Button
-                  onClick={handlePublish}
-                  className={cn(
-                    "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
-                    isScheduled 
+                <div className="p-6 md:p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
+                  <Button
+                    onClick={handlePublish}
+                    className={cn(
+                      "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
+                      isScheduled 
                         ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20" 
                         : "bg-brand-blue hover:bg-brand-blue-dark shadow-blue-500/20"
-                  )}
-                  leftIcon={isScheduled ? Clock : Send}
-                >
-                  {isScheduled ? 'Agendar Post' : 'Publicar Agora'}
-                </Button>
+                    )}
+                    leftIcon={isScheduled ? Clock : Send}
+                  >
+                    {isScheduled ? 'Agendar Post' : 'Publicar Agora'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
