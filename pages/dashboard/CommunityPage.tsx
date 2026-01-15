@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -77,11 +76,37 @@ const CommunityPage: React.FC = () => {
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
   
+  // Refs para Upload
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const postImageInputRef = useRef<HTMLInputElement>(null);
+
   // Estado de exclusão
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; postId: string | null }>({
     open: false,
     postId: null
   });
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAuthorAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePostImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handlePublish = () => {
     if (!authorName.trim()) {
@@ -133,20 +158,20 @@ const CommunityPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
+    <div className="space-y-10 font-['Inter'] pb-20">
       {/* Header */}
       <div className="space-y-3 animate-slide-up">
         <button
           onClick={() => navigate('/dashboard/apps')}
           className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
         >
-          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-50 group-hover:text-brand-blue transition-colors">
+          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
               <ArrowLeft className="w-4 h-4" />
           </div>
           Voltar para Meus Apps
         </button>
         <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Gerenciar Comunidade</h1>
-        <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
+        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
           Crie posts simulando usuários para gerar engajamento inicial ou modere as interações reais dos seus alunos. A interatividade é a chave da retenção.
         </p>
       </div>
@@ -157,7 +182,7 @@ const CommunityPage: React.FC = () => {
             onClick={() => setActiveTab('create')}
             className={cn(
                 "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeTab === 'create' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                activeTab === 'create' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
             Criar Post
@@ -166,7 +191,7 @@ const CommunityPage: React.FC = () => {
             onClick={() => setActiveTab('list')}
             className={cn(
                 "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeTab === 'list' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                activeTab === 'list' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
             Lista de Posts
@@ -217,29 +242,20 @@ const CommunityPage: React.FC = () => {
                           ) : (
                             // Área de upload
                             <div 
-                              className="w-24 h-24 border-2 border-dashed border-slate-200 rounded-full flex flex-col items-center justify-center cursor-pointer hover:border-brand-blue hover:bg-blue-50/50 transition-all group"
-                              onClick={() => document.getElementById('avatar-upload')?.click()}
+                              className="w-24 h-24 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-full flex flex-col items-center justify-center cursor-pointer hover:border-brand-blue hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all group"
+                              onClick={() => avatarInputRef.current?.click()}
                             >
-                              <Upload className="w-6 h-6 text-slate-300 group-hover:text-brand-blue mb-1" />
-                              <span className="text-[10px] font-black text-slate-400 group-hover:text-brand-blue uppercase tracking-widest">Upload</span>
+                              <Upload className="w-6 h-6 text-slate-300 dark:text-slate-600 group-hover:text-brand-blue mb-1" />
+                              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 group-hover:text-brand-blue uppercase tracking-widest">Upload</span>
                             </div>
                           )}
                           
                           <input
-                            id="avatar-upload"
+                            ref={avatarInputRef}
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setAuthorAvatar(reader.result as string);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
+                            onChange={handleAvatarUpload}
                           />
                           <p className="text-[10px] text-slate-400 font-medium mt-3 leading-relaxed">Foto de perfil do aluno simulado</p>
                         </div>
@@ -249,18 +265,18 @@ const CommunityPage: React.FC = () => {
 
             {/* Conteúdo do Post */}
             <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+                <div className="p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">O que este usuário diria?</label>
                     
                     {/* Toolbar */}
-                    <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Bold size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Italic size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Underline size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><Strikethrough size={18} /></button>
+                    <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Italic size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Underline size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Strikethrough size={18} /></button>
                         <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center" />
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><List size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:text-white dark:text-white"><AlignLeft size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><List size={18} /></button>
+                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><AlignLeft size={18} /></button>
                     </div>
 
                     <textarea
@@ -268,19 +284,49 @@ const CommunityPage: React.FC = () => {
                         onChange={(e) => setContent(e.target.value)}
                         placeholder="Digite o depoimento ou dúvida do aluno..."
                         rows={6}
-                        className="w-full p-6 bg-white text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
+                        className="w-full p-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
                     />
                 </div>
 
                 <div className="p-8">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Anexar Imagem (Opcional)</label>
-                    <div className="border-4 border-dashed border-slate-50 rounded-[2rem] p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 transition-all cursor-pointer group">
-                        <ImageIcon className="w-10 h-10 text-slate-200 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                        <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Carregar imagem do post</p>
+                    <div 
+                      className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                      onClick={() => postImageInputRef.current?.click()}
+                    >
+                        <input
+                          ref={postImageInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handlePostImageUpload}
+                        />
+                        
+                        {image ? (
+                          <div className="relative group/image">
+                            <img src={image} alt="Preview" className="mx-auto max-h-48 object-contain rounded-xl shadow-lg" />
+                            <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
+                              <p className="text-white font-bold text-xs">Trocar Imagem</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <ImageIcon className="w-10 h-10 text-slate-200 dark:text-slate-600 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
+                            <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Carregar imagem do post</p>
+                          </>
+                        )}
                     </div>
+                    {image && (
+                      <button 
+                        onClick={() => setImage(null)}
+                        className="mt-3 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" /> Remover imagem
+                      </button>
+                    )}
                 </div>
 
-                <div className="p-8 border-t border-slate-50 bg-slate-50/20 flex justify-end">
+                <div className="p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
                     <Button
                         onClick={handlePublish}
                         className="h-16 px-12 font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/20"
@@ -310,7 +356,7 @@ const CommunityPage: React.FC = () => {
                                 {post.authorAvatar ? (
                                     <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
                                         <User size={24} />
                                     </div>
                                 )}
@@ -322,17 +368,17 @@ const CommunityPage: React.FC = () => {
                         </div>
                         
                         <div className="flex items-center gap-1">
-                            <button className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit3 size={18} /></button>
+                            <button className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={18} /></button>
                             <button 
                                 onClick={() => setDeleteModal({ open: true, postId: post.id })}
-                                className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                             >
                                 <Trash2 size={18} />
                             </button>
                         </div>
                     </div>
 
-                    <p className="text-slate-700 font-bold leading-relaxed whitespace-pre-wrap text-lg mb-6">{post.content}</p>
+                    <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-lg mb-6">{post.content}</p>
                     
                     {/* Imagem (se tiver) */}
                     {post.image && (
@@ -341,7 +387,7 @@ const CommunityPage: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="pt-6 border-t border-slate-50 flex items-center gap-8">
+                    <div className="pt-6 border-t border-slate-50 dark:border-slate-700 flex items-center gap-8">
                         <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
                             <Heart className="w-4 h-4 text-red-400" />
                             {post.likes} Curtidas
@@ -374,7 +420,7 @@ const CommunityPage: React.FC = () => {
             <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
               Remover este post?
             </h3>
-            <p className="text-slate-500 text-center mb-10 font-medium leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 text-center mb-10 font-medium leading-relaxed">
               Esta ação removerá o post permanentemente da comunidade do seu aplicativo. Deseja continuar?
             </p>
             <div className="flex flex-col gap-3">
@@ -386,7 +432,7 @@ const CommunityPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setDeleteModal({ open: false, postId: null })}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
               >
                 Cancelar e Manter
               </button>
