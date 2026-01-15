@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -24,7 +23,7 @@ const metrics = [
     change: '+12%', 
     changeType: 'positive',
     icon: Users,
-    color: 'brand-blue'
+    color: '#3B82F6' // brand-blue hex
   },
   { 
     label: 'Assinaturas Ativas', 
@@ -52,13 +51,14 @@ const metrics = [
   },
 ];
 
-// Mock de últimos cadastros de produtores
+// Mock de últimos cadastros de produtores (ATUALIZADO PARA NOVOS PLANOS)
 const recentUsers = [
   { id: '1', name: 'Maria Silva', email: 'maria@email.com', phone: '11999999999', plan: 'Professional', status: 'active', createdAt: '2025-04-26T14:00:00' },
-  { id: '2', name: 'João Santos', email: 'joao@email.com', phone: '21988888888', plan: 'Basic', status: 'active', createdAt: '2025-04-26T10:00:00' },
-  { id: '3', name: 'Ana Costa', email: 'ana@email.com', phone: null, plan: 'Basic', status: 'trial', createdAt: '2025-04-25T18:00:00' },
+  { id: '2', name: 'João Santos', email: 'joao@email.com', phone: '21988888888', plan: 'Starter', status: 'active', createdAt: '2025-04-26T10:00:00' },
+  { id: '3', name: 'Ana Costa', email: 'ana@email.com', phone: null, plan: 'Starter', status: 'trial', createdAt: '2025-04-25T18:00:00' },
   { id: '4', name: 'Pedro Henrique', email: 'pedro@email.com', phone: '31977777777', plan: 'Professional', status: 'canceled', createdAt: '2025-04-25T09:00:00' },
   { id: '5', name: 'Carla Lima', email: 'carla@email.com', phone: '41966666666', plan: 'Business', status: 'active', createdAt: '2025-04-24T15:00:00' },
+  { id: '6', name: 'Big Corp Ltda', email: 'contact@bigcorp.com', phone: '11988887777', plan: 'Enterprise', status: 'active', createdAt: '2025-04-23T11:00:00' },
 ];
 
 export default function AdminDashboardPage() {
@@ -92,12 +92,13 @@ export default function AdminDashboardPage() {
 
   const renderPlan = (plan: string) => {
     const colors: Record<string, string> = {
-      'Basic': 'bg-slate-50 text-slate-500 border-slate-200',
+      'Starter': 'bg-slate-50 text-slate-500 border-slate-200',
       'Professional': 'bg-blue-50 text-blue-600 border-blue-100',
       'Business': 'bg-purple-50 text-purple-700 border-purple-100',
+      'Enterprise': 'bg-slate-900 text-white border-slate-900',
     };
     return (
-      <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border", colors[plan])}>
+      <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border", colors[plan] || colors['Starter'])}>
         {plan}
       </span>
     );
@@ -238,7 +239,7 @@ export default function AdminDashboardPage() {
           {/* Activity / System Status */}
           <div className="space-y-8">
               <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2"></div>
                   <h3 className="text-xl font-black tracking-tight mb-8">Status do Sistema</h3>
                   
                   <div className="space-y-6">

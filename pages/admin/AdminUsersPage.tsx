@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -24,16 +23,17 @@ import {
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
 
-// Mock estendido de produtores
+// Mock estendido de produtores (ATUALIZADO COM NOVOS PLANOS)
 const allUsers = [
   { id: '1', name: 'Maria Silva', email: 'maria@email.com', phone: '11999999999', plan: 'Professional', status: 'active', apps: 2, createdAt: '2025-04-26' },
-  { id: '2', name: 'João Santos', email: 'joao@email.com', phone: '21988888888', plan: 'Basic', status: 'active', apps: 1, createdAt: '2025-04-26' },
-  { id: '3', name: 'Ana Costa', email: 'ana@email.com', phone: null, plan: 'Basic', status: 'trial', apps: 1, createdAt: '2025-04-25' },
+  { id: '2', name: 'João Santos', email: 'joao@email.com', phone: '21988888888', plan: 'Starter', status: 'active', apps: 1, createdAt: '2025-04-26' },
+  { id: '3', name: 'Ana Costa', email: 'ana@email.com', phone: null, plan: 'Starter', status: 'trial', apps: 1, createdAt: '2025-04-25' },
   { id: '4', name: 'Pedro Henrique', email: 'pedro@email.com', phone: '31977777777', plan: 'Professional', status: 'canceled', apps: 0, createdAt: '2025-04-25' },
   { id: '5', name: 'Carla Lima', email: 'carla@email.com', phone: '41966666666', plan: 'Business', status: 'active', apps: 5, createdAt: '2025-04-24' },
   { id: '6', name: 'Lucas Oliveira', email: 'lucas@email.com', phone: '51955555555', plan: 'Professional', status: 'active', apps: 3, createdAt: '2025-04-23' },
-  { id: '7', name: 'Fernanda Souza', email: 'fernanda@email.com', phone: null, plan: 'Basic', status: 'trial', apps: 1, createdAt: '2025-04-22' },
+  { id: '7', name: 'Fernanda Souza', email: 'fernanda@email.com', phone: null, plan: 'Starter', status: 'trial', apps: 1, createdAt: '2025-04-22' },
   { id: '8', name: 'Ricardo Mendes', email: 'ricardo@email.com', phone: '61944444444', plan: 'Business', status: 'active', apps: 8, createdAt: '2025-04-20' },
+  { id: '9', name: 'Holding Global', email: 'admin@holding.com', phone: '11977776666', plan: 'Enterprise', status: 'active', apps: 12, createdAt: '2025-04-19' },
 ];
 
 export default function AdminUsersPage() {
@@ -71,12 +71,13 @@ export default function AdminUsersPage() {
 
   const renderPlan = (plan: string) => {
     const colors: Record<string, string> = {
-      'Basic': 'bg-slate-50 text-slate-500 border-slate-200',
+      'Starter': 'bg-slate-50 text-slate-500 border-slate-200',
       'Professional': 'bg-blue-50 text-blue-600 border-blue-100',
       'Business': 'bg-purple-50 text-purple-700 border-purple-100',
+      'Enterprise': 'bg-slate-900 text-white border-slate-900',
     };
     return (
-      <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border shadow-sm", colors[plan])}>
+      <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border shadow-sm", colors[plan] || colors['Starter'])}>
         {plan}
       </span>
     );
@@ -129,9 +130,10 @@ export default function AdminUsersPage() {
               className="w-full px-5 py-4.5 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
             >
               <option value="all">Todos os Planos</option>
-              <option value="Basic">Basic</option>
+              <option value="Starter">Starter</option>
               <option value="Professional">Professional</option>
               <option value="Business">Business</option>
+              <option value="Enterprise">Enterprise</option>
             </select>
           </div>
 
