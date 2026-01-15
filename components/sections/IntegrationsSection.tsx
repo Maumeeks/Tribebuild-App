@@ -1,6 +1,7 @@
 import React from 'react';
 import { Zap, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 // Lista de integrações
 const integrations = [
@@ -21,13 +22,26 @@ const integrations = [
 ];
 
 const IntegrationsSection: React.FC = () => {
+  const { elementRef, isVisible } = useIntersectionObserver();
+
   return (
-    <section id="integracoes" className="py-24 relative overflow-hidden bg-slate-50 dark:bg-[#0B1120] transition-colors">
+    <section 
+      id="integracoes" 
+      ref={elementRef}
+      className="py-24 relative overflow-hidden bg-slate-50 dark:bg-[#0B1120] transition-colors"
+    >
       
       {/* Background Sutil */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-blue/5 via-transparent to-transparent pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10 mb-12 text-center">
+      <div 
+        className="max-w-7xl mx-auto px-4 relative z-10 mb-12 text-center"
+        style={{
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 700ms ease-out, transform 700ms ease-out'
+        }}
+      >
         
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue text-xs font-bold uppercase tracking-widest rounded-full mb-6 border border-brand-blue/20">
@@ -49,21 +63,28 @@ const IntegrationsSection: React.FC = () => {
       </div>
 
       {/* --- INÍCIO DO MARQUEE INFINITO --- */}
-      <div className="relative flex flex-col gap-8 overflow-hidden py-8">
+      <div 
+        className="relative flex flex-col gap-8 overflow-hidden py-8"
+        style={{
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 700ms ease-out 200ms, transform 700ms ease-out 200ms'
+        }}
+      >
         
         {/* Fileira 1 - Indo para a Esquerda */}
         <div className="flex w-max hover:pause" style={{ animation: 'scroll-left 40s linear infinite' }}>
           {[...integrations, ...integrations].map((integration, idx) => (
             <div
               key={`${integration.name}-${idx}`}
-              // MUDANÇA AQUI: dark:bg-white/5 (Vidro sutil) e dark:border-white/5
+              // EFEITO GLASS CLEAN: dark:bg-white/5 (Fundo sutil branco transparente)
               className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20"
             >
               <img
                 src={integration.logo}
                 alt={integration.name}
                 loading="lazy"
-                // Mantive o brilho alto para o logo saltar do fundo escuro
+                // BRILHO ALTO: Garante que o logo salte aos olhos no fundo escuro
                 className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-200 dark:contrast-125" 
               />
             </div>
@@ -75,7 +96,7 @@ const IntegrationsSection: React.FC = () => {
           {[...integrations.reverse(), ...integrations].map((integration, idx) => (
             <div
               key={`rev-${integration.name}-${idx}`}
-              // MUDANÇA AQUI: dark:bg-white/5 (Vidro sutil) e dark:border-white/5
+              // EFEITO GLASS CLEAN: dark:bg-white/5 (Fundo sutil branco transparente)
               className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 dark:hover:border-white/20"
             >
               <img
@@ -95,7 +116,13 @@ const IntegrationsSection: React.FC = () => {
       {/* --- FIM DO MARQUEE --- */}
 
       {/* CTA Final */}
-      <div className="text-center mt-12 relative z-10">
+      <div 
+        className="text-center mt-12 relative z-10"
+        style={{
+          opacity: isVisible ? 1 : 0,
+          transition: 'opacity 700ms ease-out 400ms'
+        }}
+      >
         <Link 
           to="/api-docs" 
           className="group inline-flex items-center gap-2 px-6 py-3 text-brand-blue hover:text-brand-coral font-bold transition-colors"
