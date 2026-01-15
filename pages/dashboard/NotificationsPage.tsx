@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -14,7 +13,8 @@ import {
   Trash2,
   AlertCircle,
   ChevronRight,
-  Info
+  Info,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -123,7 +123,7 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
+    <div className="space-y-10 font-['Inter'] pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
         <div className="space-y-3">
@@ -131,13 +131,13 @@ const NotificationsPage: React.FC = () => {
             onClick={() => navigate('/dashboard/apps')}
             className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
           >
-            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-50 group-hover:text-brand-blue transition-colors">
+            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
                 <ArrowLeft className="w-4 h-4" />
             </div>
             Voltar para Meus Apps
           </button>
           <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Notificações Push</h1>
-          <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
+          <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
             Comunique-se instantaneamente com todos os usuários que instalaram seu app. Envie novidades, avisos e conteúdos importantes direto para a tela de bloqueio.
           </p>
         </div>
@@ -159,35 +159,35 @@ const NotificationsPage: React.FC = () => {
         
         {notifications.length === 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-16 text-center shadow-sm">
-            <Bell className="w-16 h-16 text-slate-100 mx-auto mb-4" />
+            <Bell className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
             <p className="text-slate-400 font-bold">Nenhuma notificação enviada ainda.</p>
           </div>
         ) : (
           <div className="space-y-4 max-w-5xl">
             {notifications.map((notification, idx) => (
-              <div key={notification.id} className="bg-white rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+              <div key={notification.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all group">
                 <div className="p-6 flex flex-col md:flex-row md:items-start gap-6">
-                  <div className="w-14 h-14 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-50 transition-colors">
+                  <div className="w-14 h-14 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
                     <Bell className="w-7 h-7 text-slate-400 group-hover:text-blue-500" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">{notification.title}</h3>
-                    <p className="text-slate-600 font-medium text-sm mt-1 leading-relaxed">{notification.message}</p>
+                    <p className="text-slate-600 dark:text-slate-300 font-medium text-sm mt-1 leading-relaxed">{notification.message}</p>
                     
                     {notification.link && (
                       <a 
                         href={notification.link} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-brand-blue text-[10px] font-black uppercase tracking-widest mt-4 hover:underline bg-blue-50 px-3 py-1 rounded-lg border border-blue-100"
+                        className="inline-flex items-center gap-2 text-brand-blue text-[10px] font-black uppercase tracking-widest mt-4 hover:underline bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg border border-blue-100 dark:border-blue-900/30"
                       >
                         <LinkIcon className="w-3 h-3" />
                         Ver Link de Redirecionamento
                       </a>
                     )}
                     
-                    <div className="flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-slate-50">
+                    <div className="flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-slate-50 dark:border-slate-700">
                       <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
                         <Clock className="w-4 h-4" />
                         Enviada em {formatDate(notification.sentAt)}
@@ -201,7 +201,7 @@ const NotificationsPage: React.FC = () => {
                   
                   <button
                     onClick={() => setDeleteModal({ open: true, notificationId: notification.id })}
-                    className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                     title="Remover do histórico"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -218,12 +218,12 @@ const NotificationsPage: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
           <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Nova Notificação</h3>
                 <p className="text-sm text-slate-400 font-medium">Disparo em massa para todos os usuários</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-700 rounded-2xl transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-colors">
                 <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>
@@ -235,11 +235,7 @@ const NotificationsPage: React.FC = () => {
                 <div className="bg-slate-900 rounded-3xl p-6 shadow-xl border-4 border-slate-800">
                     <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 flex items-start gap-4 border border-white/10">
                         <div className="w-10 h-10 bg-brand-blue rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                            <svg className="w-6 h-6" viewBox="0 0 80 70" fill="none">
-                              <path d="M20 25 L40 45 L20 65 L0 45 Z" fill="white"/>
-                              <path d="M60 25 L80 45 L60 65 L40 45 Z" fill="white"/>
-                              <path d="M40 5 L60 25 L40 45 L20 25 Z" fill="#FF6B6B"/>
-                            </svg>
+                            <Bell className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -262,7 +258,9 @@ const NotificationsPage: React.FC = () => {
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Título do Push</label>
                     <span className={cn(
                         "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
-                        title.length > 25 ? "text-orange-500 bg-orange-50" : "text-slate-400 bg-slate-50 dark:bg-slate-900"
+                        title.length > 25 
+                            ? "text-orange-500 bg-orange-50 dark:bg-orange-900/20" 
+                            : "text-slate-400 bg-slate-50 dark:bg-slate-900"
                     )}>
                         {title.length}/30
                     </span>
@@ -282,7 +280,9 @@ const NotificationsPage: React.FC = () => {
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Corpo da Mensagem</label>
                     <span className={cn(
                         "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
-                        message.length > 70 ? "text-orange-500 bg-orange-50" : "text-slate-400 bg-slate-50 dark:bg-slate-900"
+                        message.length > 70 
+                            ? "text-orange-500 bg-orange-50 dark:bg-orange-900/20" 
+                            : "text-slate-400 bg-slate-50 dark:bg-slate-900"
                     )}>
                         {message.length}/80
                     </span>
@@ -300,7 +300,7 @@ const NotificationsPage: React.FC = () => {
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Link de Ação (Opcional)</label>
                 <div className="relative group">
-                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300">
+                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300 dark:text-slate-600">
                         <LinkIcon className="w-5 h-5" />
                     </div>
                     <input
@@ -317,20 +317,20 @@ const NotificationsPage: React.FC = () => {
               </div>
 
               {/* Aviso de Envio Real */}
-              <div className="p-5 rounded-[1.5rem] bg-blue-50 border border-blue-100 flex items-start gap-4">
+              <div className="p-5 rounded-[1.5rem] bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 flex items-start gap-4">
                 <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-brand-blue">
                     <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
                     <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Envio em tempo real</p>
-                    <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
                         Ao clicar em enviar, todos os dispositivos conectados receberão a notificação instantaneamente.
                     </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 bg-slate-50/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
+            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4 sticky bottom-0 backdrop-blur-md">
               <Button
                 variant="ghost"
                 onClick={() => setIsModalOpen(false)}
@@ -365,7 +365,7 @@ const NotificationsPage: React.FC = () => {
             <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
               Remover do histórico?
             </h3>
-            <p className="text-slate-500 text-center mb-10 font-medium leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 text-center mb-10 font-medium leading-relaxed">
               Isso apagará o registro de envio desta lista. A notificação já disparada não será afetada nos dispositivos.
             </p>
             <div className="flex flex-col gap-3">
@@ -377,7 +377,7 @@ const NotificationsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setDeleteModal({ open: false, notificationId: null })}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
               >
                 Cancelar e Manter
               </button>
