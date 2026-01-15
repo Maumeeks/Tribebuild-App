@@ -56,13 +56,13 @@ const IntegrationsSection: React.FC = () => {
           {[...integrations, ...integrations].map((integration, idx) => (
             <div
               key={`${integration.name}-${idx}`}
-              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10"
+              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:hover:border-brand-blue/30"
             >
               <img
                 src={integration.logo}
                 alt={integration.name}
                 loading="lazy"
-                className="max-h-10 w-auto object-contain transition-all opacity-80 hover:opacity-100 hover:scale-110 dark:brightness-200" 
+                className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-125" 
               />
             </div>
           ))}
@@ -73,13 +73,13 @@ const IntegrationsSection: React.FC = () => {
           {[...integrations.reverse(), ...integrations].map((integration, idx) => (
             <div
               key={`rev-${integration.name}-${idx}`}
-              className="mx-4 flex h-20 w-48 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10"
+              className="mx-4 flex h-24 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 transition-all hover:border-brand-blue/50 hover:bg-white hover:shadow-lg dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:hover:border-brand-blue/30"
             >
               <img
                 src={integration.logo}
                 alt={integration.name}
                 loading="lazy"
-                className="max-h-10 w-auto object-contain transition-all opacity-80 hover:opacity-100 hover:scale-110 dark:brightness-200"
+                className="max-h-12 w-auto object-contain transition-all hover:scale-110 dark:brightness-125"
               />
             </div>
           ))}

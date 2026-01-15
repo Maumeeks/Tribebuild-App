@@ -1,376 +1,225 @@
-import React, { useState, useEffect } from 'react';
-import { Check, Rocket, Info, Shield, Gift, Clock } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import ScrollReveal from '../ScrollReveal';
+import React, { useState } from 'react';
+import { Check, Sparkles, Zap, Crown, Building2, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    monthlyPrice: 67,
-    yearlyPrice: 56,
-    yearlyTotal: 672,
-    savings: 132,
-    badge: '7 dias grátis',
-    features: [
-      '1 aplicativo completo',
-      '500 membros ativos',
-      'Produtos e cursos ilimitados',
-      'Comunidade + Feed',
-      'Notificações Push ilimitadas',
-      'Domínio personalizado',
-      'Integrações (Hotmart, Kiwify)',
-    ],
-    cta: 'COMEÇAR GRÁTIS',
-    highlighted: false,
-    extraInfo: 'Sem cartão para testar',
-    stripeMonthly: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
-    stripeYearly: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    monthlyPrice: 127,
-    yearlyPrice: 106,
-    yearlyTotal: 1272,
-    savings: 252,
-    badge: 'Mais Popular',
-    features: [
-      '3 aplicativos completos',
-      '2.000 membros ativos',
-      'Produtos e cursos ilimitados',
-      'Comunidade + Feed',
-      'Notificações Push ilimitadas',
-      'Domínio personalizado',
-      'Integrações (Hotmart, Kiwify)',
-      'Suporte prioritário (2h)',
-    ],
-    cta: 'ESCOLHER PROFESSIONAL',
-    highlighted: true,
-    extraInfo: 'R$ 0,15 por membro extra',
-    stripeMonthly: 'https://buy.stripe.com/test_9B63cv0Zu8GGdiSbC12wU02',
-    stripeYearly: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    monthlyPrice: 247,
-    yearlyPrice: 206,
-    yearlyTotal: 2472,
-    savings: 492,
-    badge: null,
-    features: [
-      '10 aplicativos completos',
-      '10.000 membros ativos',
-      'Produtos e cursos ilimitados',
-      'Comunidade + Feed',
-      'Notificações Push ilimitadas',
-      'Domínio personalizado',
-      'Integrações (Hotmart, Kiwify)',
-      'Suporte VIP + Consultoria',
-      'Onboarding personalizado',
-    ],
-    cta: 'SELECIONAR BUSINESS',
-    highlighted: false,
-    extraInfo: 'R$ 0,10 por membro extra',
-    stripeMonthly: 'https://buy.stripe.com/test_9B63cv0Zu8GGdiSbC12wU02',
-    stripeYearly: 'https://buy.stripe.com/test_14A14n23yaOOdiSaxX2wU05',
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    monthlyPrice: null,
-    yearlyPrice: null,
-    yearlyTotal: null,
-    savings: null,
-    badge: 'Sob medida',
-    features: [
-      'Apps ilimitados',
-      'Membros ilimitados',
-      'White-label total',
-      'API dedicada',
-      'SLA garantido 99.9%',
-      'Servidor dedicado',
-      'Gerente de conta exclusivo',
-      'Desenvolvimento customizado',
-      'Treinamento para equipe',
-    ],
-    cta: 'SOLICITAR PROPOSTA',
-    highlighted: false,
-    extraInfo: 'Para grandes operações',
-    whatsapp: 'https://wa.me/5561982199922?text=Olá! Tenho interesse no plano Enterprise do TribeBuild. Gostaria de receber uma proposta personalizada.',
-  },
-];
 
 const PricingSection: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(false);
   const navigate = useNavigate();
 
-  // Contador regressivo para urgência
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
-
-  useEffect(() => {
-    const getNextMonday = () => {
-      const now = new Date();
-      const nextMonday = new Date();
-      nextMonday.setDate(now.getDate() + ((1 + 7 - now.getDay()) % 7 || 7));
-      nextMonday.setHours(23, 59, 59, 999);
-      return nextMonday;
-    };
-
-    const targetDate = getNextMonday();
-
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = targetDate.getTime() - now;
-
-      if (distance > 0) {
-        setTimeLeft({
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const handlePlanClick = (plan: typeof plans[0]) => {
-    // Se for Enterprise (WhatsApp), abre em nova aba
-    if (plan.whatsapp) {
-      window.open(plan.whatsapp, '_blank');
-      return;
+  const plans = [
+    {
+      name: 'Starter',
+      price: isAnnual ? 56 : 67,
+      originalPrice: 67,
+      description: 'Perfeito para começar sua jornada.',
+      icon: Zap,
+      color: 'brand-blue', // Azul
+      highlight: false,
+      features: [
+        '1 Aplicativo',
+        'Até 500 usuários ativos',
+        'Produtos ilimitados',
+        'Feed + Comunidade',
+        'Notificações Push ilimitadas',
+        'Integração Hotmart/Kiwify',
+        'Domínio Personalizado',
+        'Acesso a Tutoriais (Sem suporte humano)'
+      ]
+    },
+    {
+      name: 'Professional',
+      price: isAnnual ? 106 : 127,
+      originalPrice: 127,
+      description: 'Para criadores em crescimento constante.',
+      icon: Crown,
+      color: 'brand-coral', // Coral
+      highlight: true, // Destaque
+      features: [
+        '3 Aplicativos',
+        'Até 1.500 usuários ativos',
+        'R$ 0,40 por usuário extra',
+        'Tudo do plano Starter',
+        'Suporte via E-mail (48h)',
+        'Relatórios de Engajamento',
+        'Prioridade na fila de build'
+      ]
+    },
+    {
+      name: 'Business',
+      price: isAnnual ? 164 : 197,
+      originalPrice: 197,
+      description: 'Para escalar sua operação sem limites.',
+      icon: Building2,
+      color: 'purple-500', // Roxo
+      highlight: false,
+      features: [
+        '5 Aplicativos',
+        'Até 2.800 usuários ativos',
+        'R$ 0,40 por usuário extra',
+        'Tudo do plano Professional',
+        'Suporte via E-mail (24h)',
+        'Múltiplos Administradores',
+        'Gestão de Equipe'
+      ]
+    },
+    {
+      name: 'Enterprise',
+      price: isAnnual ? 330 : 397,
+      originalPrice: 397,
+      description: 'Máxima potência e exclusividade.',
+      icon: Rocket,
+      color: 'indigo-500', // Indigo
+      highlight: false,
+      features: [
+        '10 Aplicativos',
+        'Até 10.000 usuários ativos',
+        'R$ 0,30 por usuário extra (Desconto)',
+        'Tudo do plano Business',
+        'Suporte Prioritário VIP',
+        'White Label (Sem marca Tribe)',
+        'Gerente de Conta Dedicado'
+      ]
     }
-
-    // Para todos os outros, redireciona para criar conta
-    // Podemos passar o plano escolhido via state se quisermos pré-selecionar depois
-    navigate('/register', { 
-      state: { 
-        selectedPlan: plan.id,
-        billingCycle: isAnnual ? 'yearly' : 'monthly'
-      } 
-    });
-  };
+  ];
 
   return (
-    <section id="precos" className="py-20 relative overflow-hidden transition-colors">
-      {/* Background */}
-      <div className="absolute inset-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur-[2px]"></div>
+    <section id="precos" className="py-24 bg-slate-50 dark:bg-slate-950 transition-colors relative overflow-hidden font-['Inter']">
+      {/* Background Elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-brand-blue/5 dark:bg-brand-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-brand-coral/5 dark:bg-brand-coral/10 rounded-full blur-[120px]" />
+      </div>
 
-      {/* Glow */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-blue/8 via-transparent to-transparent dark:from-brand-blue/15 pointer-events-none"></div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-
-        {/* Header com Ancoragem */}
-        <ScrollReveal className="text-center mb-12">
-          {/* Ancoragem de Valor */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-full mb-6">
-            <span className="text-slate-400 text-sm line-through">Desenvolver um app custa R$15.000+</span>
-            <span className="text-brand-coral font-bold text-sm">Aqui começa em R$67/mês</span>
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Header da Seção */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue dark:text-blue-300 text-xs font-black uppercase tracking-widest mb-4 border border-brand-blue/20">
+            <Sparkles className="w-4 h-4" />
+            Investimento Inteligente
           </div>
-
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">
-            Invista Menos Que Uma{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-coral">
-              Pizza Por Semana
-            </span>
+          <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">
+            Escolha o plano ideal para sua escala
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-6 font-medium">
-            Menos de R$2,20 por dia para ter seu próprio app profissional.
-            Quanto você perdeu em reembolsos esse mês?
+          <p className="text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+            Comece grátis por 7 dias. Cancele a qualquer momento. <br className="hidden md:block" />
+            Sem contratos de fidelidade ou taxas escondidas.
           </p>
+        </div>
 
-          {/* Urgência com Contador */}
-          <div className="inline-flex items-center gap-3 px-5 py-3 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-2xl border border-brand-coral/30">
-            <Clock className="w-5 h-5 text-brand-coral" />
-            <span className="text-brand-coral font-bold">
-              Preço de lançamento acaba em: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
-            </span>
-          </div>
-
-          {/* Toggle Mensal/Anual */}
-          <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-1 shadow-inner mt-6 ml-4">
+        {/* Toggle Mensal/Anual */}
+        <div className="flex justify-center mb-16">
+          <div className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 inline-flex relative">
             <button
               onClick={() => setIsAnnual(false)}
-              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${!isAnnual
-                ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/30 transform scale-105'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all relative z-10 ${
+                !isAnnual 
+                  ? 'bg-brand-blue text-white shadow-md' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
               Mensal
             </button>
             <button
               onClick={() => setIsAnnual(true)}
-              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${isAnnual
-                ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/30 transform scale-105'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all relative z-10 flex items-center gap-2 ${
+                isAnnual 
+                  ? 'bg-brand-blue text-white shadow-md' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
               Anual
+              <span className="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm uppercase tracking-wider">
+                -17%
+              </span>
             </button>
-            <span className="ml-3 px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-black rounded-full uppercase tracking-tighter">
-              2 MESES GRÁTIS
-            </span>
           </div>
-        </ScrollReveal>
-
-        {/* Grid de Planos */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {plans.map((plan, idx) => (
-            <div
-              key={plan.id}
-              className={`group relative bg-white dark:bg-slate-900 rounded-3xl p-8 transition-all duration-500 cursor-pointer
-                ${plan.highlighted
-                  ? 'border-2 border-brand-blue shadow-2xl shadow-brand-blue/10 dark:shadow-brand-blue/20 scale-105'
-                  : 'border border-slate-100 dark:border-slate-800 shadow-sm'
-                }
-                hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand-blue/20 hover:border-brand-blue/50
-              `}
-            >
-              {/* Badge */}
-              {plan.highlighted && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center gap-1.5 px-5 py-2 bg-brand-blue text-white text-[10px] font-black rounded-full shadow-lg uppercase tracking-widest">
-                    <Rocket className="w-3.5 h-3.5" />
-                    Mais Popular
-                  </span>
-                </div>
-              )}
-
-              {plan.badge && !plan.highlighted && (
-                <div className="mb-4">
-                  <span className="px-3 py-1 bg-brand-coral/10 dark:bg-brand-coral/20 text-brand-coral text-[10px] font-black rounded-full uppercase tracking-tighter">
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              {/* Nome do Plano */}
-              <div className="mb-6">
-                <h3 className={`text-xl font-black tracking-tight ${plan.highlighted ? 'text-brand-blue' : 'text-slate-900 dark:text-white'}`}>
-                  {plan.name}
-                </h3>
-              </div>
-
-              {/* Preço */}
-              <div className="mb-8">
-                {plan.monthlyPrice ? (
-                  <>
-                    <div className="flex items-baseline">
-                      <span className="text-lg font-bold text-slate-400 dark:text-slate-500">R$</span>
-                      <span className="text-5xl font-black text-slate-900 dark:text-white mx-1 tracking-tighter">
-                        {isAnnual ? plan.yearlyPrice : plan.monthlyPrice}
-                      </span>
-                      <span className="text-slate-400 dark:text-slate-500 font-bold text-sm">/mês</span>
-                    </div>
-                    {isAnnual && plan.savings && (
-                      <p className="text-emerald-600 dark:text-emerald-400 text-xs font-bold mt-2 uppercase tracking-tighter">
-                        Economia de R$ {plan.savings}/ano
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-3xl font-black text-slate-900 dark:text-white">
-                    Sob consulta
-                  </div>
-                )}
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <div className={cn(
-                      "mt-0.5 p-0.5 rounded-full",
-                      plan.highlighted ? "bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue" : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
-                    )}>
-                      <Check className="w-3.5 h-3.5 stroke-[3px]" />
-                    </div>
-                    <span className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-tight">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Info Extra */}
-              {plan.extraInfo && (
-                <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-6 pb-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-                  <Info className="w-3.5 h-3.5" />
-                  <span>{plan.extraInfo}</span>
-                </div>
-              )}
-
-              {/* CTA (Agora redireciona para Registro) */}
-              <button
-                onClick={() => handlePlanClick(plan)}
-                className={`block w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 text-center
-                  ${plan.whatsapp
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/40'
-                    : plan.highlighted
-                      ? 'bg-brand-blue text-white hover:bg-brand-blue-dark shadow-xl shadow-brand-blue/30 hover:shadow-2xl hover:shadow-brand-blue/40'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm'
-                  }
-                  active:scale-95
-                `}
-              >
-                {plan.cta}
-              </button>
-            </div>
-          ))}
         </div>
 
-        {/* Garantia + Bônus */}
-        <ScrollReveal>
-          <div className="bg-gradient-to-r from-brand-blue/5 via-emerald-500/5 to-brand-coral/5 dark:from-brand-blue/10 dark:via-emerald-500/10 dark:to-brand-coral/10 rounded-3xl p-8 md:p-12 border border-slate-200/50 dark:border-slate-700/50">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
+        {/* Grid de Planos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-[1400px] mx-auto">
+          {plans.map((plan) => {
+            const Icon = plan.icon;
+            
+            // Definição de cores dinâmicas para os ícones
+            const iconBgColor = 
+                plan.color === 'brand-blue' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                plan.color === 'brand-coral' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
+                plan.color === 'purple-500' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
+                'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400';
 
-              {/* Teste Grátis */}
-              <div className="text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-full mb-4">
-                  <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">Teste Grátis</span>
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-                  7 Dias Para Testar Tudo
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Crie seu app, configure tudo, veja funcionando.
-                  Se não for para você, cancele antes dos 7 dias e não paga nada.
-                </p>
-              </div>
+            return (
+              <div 
+                key={plan.name}
+                className={`relative bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border-2 transition-all duration-300 hover:-translate-y-2 flex flex-col ${
+                  plan.highlight 
+                    ? 'border-brand-coral shadow-2xl shadow-brand-coral/20 scale-105 z-10' 
+                    : 'border-slate-100 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:border-brand-blue/30 dark:hover:border-brand-blue/30'
+                }`}
+              >
+                {/* Badge de Popular */}
+                {plan.highlight && (
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-max">
+                    <span className="bg-brand-coral text-white text-[10px] font-black px-6 py-2 rounded-full shadow-lg shadow-brand-coral/30 uppercase tracking-widest border-4 border-slate-50 dark:border-slate-900">
+                      Mais Popular
+                    </span>
+                  </div>
+                )}
 
-              {/* Bônus */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 mb-4">
-                  <Gift className="w-5 h-5 text-brand-coral" />
-                  <span className="text-brand-coral font-bold">Bônus Exclusivos (R$497 em valor)</span>
+                {/* Header do Card */}
+                <div className="mb-8">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${iconBgColor}`}>
+                    <Icon size={28} />
+                  </div>
+                  
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">{plan.name}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium min-h-[40px] leading-relaxed">
+                    {plan.description}
+                  </p>
                 </div>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span><strong>Templates prontos</strong> - Copie e cole (R$197)</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span><strong>Guia de lançamento</strong> - Passo a passo (R$147)</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span><strong>Checklist de configuração</strong> - Nada esquecido (R$97)</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span><strong>Suporte prioritário</strong> - Resposta em até 2h (R$56)</span>
-                  </li>
+
+                {/* Preço */}
+                <div className="mb-8 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
+                  <div className="flex items-center justify-center gap-1 text-slate-900 dark:text-white">
+                    <span className="text-sm font-bold text-slate-400">R$</span>
+                    <span className="text-5xl font-black tracking-tighter">{plan.price}</span>
+                    <span className="text-sm font-bold text-slate-400 self-end mb-1">/mês</span>
+                  </div>
+                  {isAnnual && (
+                    <p className="text-[10px] text-green-600 dark:text-green-400 font-black mt-2 uppercase tracking-wide">
+                      Cobrado R$ {(plan.price * 12).toLocaleString('pt-BR')}/ano
+                    </p>
+                  )}
+                </div>
+
+                {/* Lista de Features */}
+                <ul className="space-y-4 mb-8 flex-1">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3 group">
+                      <div className="mt-0.5 p-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
+                        <Check className="w-3 h-3 stroke-[3px]" />
+                      </div>
+                      <span className="text-sm text-slate-600 dark:text-slate-300 font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-relaxed">
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
+
+                {/* Botão de Ação */}
+                <button 
+                  onClick={() => navigate('/register')}
+                  className={`w-full py-4 text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all transform active:scale-95 ${
+                    plan.highlight 
+                      ? 'bg-brand-coral hover:bg-orange-600 text-white shadow-orange-500/20' 
+                      : 'bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white'
+                  }`}
+                >
+                  Começar Teste Grátis
+                </button>
               </div>
-
-            </div>
-          </div>
-        </ScrollReveal>
-
+            );
+          })}
+        </div>
       </div>
     </section>
   );
