@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Search, 
@@ -6,7 +5,6 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  AlertTriangle,
   MoreHorizontal,
   Eye,
   RefreshCw,
@@ -15,27 +13,23 @@ import {
   Receipt,
   DollarSign,
   TrendingUp,
-  Calendar,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
   Download,
   X,
-  Sparkles,
-  ArrowRight,
-  // Added Info to imports
   Info
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
 
-// Tipo para assinatura
+// Tipo atualizado com os novos planos do TribeBuild
 interface Subscription {
   id: string;
   userId: string;
   userName: string;
   userEmail: string;
-  plan: 'Basic' | 'Pro' | 'Business';
+  plan: 'Starter' | 'Professional' | 'Business' | 'Enterprise'; // Planos Corretos
   price: number;
   status: 'active' | 'trial' | 'canceled' | 'past_due' | 'paused';
   billingCycle: 'monthly' | 'yearly';
@@ -48,15 +42,15 @@ interface Subscription {
   stripeSubscriptionId: string;
 }
 
-// Mock de assinaturas para o painel mestre
+// Mock atualizado para refletir a realidade
 const mockSubscriptions: Subscription[] = [
   {
     id: 'sub_1',
     userId: '1',
     userName: 'Maria Silva',
     userEmail: 'maria@email.com',
-    plan: 'Pro',
-    price: 97,
+    plan: 'Professional', // Era Pro
+    price: 127, // Preço Novo
     status: 'active',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-04-01',
@@ -72,8 +66,8 @@ const mockSubscriptions: Subscription[] = [
     userId: '2',
     userName: 'João Santos',
     userEmail: 'joao@email.com',
-    plan: 'Basic',
-    price: 47,
+    plan: 'Starter', // Era Basic
+    price: 67, // Preço Novo
     status: 'active',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-04-10',
@@ -89,7 +83,7 @@ const mockSubscriptions: Subscription[] = [
     userId: '3',
     userName: 'Ana Costa',
     userEmail: 'ana@email.com',
-    plan: 'Basic',
+    plan: 'Starter', // Era Basic
     price: 0,
     status: 'trial',
     billingCycle: 'monthly',
@@ -106,8 +100,8 @@ const mockSubscriptions: Subscription[] = [
     userId: '4',
     userName: 'Pedro Henrique',
     userEmail: 'pedro@email.com',
-    plan: 'Pro',
-    price: 97,
+    plan: 'Professional',
+    price: 127,
     status: 'canceled',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-03-15',
@@ -124,7 +118,7 @@ const mockSubscriptions: Subscription[] = [
     userName: 'Carla Lima',
     userEmail: 'carla@email.com',
     plan: 'Business',
-    price: 197,
+    price: 197, // Preço Novo
     status: 'active',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-04-05',
@@ -134,6 +128,23 @@ const mockSubscriptions: Subscription[] = [
     createdAt: '2024-10-10',
     stripeCustomerId: 'cus_xxx5',
     stripeSubscriptionId: 'sub_xxx5'
+  },
+  {
+    id: 'sub_6', // Adicionado Enterprise para teste visual
+    userId: '6',
+    userName: 'Grandes Negócios Ltda',
+    userEmail: 'ceo@bigcorp.com',
+    plan: 'Enterprise',
+    price: 397,
+    status: 'active',
+    billingCycle: 'monthly',
+    currentPeriodStart: '2025-04-01',
+    currentPeriodEnd: '2025-05-01',
+    canceledAt: null,
+    trialEndsAt: null,
+    createdAt: '2024-01-10',
+    stripeCustomerId: 'cus_xxx6',
+    stripeSubscriptionId: 'sub_xxx6'
   }
 ];
 
@@ -176,12 +187,13 @@ export default function AdminSubscriptionsPage() {
 
   const renderPlan = (plan: string) => {
     const colors: Record<string, string> = {
-      'Basic': 'bg-slate-50 text-slate-500 border-slate-200',
-      'Pro': 'bg-blue-50 text-blue-600 border-blue-100',
-      'Business': 'bg-purple-50 text-purple-700 border-purple-100',
+      'Starter': 'bg-slate-50 text-slate-500 border-slate-200',      // Cinza Clean
+      'Professional': 'bg-blue-50 text-blue-600 border-blue-100',    // Azul Tribe
+      'Business': 'bg-purple-50 text-purple-700 border-purple-100',  // Roxo Escala
+      'Enterprise': 'bg-slate-900 text-white border-slate-700',      // Preto Premium
     };
     return (
-      <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border", colors[plan])}>
+      <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border", colors[plan] || colors['Starter'])}>
         {plan}
       </span>
     );
@@ -285,9 +297,10 @@ export default function AdminSubscriptionsPage() {
               className="w-full px-5 py-4.5 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
             >
               <option value="all">Todos os Planos</option>
-              <option value="Basic">Basic</option>
-              <option value="Pro">Pro</option>
+              <option value="Starter">Starter</option>
+              <option value="Professional">Professional</option>
               <option value="Business">Business</option>
+              <option value="Enterprise">Enterprise</option>
             </select>
           </div>
 
@@ -497,28 +510,28 @@ export default function AdminSubscriptionsPage() {
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-2 mb-6">Detalhamento Técnico (Stripe Connect)</h5>
                   
                   <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden divide-y divide-slate-50">
-                     <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
+                      <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor do Contrato</span>
                         <span className="text-sm font-black text-slate-900">{formatCurrency(selectedSubscription.price)}</span>
-                     </div>
-                     <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
+                      </div>
+                      <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Início do Ciclo</span>
                         <span className="text-sm font-bold text-slate-700">{formatDate(selectedSubscription.currentPeriodStart)}</span>
-                     </div>
-                     <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
+                      </div>
+                      <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próxima Renovação</span>
                         <span className="text-sm font-bold text-brand-blue">{formatDate(selectedSubscription.currentPeriodEnd)}</span>
-                     </div>
-                     {selectedSubscription.trialEndsAt && (
+                      </div>
+                      {selectedSubscription.trialEndsAt && (
                         <div className="p-6 flex justify-between items-center bg-amber-50/30">
                             <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Término do Trial</span>
                             <span className="text-sm font-black text-amber-700">{formatDate(selectedSubscription.trialEndsAt)}</span>
                         </div>
-                     )}
-                     <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
+                      )}
+                      <div className="p-6 flex justify-between items-center group hover:bg-slate-50/50 transition-colors">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer ID</span>
                         <span className="text-[10px] font-bold font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded">{selectedSubscription.stripeCustomerId}</span>
-                     </div>
+                      </div>
                   </div>
               </div>
 

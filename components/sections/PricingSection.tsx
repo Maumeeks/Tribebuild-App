@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const PricingSection: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(false);
   const navigate = useNavigate();
-  
+
   // --- LÓGICA DE ANIMAÇÃO NATIVA (Sem arquivos extras) ---
   const sectionRef = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -26,7 +26,7 @@ const PricingSection: React.FC = () => {
   const plans = [
     {
       name: 'Starter',
-      priceDisplay: isAnnual ? 56 : 67, 
+      priceDisplay: isAnnual ? 56 : 67,
       description: 'Quem está dando os primeiros passos.',
       icon: Zap,
       highlight: false,
@@ -107,11 +107,11 @@ const PricingSection: React.FC = () => {
     <section id="precos" ref={sectionRef} className="py-20 relative overflow-hidden transition-colors font-['Inter']">
       <div className="absolute inset-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur-[2px]"></div>
       <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-blue/8 via-transparent to-transparent dark:from-brand-blue/15 pointer-events-none"></div>
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+
         {/* Header */}
-        <div 
+        <div
           className="text-center mb-12"
           style={{
             opacity: isVisible ? 1 : 0,
@@ -131,13 +131,13 @@ const PricingSection: React.FC = () => {
           </p>
           <div className="inline-flex items-center gap-3 px-5 py-3 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-2xl border border-brand-coral/30">
             <Clock className="w-5 h-5 text-brand-coral" />
-            <span className="text-brand-coral font-bold">Preço de lançamento acaba em: 4d 11h 0m</span>
-          </div>
-          <div className="flex justify-center mt-8">
-            <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-1 shadow-inner">
-              <button onClick={() => setIsAnnual(false)} className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${!isAnnual ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/30 transform scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>Mensal</button>
-              <button onClick={() => setIsAnnual(true)} className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${isAnnual ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/30 transform scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>Anual</button>
-              <span className="ml-3 px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-black rounded-full uppercase tracking-tighter mr-1">2 MESES GRÁTIS</span>
+            {/* Timer Ajustado para Mobile */}
+            <div className="inline-flex items-center gap-3 px-5 py-3 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-2xl border border-brand-coral/30">
+              <Clock className="w-5 h-5 text-brand-coral flex-shrink-0" />
+              <span className="text-brand-coral font-bold text-sm md:text-base text-left">
+                Preço de lançamento acaba em: <br className="block md:hidden" />
+                4d 11h 0m
+              </span>
             </div>
           </div>
         </div>
@@ -147,7 +147,7 @@ const PricingSection: React.FC = () => {
           {plans.map((plan, index) => {
             const delay = 200 + (index * 100);
             return (
-              <div 
+              <div
                 key={plan.name}
                 className={`group relative bg-white dark:bg-slate-900 rounded-3xl p-8 transition-all duration-500 cursor-pointer ${plan.highlight ? 'border-2 border-brand-blue shadow-2xl shadow-brand-blue/10 dark:shadow-brand-blue/20 scale-105 z-10' : 'border border-slate-100 dark:border-slate-800 shadow-sm'} hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand-blue/20 hover:border-brand-blue/50`}
                 style={{
@@ -164,7 +164,7 @@ const PricingSection: React.FC = () => {
                   </div>
                 )}
                 {plan.name === 'Starter' && <div className="mb-4"><span className="px-3 py-1 bg-brand-coral/10 dark:bg-brand-coral/20 text-brand-coral text-[10px] font-black rounded-full uppercase tracking-tighter">7 dias grátis</span></div>}
-                
+
                 <div className={`mb-6 ${plan.highlight ? 'mt-2' : ''}`}>
                   <h3 className={`text-xl font-black tracking-tight ${plan.highlight ? 'text-brand-blue' : 'text-slate-900 dark:text-white'}`}>{plan.name}</h3>
                 </div>
