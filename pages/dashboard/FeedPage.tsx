@@ -306,7 +306,7 @@ const FeedPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Bloco de Agendamento - Com paddings padronizados para simetria */}
+                {/* Bloco de Agendamento */}
                 <div className={cn(
                   "overflow-hidden rounded-[2rem] transition-all duration-300 border",
                   isScheduled
@@ -350,10 +350,11 @@ const FeedPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Campos + Info - paddings simétricos, sem pl-2 extra */}
+                  {/* Campos de Data/Hora - FIX: overflow-hidden + max-w-full + min-w-0 */}
                   {isScheduled && (
-                    <div className="p-6 space-y-6 animate-slide-up">
-                      <div className="space-y-2">
+                    <div className="p-6 space-y-6 animate-slide-up overflow-hidden">
+                      {/* Container do input de Data */}
+                      <div className="space-y-2 min-w-0 overflow-hidden">
                         <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest">
                           DATA DA PUBLICAÇÃO
                         </label>
@@ -361,11 +362,13 @@ const FeedPage: React.FC = () => {
                           type="date"
                           value={scheduleDate}
                           onChange={(e) => setScheduleDate(e.target.value)}
-                          className="w-full px-5 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
+                          style={{ boxSizing: 'border-box', maxWidth: '100%' }}
+                          className="w-full max-w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
                         />
                       </div>
 
-                      <div className="space-y-2">
+                      {/* Container do input de Horário */}
+                      <div className="space-y-2 min-w-0 overflow-hidden">
                         <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest">
                           HORÁRIO
                         </label>
@@ -373,10 +376,12 @@ const FeedPage: React.FC = () => {
                           type="time"
                           value={scheduleTime}
                           onChange={(e) => setScheduleTime(e.target.value)}
-                          className="w-full px-5 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
+                          style={{ boxSizing: 'border-box', maxWidth: '100%' }}
+                          className="w-full max-w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
                         />
                       </div>
 
+                      {/* Info box */}
                       <div className="bg-orange-100/60 dark:bg-orange-900/30 p-4 rounded-xl flex items-start gap-3 border border-orange-200 dark:border-orange-800/40">
                         <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
                         <p className="text-[10px] text-orange-800 dark:text-orange-300 font-medium leading-relaxed">
