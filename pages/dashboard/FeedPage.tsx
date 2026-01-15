@@ -79,18 +79,18 @@ type Tab = 'create' | 'list' | 'scheduled';
 const FeedPage: React.FC = () => {
   const { appId } = useParams();
   const navigate = useNavigate();
-  
+
   const [activeTab, setActiveTab] = useState<Tab>('create');
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [scheduled, setScheduled] = useState<Post[]>(initialScheduledPosts);
-  
+
   // Estado do formulário
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
-  
+
   // Ref para upload de imagem
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,7 +243,7 @@ const FeedPage: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden isolate">
               <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Conteúdo do Post</label>
-                
+
                 {/* Toolbar Fake / Estilizada */}
                 <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
                   <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
@@ -269,18 +269,18 @@ const FeedPage: React.FC = () => {
                 {/* Upload de Imagem */}
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Imagem de Destaque (Opcional)</label>
-                  <div 
+                  <div
                     onClick={() => fileInputRef.current?.click()}
                     className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-8 md:p-12 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
                   >
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       ref={fileInputRef}
                       onChange={handleImageUpload}
                       accept="image/*"
                       className="hidden"
                     />
-                    
+
                     {image ? (
                       <div className="relative group/image">
                         <img src={image} alt="Preview" className="mx-auto max-h-64 object-contain rounded-xl shadow-lg" />
@@ -297,7 +297,7 @@ const FeedPage: React.FC = () => {
                     )}
                   </div>
                   {image && (
-                    <button 
+                    <button
                       onClick={() => setImage(null)}
                       className="mt-3 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
                     >
@@ -358,13 +358,20 @@ const FeedPage: React.FC = () => {
                         <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest">
                           DATA DA PUBLICAÇÃO
                         </label>
-                        <input
-                          type="date"
-                          value={scheduleDate}
-                          onChange={(e) => setScheduleDate(e.target.value)}
-                          style={{ boxSizing: 'border-box', maxWidth: '100%' }}
-                          className="w-full max-w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
-                        />
+                        <div className="relative">
+                          <input
+                            type="date"
+                            value={scheduleDate}
+                            onChange={(e) => setScheduleDate(e.target.value)}
+                            className="w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm appearance-none"
+                            style={{
+                              boxSizing: 'border-box',
+                              minHeight: '56px',
+                              paddingRight: '48px'
+                            }}
+                          />
+                          <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500 pointer-events-none" />
+                        </div>
                       </div>
 
                       {/* Container do input de Horário */}
@@ -372,13 +379,20 @@ const FeedPage: React.FC = () => {
                         <label className="block text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest">
                           HORÁRIO
                         </label>
-                        <input
-                          type="time"
-                          value={scheduleTime}
-                          onChange={(e) => setScheduleTime(e.target.value)}
-                          style={{ boxSizing: 'border-box', maxWidth: '100%' }}
-                          className="w-full max-w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm"
-                        />
+                        <div className="relative">
+                          <input
+                            type="time"
+                            value={scheduleTime}
+                            onChange={(e) => setScheduleTime(e.target.value)}
+                            className="w-full px-4 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-orange-300 dark:border-orange-700/50 rounded-2xl focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 focus:outline-none font-bold transition-all text-sm appearance-none"
+                            style={{
+                              boxSizing: 'border-box',
+                              minHeight: '56px',
+                              paddingRight: '48px'
+                            }}
+                          />
+                          <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500 pointer-events-none" />
+                        </div>
                       </div>
 
                       {/* Info box */}
@@ -397,8 +411,8 @@ const FeedPage: React.FC = () => {
                     onClick={handlePublish}
                     className={cn(
                       "h-14 md:h-16 w-full md:w-auto px-12 font-black uppercase tracking-widest text-sm shadow-xl transition-all",
-                      isScheduled 
-                        ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20" 
+                      isScheduled
+                        ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
                         : "bg-brand-blue hover:bg-brand-blue-dark shadow-blue-500/20"
                     )}
                     leftIcon={isScheduled ? Clock : Send}
@@ -423,36 +437,36 @@ const FeedPage: React.FC = () => {
                 <div key={post.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                     <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDate(post.createdAt)}</span>
-                        </div>
-                        <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-base md:text-lg">{post.content}</p>
-                        
-                        {post.image && (
-                          <img src={post.image} alt="Post content" className="w-full h-48 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700" />
-                        )}
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDate(post.createdAt)}</span>
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-base md:text-lg">{post.content}</p>
 
-                        <div className="flex items-center gap-6 pt-2">
-                            <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                                <Heart className="w-4 h-4 text-red-400" />
-                                {post.likes} Curtidas
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                                <MessageCircle className="w-4 h-4 text-blue-400" />
-                                {post.comments} Comentários
-                            </div>
+                      {post.image && (
+                        <img src={post.image} alt="Post content" className="w-full h-48 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700" />
+                      )}
+
+                      <div className="flex items-center gap-6 pt-2">
+                        <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
+                          <Heart className="w-4 h-4 text-red-400" />
+                          {post.likes} Curtidas
                         </div>
+                        <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
+                          <MessageCircle className="w-4 h-4 text-blue-400" />
+                          {post.comments} Comentários
+                        </div>
+                      </div>
                     </div>
-                    
+
                     <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0 justify-end md:justify-start">
-                        <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
-                        <button 
-                            onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'post' })}
-                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                        >
-                            <Trash2 size={20} />
-                        </button>
+                      <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
+                      <button
+                        onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'post' })}
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -475,29 +489,29 @@ const FeedPage: React.FC = () => {
                   <div className="absolute top-0 left-0 w-2 h-full bg-orange-400"></div>
                   <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                     <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-orange-100 dark:border-orange-900/30">
-                                <Clock className="w-3 h-3" />
-                                Agendado
-                            </span>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                para {formatScheduledDate(post.scheduledFor!)}
-                            </span>
-                        </div>
-                        <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap">{post.content}</p>
-                        {post.image && (
-                          <img src={post.image} alt="Scheduled post" className="w-full h-32 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 opacity-80" />
-                        )}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-orange-100 dark:border-orange-900/30">
+                          <Clock className="w-3 h-3" />
+                          Agendado
+                        </span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          para {formatScheduledDate(post.scheduledFor!)}
+                        </span>
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                      {post.image && (
+                        <img src={post.image} alt="Scheduled post" className="w-full h-32 object-cover rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 opacity-80" />
+                      )}
                     </div>
-                    
+
                     <div className="flex items-start gap-2 border-t border-slate-100 dark:border-slate-700 md:border-t-0 pt-4 md:pt-0 justify-end md:justify-start">
-                        <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
-                        <button 
-                            onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'scheduled' })}
-                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                        >
-                            <Trash2 size={20} />
-                        </button>
+                      <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={20} /></button>
+                      <button
+                        onClick={() => setDeleteModal({ open: true, postId: post.id, type: 'scheduled' })}
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -510,9 +524,9 @@ const FeedPage: React.FC = () => {
       {/* Modal de Exclusão */}
       {deleteModal.open && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" 
-            onClick={() => setDeleteModal({ open: false, postId: null, type: 'post' })} 
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setDeleteModal({ open: false, postId: null, type: 'post' })}
           />
           <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
