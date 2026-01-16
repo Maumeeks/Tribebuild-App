@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
-import { useAuth } from '../../contexts/AuthContext'; // <--- IMPORTANTE: Adicionado
+import { useAuth } from '../../contexts/AuthContext';
 
 // --- CONFIGURAÇÃO DE TIPOS ---
 interface Plan {
@@ -154,7 +154,7 @@ const invoices: Invoice[] = [
 ];
 
 const PlansPage: React.FC = () => {
-  const { user } = useAuth(); // <--- Hook de Autenticação
+  const { user } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [retentionModalOpen, setRetentionModalOpen] = useState(false);
@@ -191,8 +191,8 @@ const PlansPage: React.FC = () => {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
       
       if (user) {
-         // Adiciona ID e Email ao link do Stripe
-         checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email)}`;
+         // CORREÇÃO AQUI: Adicionado "|| ''" para evitar erro de TypeScript
+         checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
       }
 
       // 3. Redireciona
@@ -383,7 +383,7 @@ const PlansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer de Cancelamento e Modais (Mantidos conforme seu código original) */}
+      {/* Footer de Cancelamento e Modais */}
       <div className="text-center pt-8 border-t border-slate-100 mt-8 animate-slide-up">
         <button onClick={() => setRetentionModalOpen(true)} className="text-xs font-bold text-slate-400 hover:text-slate-600 underline transition-colors uppercase tracking-widest">
           Precisa cancelar sua assinatura? Clique aqui
