@@ -133,8 +133,7 @@ const PricingSection: React.FC = () => {
             <Clock className="w-5 h-5 text-brand-coral" />
             {/* Timer Ajustado para Mobile */}
             <div className="inline-flex items-center gap-3 px-5 py-3 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-2xl border border-brand-coral/30">
-              <Clock className="w-5 h-5 text-brand-coral flex-shrink-0" />
-              <span className="text-brand-coral font-bold text-sm md:text-base text-left">
+               <span className="text-brand-coral font-bold text-sm md:text-base text-left">
                 Preço de lançamento acaba em: <br className="block md:hidden" />
                 4d 11h 0m
               </span>

@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Download,
   X,
-  Info
+  Info,
+  ArrowRight // <--- ADICIONADO AQUI
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -29,7 +30,7 @@ interface Subscription {
   userId: string;
   userName: string;
   userEmail: string;
-  plan: 'Starter' | 'Professional' | 'Business' | 'Enterprise'; // Planos Corretos
+  plan: 'Starter' | 'Professional' | 'Business' | 'Enterprise';
   price: number;
   status: 'active' | 'trial' | 'canceled' | 'past_due' | 'paused';
   billingCycle: 'monthly' | 'yearly';
@@ -49,8 +50,8 @@ const mockSubscriptions: Subscription[] = [
     userId: '1',
     userName: 'Maria Silva',
     userEmail: 'maria@email.com',
-    plan: 'Professional', // Era Pro
-    price: 127, // Preço Novo
+    plan: 'Professional',
+    price: 127,
     status: 'active',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-04-01',
@@ -66,8 +67,8 @@ const mockSubscriptions: Subscription[] = [
     userId: '2',
     userName: 'João Santos',
     userEmail: 'joao@email.com',
-    plan: 'Starter', // Era Basic
-    price: 67, // Preço Novo
+    plan: 'Starter',
+    price: 67,
     status: 'active',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-04-10',
@@ -83,7 +84,7 @@ const mockSubscriptions: Subscription[] = [
     userId: '3',
     userName: 'Ana Costa',
     userEmail: 'ana@email.com',
-    plan: 'Starter', // Era Basic
+    plan: 'Starter',
     price: 0,
     status: 'trial',
     billingCycle: 'monthly',
@@ -118,7 +119,7 @@ const mockSubscriptions: Subscription[] = [
     userName: 'Carla Lima',
     userEmail: 'carla@email.com',
     plan: 'Business',
-    price: 197, // Preço Novo
+    price: 197,
     status: 'active',
     billingCycle: 'monthly',
     currentPeriodStart: '2025-04-05',
@@ -130,7 +131,7 @@ const mockSubscriptions: Subscription[] = [
     stripeSubscriptionId: 'sub_xxx5'
   },
   {
-    id: 'sub_6', // Adicionado Enterprise para teste visual
+    id: 'sub_6',
     userId: '6',
     userName: 'Grandes Negócios Ltda',
     userEmail: 'ceo@bigcorp.com',
@@ -187,10 +188,10 @@ export default function AdminSubscriptionsPage() {
 
   const renderPlan = (plan: string) => {
     const colors: Record<string, string> = {
-      'Starter': 'bg-slate-50 text-slate-500 border-slate-200',      // Cinza Clean
-      'Professional': 'bg-blue-50 text-blue-600 border-blue-100',    // Azul Tribe
-      'Business': 'bg-purple-50 text-purple-700 border-purple-100',  // Roxo Escala
-      'Enterprise': 'bg-slate-900 text-white border-slate-700',      // Preto Premium
+      'Starter': 'bg-slate-50 text-slate-500 border-slate-200',
+      'Professional': 'bg-blue-50 text-blue-600 border-blue-100',
+      'Business': 'bg-purple-50 text-purple-700 border-purple-100',
+      'Enterprise': 'bg-slate-900 text-white border-slate-700',
     };
     return (
       <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border", colors[plan] || colors['Starter'])}>
