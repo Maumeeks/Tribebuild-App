@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppsProvider } from './contexts/AppsContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 
 // Páginas públicas
 import PlansPage from './pages/PlansPage';
@@ -63,17 +64,19 @@ const App: React.FC = () => {
       <AuthProvider>
         <AppsProvider>
           {/* MUDANÇA AQUI: BrowserRouter para URLs limpas */}
-          <BrowserRouter> 
+          <BrowserRouter>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
+              {/* Rota Mágica para confirmar e-mail */}
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/plans" element={<PlansPage />} />
-              
+
               {/* Subscription Callback Routes */}
               <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
               <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />

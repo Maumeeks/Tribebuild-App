@@ -224,7 +224,7 @@ const PlansPage: React.FC = () => {
     }
 
     if (user?.email) {
-      fullLink += (fullLink.includes('?') ? '&' : '?') + `prefilled_email=${encodeURIComponent(user.email)}`;
+      fullLink += (fullLink.includes('?') ? '&' : '?') + `prefilled_email=${encodeURIComponent(user.email || '')}`
     }
 
     // GERAÇÃO DE URL DINÂMICA (CORRETA)
