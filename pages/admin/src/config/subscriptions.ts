@@ -1,5 +1,3 @@
-import { SubscriptionPlan } from "@/types"; // Se der erro no types, pode remover essa linha e o tipo abaixo
-
 export interface SubscriptionPlan {
   id: string;
   title: string;

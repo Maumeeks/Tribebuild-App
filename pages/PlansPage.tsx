@@ -12,6 +12,17 @@ const PlansPage: React.FC = () => {
   const location = useLocation();
   const state = location.state as { expired?: boolean; message?: string };
 
+  // Helper para cores do Tailwind (Isso corrige o bug de cores sumindo)
+  const getPlanColors = (color: string) => {
+    switch (color) {
+      case 'brand-blue': return { bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200' };
+      case 'brand-coral': return { bg: 'bg-orange-500/10 dark:bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200' };
+      case 'purple-500': return { bg: 'bg-purple-500/10 dark:bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200' };
+      case 'indigo-500': return { bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200' };
+      default: return { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' };
+    }
+  };
+
   const plans = {
     monthly: [
       {
@@ -216,6 +227,7 @@ const PlansPage: React.FC = () => {
       fullLink += (fullLink.includes('?') ? '&' : '?') + `prefilled_email=${encodeURIComponent(user.email)}`;
     }
 
+    // GERAÇÃO DE URL DINÂMICA (CORRETA)
     const baseUrl = window.location.origin;
     fullLink +=
       (fullLink.includes('?') ? '&' : '?') +
@@ -306,6 +318,7 @@ const PlansPage: React.FC = () => {
           {currentPlans.map((plan) => {
             const Icon = plan.icon;
             const isPopular = plan.popular;
+            const colors = getPlanColors(plan.color); // USANDO O HELPER DE CORES
 
             return (
               <div
@@ -328,19 +341,9 @@ const PlansPage: React.FC = () => {
                   {/* Plan Header */}
                   <div className="flex items-center gap-4 mb-6">
                     <div
-                      className={`w-12 h-12 rounded-2xl bg-${plan.color}/10 dark:bg-slate-700/50 flex items-center justify-center flex-shrink-0`}
+                      className={`w-12 h-12 rounded-2xl ${colors.bg} flex items-center justify-center flex-shrink-0`}
                     >
-                      <Icon
-                        className={`w-6 h-6 ${
-                          plan.color === 'brand-blue'
-                            ? 'text-blue-600'
-                            : plan.color === 'brand-coral'
-                            ? 'text-orange-500'
-                            : plan.color === 'purple-500'
-                            ? 'text-purple-500'
-                            : 'text-indigo-500'
-                        }`}
-                      />
+                      <Icon className={`w-6 h-6 ${colors.text}`} />
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">

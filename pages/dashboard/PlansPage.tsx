@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
+import { useAuth } from '../../contexts/AuthContext'; // <--- IMPORTANTE: Adicionado
 
 // --- CONFIGURAÇÃO DE TIPOS ---
 interface Plan {
@@ -21,7 +22,6 @@ interface Plan {
   icon: React.ElementType;
   color: string;
   textColor: string;
-  // Agora suporta preços e links duplos
   prices: {
     monthly: number;
     yearly: number;
@@ -47,7 +47,7 @@ interface Invoice {
   downloadUrl: string;
 }
 
-// --- LISTA DE PLANOS COM LINKS ATUALIZADOS ---
+// --- LISTA DE PLANOS ---
 const plans: Plan[] = [
   {
     id: 'starter',
@@ -55,10 +55,7 @@ const plans: Plan[] = [
     icon: Zap,
     color: 'bg-slate-500',
     textColor: 'text-slate-500',
-    prices: {
-      monthly: 67,
-      yearly: 672,
-    },
+    prices: { monthly: 67, yearly: 672 },
     stripeUrls: {
       monthly: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
       yearly: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
@@ -81,10 +78,7 @@ const plans: Plan[] = [
     color: 'bg-blue-600',
     textColor: 'text-blue-600',
     popular: true,
-    prices: {
-      monthly: 127,
-      yearly: 1272,
-    },
+    prices: { monthly: 127, yearly: 1272 },
     stripeUrls: {
       monthly: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
       yearly: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04',
@@ -106,10 +100,7 @@ const plans: Plan[] = [
     icon: Building2,
     color: 'bg-purple-600',
     textColor: 'text-purple-600',
-    prices: {
-      monthly: 247, // Atualizado conforme seu link
-      yearly: 2472, // Atualizado conforme seu link
-    },
+    prices: { monthly: 247, yearly: 2472 },
     stripeUrls: {
       monthly: 'https://buy.stripe.com/test_9B63cv0Zu8GGdiSbC12wU02',
       yearly: 'https://buy.stripe.com/test_14A14n23yaOOdiSaxX2wU05',
@@ -131,12 +122,9 @@ const plans: Plan[] = [
     icon: Rocket,
     color: 'bg-slate-900',
     textColor: 'text-slate-900',
-    prices: {
-      monthly: 397,
-      yearly: 3970,
-    },
+    prices: { monthly: 397, yearly: 3970 },
     stripeUrls: {
-      monthly: 'https://buy.stripe.com/test_9B68wP9w07CC3Ii49z2wU06', // Link final 06 (deduzido pelo contexto)
+      monthly: 'https://buy.stripe.com/test_9B68wP9w07CC3Ii49z2wU06',
       yearly: 'https://buy.stripe.com/test_00waEX23y0aa0w6cG52wU07',
     },
     features: [
@@ -166,6 +154,7 @@ const invoices: Invoice[] = [
 ];
 
 const PlansPage: React.FC = () => {
+  const { user } = useAuth(); // <--- Hook de Autenticação
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [retentionModalOpen, setRetentionModalOpen] = useState(false);
@@ -192,12 +181,21 @@ const PlansPage: React.FC = () => {
   const handleConfirmUpgrade = () => {
     if (!selectedPlan) return;
 
-    // Seleciona o link correto baseado no ciclo escolhido
-    const checkoutUrl = billingCycle === 'monthly' 
+    // 1. Seleciona o link base
+    let checkoutUrl = billingCycle === 'monthly' 
       ? selectedPlan.stripeUrls.monthly 
       : selectedPlan.stripeUrls.yearly;
 
     if (checkoutUrl) {
+      // 2. INJEÇÃO DO ID DO USUÁRIO (Crucial para o Webhook funcionar)
+      const separator = checkoutUrl.includes('?') ? '&' : '?';
+      
+      if (user) {
+         // Adiciona ID e Email ao link do Stripe
+         checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email)}`;
+      }
+
+      // 3. Redireciona
       window.location.href = checkoutUrl;
     } else {
       alert(`Erro de configuração: Link de pagamento indisponível.`);
@@ -248,7 +246,6 @@ const PlansPage: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* ... Features do plano atual (simplificado para focar na lógica de upgrade) ... */}
            <div className="p-8 border-t border-slate-50 flex justify-center md:justify-start">
               <Button onClick={() => handleSelectPlan(plans[1])} className="h-14 px-10 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20" leftIcon={Sparkles}>
                   Fazer Upgrade
@@ -265,7 +262,6 @@ const PlansPage: React.FC = () => {
                 <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Comparativo de Planos</h2>
             </div>
             
-            {/* Toggle Switch */}
             <div className="bg-slate-100 dark:bg-slate-700 p-1 rounded-full inline-flex self-center">
                 <button
                     onClick={() => setBillingCycle('monthly')}
@@ -296,7 +292,6 @@ const PlansPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((plan) => {
             const isCurrentPlan = plan.id === currentUserPlan.planId;
-            // Preço dinâmico baseado no ciclo
             const displayPrice = billingCycle === 'monthly' ? plan.prices.monthly : plan.prices.yearly;
             const periodLabel = billingCycle === 'monthly' ? '/mês' : '/ano';
 
@@ -376,7 +371,7 @@ const PlansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Histórico de Faturas (Mantido) */}
+      {/* Histórico de Faturas */}
       <div className="animate-slide-up" style={{ animationDelay: '300ms' }}>
         <div className="flex items-center gap-3 mb-8">
             <div className="w-2 h-2 rounded-full bg-blue-400"></div>
@@ -388,13 +383,13 @@ const PlansPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Footer de Cancelamento e Modais (Mantidos conforme seu código original) */}
       <div className="text-center pt-8 border-t border-slate-100 mt-8 animate-slide-up">
         <button onClick={() => setRetentionModalOpen(true)} className="text-xs font-bold text-slate-400 hover:text-slate-600 underline transition-colors uppercase tracking-widest">
           Precisa cancelar sua assinatura? Clique aqui
         </button>
       </div>
 
-      {/* Modal: Retenção (Mantido Simplificado) */}
       {retentionModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setRetentionModalOpen(false)} />
@@ -409,7 +404,6 @@ const PlansPage: React.FC = () => {
         </div>
       )}
       
-      {/* Modal: Cancelamento (Mantido Simplificado) */}
       {cancelModalOpen && (
          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setCancelModalOpen(false)} />
@@ -422,7 +416,6 @@ const PlansPage: React.FC = () => {
        </div>
       )}
 
-      {/* Modal: Upgrade REAL com Stripe */}
       {upgradeModalOpen && selectedPlan && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setUpgradeModalOpen(false)} />
