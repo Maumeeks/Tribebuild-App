@@ -191,7 +191,7 @@ const PlansPage: React.FC = () => {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
       
       if (user) {
-         // CORREÇÃO AQUI: Adicionado "|| ''" para evitar erro de TypeScript
+         // CORREÇÃO AQ: Adicionado "|| ''" para evitar erro de TypeScript
          checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
       }
 
