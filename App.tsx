@@ -1,10 +1,12 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // <--- Mudou aqui de HashRouter para BrowserRouter
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppsProvider } from './contexts/AppsContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import AuthCallbackPage from './pages/AuthCallbackPage';
+
+// ✅ CORREÇÃO AQUI: Importando o novo arquivo "Callback" (sem o "Auth" no nome para o Git não travar)
+import Callback from './pages/Callback';
 
 // Páginas públicas
 import PlansPage from './pages/PlansPage';
@@ -63,14 +65,15 @@ const App: React.FC = () => {
     <ThemeProvider>
       <AuthProvider>
         <AppsProvider>
-          {/* MUDANÇA AQUI: BrowserRouter para URLs limpas */}
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
-              {/* Rota Mágica para confirmar e-mail */}
-              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              
+              {/* ✅ CORREÇÃO AQUI: Usando o componente <Callback /> */}
+              <Route path="/auth/callback" element={<Callback />} />
+              
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />

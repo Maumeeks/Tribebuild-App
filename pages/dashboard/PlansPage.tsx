@@ -7,7 +7,6 @@ import {
   Rocket,
   Building2,
   Calendar,
-  Download,
   Sparkles,
   Zap,
 } from 'lucide-react';
@@ -148,11 +147,6 @@ const currentUserPlan = {
   status: 'active' as const
 };
 
-// Mock de faturas
-const invoices: Invoice[] = [
-  { id: '1', date: '2025-04-14', plan: 'Starter', amount: 67, status: 'paid', downloadUrl: '#' },
-];
-
 const PlansPage: React.FC = () => {
   const { user } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -191,7 +185,7 @@ const PlansPage: React.FC = () => {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
       
       if (user) {
-         // CORREÇÃO AQ: Adicionado "|| ''" para evitar erro de TypeScript
+         // ✅ CORREÇÃO APLICADA: || '' garante que user.email nunca seja undefined
          checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
       }
 
