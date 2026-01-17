@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { useAuth } from './AuthContext'; // <--- Importação para verificar o plano
+import { useAuth } from './AuthContext';
 
 export interface App {
   id: string;
@@ -17,15 +17,16 @@ export interface App {
 
 interface AppsContextType {
   apps: App[];
-  addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => string;
+  addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => void;
   updateApp: (id: string, data: Partial<App>) => void;
   deleteApp: (id: string) => void;
   getApp: (id: string) => App | undefined;
+  planLimit: number; // Exportamos o limite para a UI usar se quiser
 }
 
-// Regras de Negócio (Limites por Plano)
-const PLAN_LIMITS = {
-  free: 1,
+// REGRAS DE NEGÓCIO (LIMITES)
+const PLAN_LIMITS: Record<string, number> = {
+  free: 1, // Apenas visualização/teste limitado
   starter: 1,
   professional: 3,
   business: 5,
@@ -36,9 +37,7 @@ const AppsContext = createContext<AppsContextType | undefined>(undefined);
 
 export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [apps, setApps] = useState<App[]>([]);
-  
-  // Pegamos o perfil do usuário para saber qual é o plano atual
-  const { profile } = useAuth(); 
+  const { profile } = useAuth(); // <--- Acessamos o plano aqui
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -59,19 +58,19 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  const addApp = (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => {
-    // --- LÓGICA DE LIMITE (BLINDAGEM) ---
-    // Se não tiver perfil carregado, assume 'free' por segurança
-    const userPlan = profile?.plan || 'free'; 
-    const limit = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || 1;
+  // Calcula o limite atual baseado no perfil
+  const currentPlan = profile?.plan || 'free';
+  const planLimit = PLAN_LIMITS[currentPlan] || 1;
 
-    // Verifica se já atingiu o limite
-    if (apps.length >= limit) {
-      const message = `Limite atingido! O plano ${userPlan.toUpperCase()} permite apenas ${limit} aplicativo(s).`;
-      alert(message); // Alerta visual simples para o usuário
-      throw new Error(message); // Interrompe a execução
+  const addApp = (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => {
+    // --- A BLINDAGEM ---
+    if (apps.length >= planLimit) {
+      // Se tentar criar mais do que o permitido, bloqueia e avisa
+      const errorMsg = `Limite atingido! O plano ${currentPlan.toUpperCase()} permite apenas ${planLimit} app(s).`;
+      alert(errorMsg); // Feedback imediato
+      throw new Error(errorMsg); // Interrompe a execução
     }
-    // ------------------------------------
+    // -------------------
 
     const id = generateId();
     const newApp: App = {
@@ -81,7 +80,8 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       accessLink: `https://app.tribebuild.com/app/${appData.slug}`,
     };
     setApps(prev => [...prev, newApp]);
-    return id;
+    // Não precisamos retornar o ID aqui necessariamente, mas se precisar, mude a interface
+    return id; 
   };
 
   const updateApp = (id: string, data: Partial<App>) => {
@@ -99,7 +99,7 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AppsContext.Provider value={{ apps, addApp, updateApp, deleteApp, getApp }}>
+    <AppsContext.Provider value={{ apps, addApp, updateApp, deleteApp, getApp, planLimit }}>
       {children}
     </AppsContext.Provider>
   );

@@ -4,30 +4,20 @@ import { Save, Eye, Palette, Globe, Smartphone, ArrowRight, ArrowLeft, Lock, Upl
 import Button from '../../components/Button';
 import MockupMobile from '../../components/MockupMobile';
 import { useApps } from '../../contexts/AppsContext';
-import { useAuth } from '../../contexts/AuthContext'; // <--- Importamos a Autenticação
+import { useAuth } from '../../contexts/AuthContext'; 
 
 const AppBuilder: React.FC = () => {
-  const { addApp, apps } = useApps();
-  const { profile } = useAuth(); // <--- Pegamos o perfil para saber o plano
+  const { addApp, apps, planLimit } = useApps(); // Agora pegamos o limite do contexto também
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // --- LÓGICA DE LIMITES DINÂMICA ---
-  const getPlanLimits = (plan: string) => {
-    switch (plan) {
-      case 'professional': return 3;
-      case 'business': return 5;
-      case 'enterprise': return 10;
-      default: return 1; // starter
-    }
-  };
-
+  // Usamos o limite real vindo do Contexto para garantir sincronia
   const currentPlan = profile?.plan || 'starter';
-  const maxApps = getPlanLimits(currentPlan);
+  const maxApps = planLimit || 1; 
   const isLimitReached = apps.length >= maxApps;
-  // ----------------------------------
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -61,8 +51,8 @@ const AppBuilder: React.FC = () => {
   };
 
   const handlePublish = async () => {
-    // Verificação dupla de segurança
-    if (apps.length >= maxApps) {
+    // Verificação visual (UX)
+    if (isLimitReached) {
       alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
       navigate('/dashboard/apps');
       return;
@@ -78,24 +68,32 @@ const AppBuilder: React.FC = () => {
     
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    addApp({
-      name: formData.name,
-      slug: formData.slug,
-      description: formData.description,
-      logo: formData.logo,
-      primaryColor: formData.primaryColor,
-      language: formData.language,
-      customDomain: null,
-      status: 'published'
-    });
+    try {
+        // Tenta adicionar. Se passar do limite, o Contexto vai dar erro e pular para o catch
+        addApp({
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          logo: formData.logo,
+          primaryColor: formData.primaryColor,
+          language: formData.language,
+          customDomain: null,
+          status: 'published'
+        });
 
-    setIsSubmitting(false);
-    alert('Aplicativo publicado com sucesso!');
-    navigate('/dashboard/apps');
+        setIsSubmitting(false);
+        alert('Aplicativo publicado com sucesso!');
+        navigate('/dashboard/apps');
+    } catch (error) {
+        // Se cair aqui, é porque o Contexto bloqueou
+        console.error("Erro ao criar app:", error);
+        setIsSubmitting(false);
+        // O alert já foi exibido pelo Contexto
+    }
   };
 
   const handleSaveDraft = () => {
-    if (apps.length >= maxApps) {
+    if (isLimitReached) {
       alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
       navigate('/dashboard/apps');
       return;
@@ -106,19 +104,23 @@ const AppBuilder: React.FC = () => {
       return;
     }
 
-    addApp({
-      name: formData.name,
-      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
-      description: formData.description,
-      logo: formData.logo,
-      primaryColor: formData.primaryColor,
-      language: formData.language,
-      customDomain: null,
-      status: 'draft'
-    });
+    try {
+        addApp({
+          name: formData.name,
+          slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+          description: formData.description,
+          logo: formData.logo,
+          primaryColor: formData.primaryColor,
+          language: formData.language,
+          customDomain: null,
+          status: 'draft'
+        });
 
-    alert('Rascunho salvo com sucesso!');
-    navigate('/dashboard/apps');
+        alert('Rascunho salvo com sucesso!');
+        navigate('/dashboard/apps');
+    } catch (error) {
+        console.error("Erro ao salvar rascunho:", error);
+    }
   };
 
   const inputClass = "w-full px-4 py-3 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 focus:outline-none placeholder:text-slate-400 font-medium";
@@ -179,6 +181,7 @@ const AppBuilder: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8">
+           {/* CONTEÚDO DOS STEPS (MANTIDO EXATAMENTE COMO NO SEU ARQUIVO) */}
            {step === 1 && (
              <div className="space-y-6 animate-fade-in">
                <div>
