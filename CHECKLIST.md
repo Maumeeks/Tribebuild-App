@@ -196,3 +196,67 @@ Para qualquer dúvida ou atualização:
 
 **Documento gerado em:** 29/12/2024
 **Por:** Claude (Anthropic)
+
+----
+# 📋 TRIBEBUILD - CHECKLIST COMPLETO DO PROJETO
+
+> **Última atualização:** 17/01/2026
+> **Versão:** 4.0 (Backend & Pagamentos)
+
+---
+
+## ✅ STATUS GERAL
+
+| Área | Status | Progresso |
+|------|--------|-----------|
+| Frontend Landing | ✅ Concluído | 100% |
+| Dashboard Produtor | ✅ Concluído | 100% |
+| PWA End-User | ✅ Concluído | 100% |
+| Backend (Supabase) | 🟡 Em Progresso | 60% |
+| Pagamentos (Stripe) | ✅ Concluído | 100% |
+| Deploy | 🟡 Em Progresso | 50% |
+
+---
+
+## 📝 ITENS POR FASE
+
+### 🔴 FASE 1: SETUP SUPABASE (Prioridade Alta)
+
+| # | Tarefa | Status |
+|---|--------|--------|
+| 1.1 | Criar conta e projeto no Supabase | ✅ Feito |
+| 1.2 | Executar SQL das tabelas | ✅ Feito |
+| 1.3 | Habilitar Auth (Email) | ✅ Feito |
+| 1.4 | Configurar chaves no .env | ✅ Feito |
+| 1.5 | Conectar Login/Register ao Supabase | ✅ Feito |
+| 1.6 | Configurar Redirect URL (Callback) | ✅ Feito |
+
+### 🟡 FASE 2: SEGURANÇA (Prioridade Alta)
+
+| # | Tarefa | Status |
+|---|--------|--------|
+| 2.1 | Interface 2FA no Admin | ✅ Feito |
+| 2.2 | Configurar Row Level Security (RLS) | ⏳ Pendente |
+| 2.3 | Triggers de Limite (Impedir criação extra via Banco) | ⏳ Pendente |
+
+### 🟢 FASE 3: PAGAMENTOS (Prioridade Média)
+
+| # | Tarefa | Status |
+|---|--------|--------|
+| 3.1 | Criar conta no Stripe | ✅ Feito |
+| 3.2 | Criar produtos/preços (Starter, Pro, Business) | ✅ Feito |
+| 3.3 | Integrar botões de pagamento (PlansPage) | ✅ Feito |
+| 3.4 | Configurar Webhook no Stripe | ✅ Feito |
+| 3.5 | Criar Edge Function para processar Webhook | ✅ Feito |
+| 3.6 | Testar fluxo completo (Compra -> Liberação) | ✅ Feito |
+
+### 🔵 FASE 4: INTEGRAÇÕES & REFINAMENTO (Próximos Passos)
+
+| # | Tarefa | Status |
+|---|--------|--------|
+| 4.1 | Atualizar Frontend para ler plano real do banco | ✅ Feito |
+| 4.2 | Bloquear criação de Apps no Frontend (AppBuilder) | ✅ Feito |
+| 4.3 | Criar endpoints webhook (Hotmart, Kiwify) | ⏳ Pendente |
+| 4.4 | Adicionar depoimentos reais | ⏳ Pendente |
+
+---

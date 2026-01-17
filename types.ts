@@ -1,9 +1,8 @@
-
 export enum PlanType {
-  BASIC = 'Basic',
-  STARTER = 'Starter',
-  PROFESSIONAL = 'Professional',
-  BUSINESS = 'Business'
+  STARTER = 'starter',
+  PROFESSIONAL = 'professional',
+  BUSINESS = 'business',
+  ENTERPRISE = 'enterprise'
 }
 
 export interface User {
@@ -28,6 +27,9 @@ export interface PWAApp {
     views: number;
     engagement: number;
   };
+  // Adicionado para evitar erros no AppBuilder
+  customDomain?: string | null;
+  description?: string;
 }
 
 export interface Product {

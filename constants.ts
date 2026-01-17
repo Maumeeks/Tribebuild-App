@@ -1,5 +1,4 @@
-
-import { PlanType, PWAApp } from './types';
+import { PWAApp } from './types';
 
 export const COLORS = {
   primary: '#245EE3',
@@ -15,68 +14,68 @@ export const COLORS = {
 
 export const PLANS = [
   {
-    id: 'basic',
-    name: 'Basic',
-    price: 47,
-    period: 'mês',
-    features: [
-      '1 App PWA White-label',
-      'Até 100 usuários ativos',
-      'Checkout Integrado',
-      'Subdomínio tribebuild.app',
-      'Suporte via e-mail',
-      'Certificado SSL'
-    ],
-    recommended: false,
-    cta: 'Começar com Basic'
-  },
-  {
     id: 'starter',
     name: 'Starter',
-    price: 97,
+    price: 67,
     period: 'mês',
     features: [
       '1 App PWA White-label',
       'Até 500 usuários ativos',
+      'Produtos ilimitados',
       'Domínio Personalizado',
       'Push Notifications',
-      'Vídeos (Host Externo)',
-      'Suporte Prioritário'
+      'Comunidade + Feed'
     ],
-    recommended: true,
-    cta: 'Escolher Starter'
+    recommended: false,
+    cta: 'Começar com Starter'
   },
   {
-    id: 'pro',
+    id: 'professional',
     name: 'Professional',
-    price: 197,
+    price: 127,
     period: 'mês',
     features: [
       '3 Apps PWA White-label',
-      'Usuários Ilimitados',
-      'Hospedagem de Vídeo Inc.',
-      'Comunidade VIP nativa',
-      'Analytics Avançado',
-      'Webhooks de Integração'
+      'Até 1.500 usuários ativos',
+      'Produtos ilimitados',
+      'Domínio Personalizado',
+      'Suporte via E-mail (48h)',
+      'Integração Hotmart/Kiwify'
     ],
-    recommended: false,
-    cta: 'Ir para o Pro'
+    recommended: true,
+    cta: 'Escolher Professional'
   },
   {
     id: 'business',
     name: 'Business',
-    price: 497,
+    price: 247,
     period: 'mês',
     features: [
-      'Apps Ilimitados',
-      'Gestor de Contas Dedicado',
-      'Remoção total de marca',
-      'SLA de 99.9%',
-      'API de Desenvolvedor',
-      'Treinamento de Equipe'
+      '5 Apps PWA White-label',
+      'Até 2.800 usuários ativos',
+      'Produtos ilimitados',
+      'Domínio Personalizado',
+      'Suporte via E-mail (24h)',
+      'Múltiplos Administradores'
     ],
     recommended: false,
-    cta: 'Falar com Consultor'
+    cta: 'Ir para o Business'
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: 397,
+    period: 'mês',
+    features: [
+      '10 Apps PWA White-label',
+      'Até 6.000 usuários ativos',
+      'Produtos ilimitados',
+      'White Label Total (Sem marca)',
+      'Suporte Prioritário VIP',
+      'Consultoria de Implementação'
+    ],
+    recommended: false,
+    cta: 'Assinar Enterprise'
   }
 ];
 
@@ -153,7 +152,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: 'Posso usar meu próprio domínio?',
-    answer: 'Sim! A partir do plano Starter você pode conectar seu domínio (ex: app.seunome.com.br) com SSL gratuito incluso.'
+    answer: 'Sim! Em todos os planos (Starter ao Enterprise) você pode conectar seu domínio (ex: app.seunome.com.br) com SSL gratuito incluso.'
   },
   {
     question: 'Existe limite de aulas ou ebooks que posso subir?',
@@ -180,7 +179,8 @@ export const MOCK_APPS: PWAApp[] = [
       users: 850,
       views: 12400,
       engagement: 78
-    }
+    },
+    customDomain: 'app.mentalidade.com'
   },
   {
     id: '2',
@@ -195,6 +195,7 @@ export const MOCK_APPS: PWAApp[] = [
       users: 400,
       views: 5200,
       engagement: 45
-    }
+    },
+    customDomain: null
   }
 ];

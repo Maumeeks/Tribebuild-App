@@ -21,7 +21,7 @@ const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,7 +30,7 @@ const RegisterPage: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
-  
+
   const [errors, setErrors] = useState({
     name: '',
     email: '',
@@ -120,19 +120,21 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
     setErrors(prev => ({ ...prev, general: '' }));
-    
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          // AQUI ESTÁ A CORREÇÃO: Redirecionamento explícito para /plans
-          emailRedirectTo: 'https://tribebuild.pro/plans',
+          // ✅ CORREÇÃO AQUI: Mandando para a página que sabe fazer o login (Callback)
+          // O window.location.origin pega o site atual automaticamente (localhost ou vercel)
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+
           data: {
             full_name: formData.name,
             cpf: formData.cpf.replace(/\D/g, ''),
@@ -143,7 +145,7 @@ const RegisterPage: React.FC = () => {
 
       if (error) {
         console.error('Erro no cadastro:', error);
-        
+
         let errorMessage = error.message;
         if (error.message.includes('already registered')) {
           errorMessage = 'Este email já está cadastrado. Tente fazer login.';
@@ -152,7 +154,7 @@ const RegisterPage: React.FC = () => {
         } else if (error.message.includes('password')) {
           errorMessage = 'Senha muito fraca. Use pelo menos 6 caracteres.';
         }
-        
+
         setErrors(prev => ({ ...prev, general: errorMessage }));
         setIsLoading(false);
         return;
@@ -160,9 +162,9 @@ const RegisterPage: React.FC = () => {
 
       if (data.user) {
         if (data.user.identities?.length === 0) {
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Este email já está cadastrado. Tente fazer login.' 
+          setErrors(prev => ({
+            ...prev,
+            general: 'Este email já está cadastrado. Tente fazer login.'
           }));
           setIsLoading(false);
           return;
@@ -172,9 +174,9 @@ const RegisterPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Erro inesperado:', err);
-      setErrors(prev => ({ 
-        ...prev, 
-        general: 'Erro ao criar conta. Tente novamente.' 
+      setErrors(prev => ({
+        ...prev,
+        general: 'Erro ao criar conta. Tente novamente.'
       }));
     } finally {
       setIsLoading(false);
@@ -183,17 +185,17 @@ const RegisterPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     let formattedValue = value;
-    
+
     if (name === 'cpf') {
       formattedValue = formatCPF(value);
     } else if (name === 'phone') {
       formattedValue = formatPhone(value);
     }
-    
+
     setFormData(prev => ({ ...prev, [name]: formattedValue }));
-    
+
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -201,7 +203,7 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden px-4 py-8">
-      
+
       {/* Background Blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-20 left-[10%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-blue/10 dark:bg-brand-blue/20 rounded-full blur-[100px] animate-blob" />
@@ -212,7 +214,7 @@ const RegisterPage: React.FC = () => {
       {/* Card de Registro */}
       <div className="w-full max-w-md relative z-10 animate-slide-up">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-black/30 p-8 md:p-10 border border-white/60 dark:border-slate-700/60">
-          
+
           {/* Logo */}
           <div className="text-center mb-8">
             <Link to="/" className="inline-block mb-4 group">
@@ -226,7 +228,7 @@ const RegisterPage: React.FC = () => {
 
           {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {errors.general && (
               <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -246,11 +248,10 @@ const RegisterPage: React.FC = () => {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Nome completo"
-                  className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${
-                    errors.name 
-                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                  className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${errors.name
+                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                       : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
-                  }`}
+                    }`}
                 />
               </div>
               {errors.name && <p className="mt-1 text-xs font-bold text-red-500">{errors.name}</p>}
@@ -268,11 +269,10 @@ const RegisterPage: React.FC = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Email"
-                  className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${
-                    errors.email 
-                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                  className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${errors.email
+                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                       : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
-                  }`}
+                    }`}
                 />
               </div>
               <p className="mt-1 text-[10px] text-brand-coral font-bold uppercase tracking-wider flex items-center gap-1">
@@ -295,11 +295,10 @@ const RegisterPage: React.FC = () => {
                   onChange={handleChange}
                   placeholder="CPF"
                   maxLength={14}
-                  className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${
-                    errors.cpf 
-                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                  className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${errors.cpf
+                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                       : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
-                  }`}
+                    }`}
                 />
               </div>
               {errors.cpf && <p className="mt-1 text-xs font-bold text-red-500">{errors.cpf}</p>}
@@ -330,11 +329,10 @@ const RegisterPage: React.FC = () => {
                     onChange={handleChange}
                     placeholder="(00) 00000-0000"
                     maxLength={15}
-                    className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${
-                      errors.phone 
-                        ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                    className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${errors.phone
+                        ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                         : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
-                    }`}
+                      }`}
                   />
                 </div>
               </div>
@@ -353,11 +351,10 @@ const RegisterPage: React.FC = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Senha"
-                  className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${
-                    errors.password 
-                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                  className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${errors.password
+                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                       : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
-                  }`}
+                    }`}
                 />
                 <button
                   type="button"
@@ -382,11 +379,10 @@ const RegisterPage: React.FC = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Confirmar senha"
-                  className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${
-                    errors.confirmPassword 
-                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                  className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none ${errors.confirmPassword
+                      ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                       : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
-                  }`}
+                    }`}
                 />
                 <button
                   type="button"
@@ -439,8 +435,8 @@ const RegisterPage: React.FC = () => {
 
         {/* Voltar para Home */}
         <div className="mt-8 text-center">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="inline-flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-medium transition-colors"
           >
             <ArrowRight className="w-4 h-4 rotate-180" />

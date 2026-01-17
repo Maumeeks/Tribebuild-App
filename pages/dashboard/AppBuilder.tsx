@@ -4,20 +4,32 @@ import { Save, Eye, Palette, Globe, Smartphone, ArrowRight, ArrowLeft, Lock, Upl
 import Button from '../../components/Button';
 import MockupMobile from '../../components/MockupMobile';
 import { useApps } from '../../contexts/AppsContext';
+import { useAuth } from '../../contexts/AuthContext'; // <--- Importamos a Autenticação
 
 const AppBuilder: React.FC = () => {
   const { addApp, apps } = useApps();
+  const { profile } = useAuth(); // <--- Pegamos o perfil para saber o plano
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Basic limit check
-  const maxApps = 1;
+  // --- LÓGICA DE LIMITES DINÂMICA ---
+  const getPlanLimits = (plan: string) => {
+    switch (plan) {
+      case 'professional': return 3;
+      case 'business': return 5;
+      case 'enterprise': return 10;
+      default: return 1; // starter
+    }
+  };
+
+  const currentPlan = profile?.plan || 'starter';
+  const maxApps = getPlanLimits(currentPlan);
   const isLimitReached = apps.length >= maxApps;
+  // ----------------------------------
 
   useEffect(() => {
-    // Scroll to top on step change
     window.scrollTo(0, 0);
   }, [step]);
 
@@ -49,8 +61,9 @@ const AppBuilder: React.FC = () => {
   };
 
   const handlePublish = async () => {
-    if (isLimitReached) {
-      alert('Você atingiu o limite de apps do seu plano. Faça upgrade para criar mais apps.');
+    // Verificação dupla de segurança
+    if (apps.length >= maxApps) {
+      alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
       navigate('/dashboard/apps');
       return;
     }
@@ -63,7 +76,6 @@ const AppBuilder: React.FC = () => {
 
     setIsSubmitting(true);
     
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     addApp({
@@ -83,8 +95,8 @@ const AppBuilder: React.FC = () => {
   };
 
   const handleSaveDraft = () => {
-    if (isLimitReached) {
-      alert('Você atingiu o limite de apps do seu plano. Faça upgrade para criar mais apps.');
+    if (apps.length >= maxApps) {
+      alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
       navigate('/dashboard/apps');
       return;
     }
@@ -116,7 +128,7 @@ const AppBuilder: React.FC = () => {
       {/* Editor Side */}
       <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden relative">
         
-        {/* Overlay block if limit reached and trying to create new */}
+        {/* Bloqueio Inteligente: Mostra o plano e limite reais */}
         {isLimitReached && (
           <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-sm flex items-center justify-center p-8">
             <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 p-10 max-w-md text-center animate-slide-up">
@@ -125,7 +137,7 @@ const AppBuilder: React.FC = () => {
               </div>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">Limite Atingido</h3>
               <p className="text-slate-500 font-medium leading-relaxed mb-8">
-                Você atingiu o limite de apps do seu plano Basic (1 app). Faça upgrade para continuar criando novos projetos incríveis.
+                Você atingiu o limite de apps do seu plano <span className="text-brand-blue font-bold uppercase">{currentPlan}</span> ({maxApps} apps). Faça upgrade para continuar criando novos projetos incríveis.
               </p>
               <div className="flex flex-col gap-3">
                 <Button 
@@ -316,7 +328,7 @@ const AppBuilder: React.FC = () => {
                   onClick={handlePublish}
                   isLoading={isSubmitting}
                 >
-                    Publicar Meu Aplicativo
+                   Publicar Meu Aplicativo
                 </Button>
              </div>
            )}
