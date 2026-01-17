@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Mail, ArrowRight, Loader2, HelpCircle, Sparkles } from 'lucide-react';
+import { CheckCircle2, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import TribeBuildLogo from '../components/TribeBuildLogo';
 import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,14 +9,15 @@ const SubscriptionSuccessPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Pegamos refreshProfile E profile para verificar se mudou
-  const { refreshProfile, profile } = useAuth(); 
+  // Pegamos refreshProfile E profile
+  const { refreshProfile } = useAuth(); 
   
   const [status, setStatus] = useState<'loading' | 'success'>('loading');
   const processingRef = useRef(false);
 
   useEffect(() => {
     const validateSubscription = async () => {
+      // Evita execução dupla em React Strict Mode
       if (processingRef.current) return;
       processingRef.current = true;
 
@@ -31,30 +32,40 @@ const SubscriptionSuccessPage: React.FC = () => {
       try {
         console.log('Validando pagamento e trial...');
         
-        // Tentativa 1: Espera 2s
+        // Espera inteligente para o Webhook do Stripe processar
+        // Tentativa 1 (2s)
         await new Promise(resolve => setTimeout(resolve, 2000));
-        await refreshProfile();
-        console.log('Sincronização 1 feita.');
-
-        // Tentativa 2: Espera +2s (Garante consistência do Webhook)
+        await refreshProfile().catch(e => console.warn('Sync 1 falhou, continuando...', e));
+        
+        // Tentativa 2 (Mais 2s para garantir)
         await new Promise(resolve => setTimeout(resolve, 2000));
-        await refreshProfile();
-        console.log('Sincronização 2 feita. Liberando.');
-
+        await refreshProfile().catch(e => console.warn('Sync 2 falhou, continuando...', e));
+        
+        console.log('Sincronização finalizada. Liberando acesso.');
         setStatus('success');
+
       } catch (error) {
-        console.error('Erro na sincronização:', error);
-        setStatus('success'); // Libera mesmo com erro para não travar o user, o AuthContext barra depois se precisar
+        console.error('Erro no fluxo de validação:', error);
+        // Mesmo com erro, liberamos a tela para o usuário tentar entrar
+        setStatus('success');
       }
     };
 
     validateSubscription();
   }, [searchParams, navigate, refreshProfile]);
 
+  // --- A CORREÇÃO ESTÁ AQUI ---
   const handleAccessDashboard = async () => {
-    // Última verificação antes de ir
-    await refreshProfile();
-    navigate('/dashboard');
+    try {
+      // Tenta atualizar uma última vez, mas não bloqueia se der erro
+      await refreshProfile();
+    } catch (error) {
+      console.error('Erro leve ao atualizar perfil:', error);
+    } finally {
+      // OBRIGATÓRIO: Navega independente do resultado acima
+      console.log('Redirecionando para Dashboard...');
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   if (status === 'loading') {
