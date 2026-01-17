@@ -1,13 +1,14 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// --- CORREÇÃO DE IMPORTAÇÕES (Tudo com ./ pois estamos na raiz src) ---
+// --- Importações de Contexto ---
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppsProvider } from './contexts/AppsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import Callback from './pages/Callback';
+// --- CORREÇÃO AQUI: Importando com o NOVO nome para destravar o Git/Vercel ---
+import AuthCallback from './pages/AuthCallback';
 
 // Páginas públicas
 import PlansPage from './pages/PlansPage';
@@ -72,8 +73,9 @@ const App: React.FC = () => {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               
-              {/* Callback e Rotas de Auth */}
-              <Route path="/auth/callback" element={<Callback />} />
+              {/* --- CORREÇÃO AQUI: Usando o componente renomeado --- */}
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
