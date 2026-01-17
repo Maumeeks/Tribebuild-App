@@ -64,24 +64,28 @@
     background-color: #FF6B6B;
     color: white;
   }
+}
 
-  /* --- CORREÇÃO DO AUTOPREENCHIMENTO (Fundo Branco) --- */
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover, 
-  input:-webkit-autofill:focus, 
-  input:-webkit-autofill:active{
-      -webkit-box-shadow: 0 0 0 30px var(--color-bg-primary) inset !important;
-      -webkit-text-fill-color: var(--color-text-primary) !important;
-      transition: background-color 5000s ease-in-out 0s;
-      border-radius: 1rem; /* Mantém borda arredondada se necessário */
-  }
-  
-  .dark input:-webkit-autofill,
-  .dark input:-webkit-autofill:hover, 
-  .dark input:-webkit-autofill:focus, 
-  .dark input:-webkit-autofill:active{
-      -webkit-box-shadow: 0 0 0 30px #0f172a inset !important; /* Cor exata do slate-900 */
-  }
+/* --- CORREÇÃO DO AUTOPREENCHIMENTO DO NAVEGADOR --- */
+/* Isso remove o fundo branco forçado pelo Chrome/Edge */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px var(--color-bg-primary) inset !important;
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s;
+    border-radius: 1rem;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover, 
+.dark input:-webkit-autofill:focus, 
+.dark input:-webkit-autofill:active {
+    /* Usa a cor exata do slate-900 (#0f172a) para 'pintar' o fundo do input */
+    -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+    -webkit-text-fill-color: white !important;
+    caret-color: white !important;
 }
 
 @layer components {
@@ -134,7 +138,6 @@
 
 /* --- ANIMAÇÕES --- */
 
-/* Scroll Infinito */
 @keyframes scroll-left {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -157,7 +160,7 @@
   animation-play-state: paused !important;
 }
 
-/* Blob Animation (Fundo decorativo) */
+/* Blob Animation */
 @keyframes blob {
   0% { transform: translate(0px, 0px) scale(1); }
   33% { transform: translate(30px, -50px) scale(1.1); }
@@ -173,7 +176,7 @@
   @apply absolute rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob;
 }
 
-/* Slide Up (Entrada de elementos) */
+/* Slide Up */
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -189,7 +192,7 @@
   animation: slide-up 0.6s ease-out forwards;
 }
 
-/* Fade In (Suave) */
+/* Fade In */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -199,7 +202,7 @@
   animation: fade-in 0.5s ease-out forwards;
 }
 
-/* Progress Slide (Loading da assinatura) */
+/* Progress Slide */
 @keyframes progress-slide {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
@@ -229,9 +232,6 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
-
-/* Removi o seletor universal * { transition } pois causa problemas de performance.
-   A transição suave já está aplicada no body e herdada onde necessário. */
 
 input[type="date"],
 input[type="time"] {
