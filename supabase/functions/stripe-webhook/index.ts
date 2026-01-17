@@ -1,95 +1,158 @@
-// supabase/functions/stripe-webhook/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno"
 
-console.log("Stripe Webhook Handler iniciado!")
+console.log("Stripe Webhook Handler v2 (Trial & Lifecycle) iniciado!")
 
-serve(async (req) => {
-  // 1. Configuração Inicial
-  const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
-    apiVersion: '2022-11-15',
-    httpClient: Stripe.createFetchHttpClient(),
-  })
-  const cryptoProvider = Stripe.createSubtleCryptoProvider()
-  
-  const signature = req.headers.get('Stripe-Signature')
-  const body = await req.text()
-
-  // 2. Validar se a requisição veio mesmo do Stripe (Segurança)
-  let event
+// CORREÇÃO: 'req: Request' resolve o erro de 'implicitly has an any type'
+serve(async (req: Request) => {
   try {
-    event = await stripe.webhooks.constructEventAsync(
-      body,
-      signature!,
-      Deno.env.get('STRIPE_WEBHOOK_SECRET')!, // Segredo que vamos configurar
-      undefined,
-      cryptoProvider
-    )
-  } catch (err) {
-    console.error(`Erro de assinatura: ${err.message}`)
-    return new Response(err.message, { status: 400 })
-  }
+    // 1. Configuração Inicial
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  // 3. Processar Pagamento Aprovado
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object
-    const userId = session.client_reference_id // ID que enviamos no botão "Assinar"
-
-    if (!userId) {
-      console.log('Pagamento sem userId (compra anônima?). Ignorando.')
-      return new Response('Sem User ID', { status: 200 })
+    if (!stripeKey || !webhookSecret || !supabaseUrl || !supabaseKey) {
+        throw new Error("Variáveis de ambiente incompletas")
     }
 
-    // Buscar detalhes para saber qual produto foi comprado
-    const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
-    const priceId = lineItems.data[0]?.price?.id
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2022-11-15',
+      httpClient: Stripe.createFetchHttpClient(),
+    })
+    
+    const cryptoProvider = Stripe.createSubtleCryptoProvider()
+    
+    const signature = req.headers.get('Stripe-Signature')
+    const body = await req.text()
 
-    // --- SEU MAPA DE PREÇOS ---
-    const PLAN_MAPPING: Record<string, string> = {
-      // Starter
-      'price_1SlI8pI5Cu8MrWaGjBdlVYnu': 'starter',      // R$ 67,00 (Mensal)
-      'price_1SlI8pI5Cu8MrWaGYJih1P0D': 'starter',      // R$ 672,00 (Anual)
-      
-      // Professional
-      'price_1SlI8pI5Cu8MrWaGNgMPqkQN': 'professional', // R$ 127,00 (Mensal)
-      'price_1SlI8pI5Cu8MrWaGAX4FfQHX': 'professional', // R$ 1.272,00 (Anual)
-      
-      // Business
-      'price_1SlI8pI5Cu8MrWaGYq5KS1Lz': 'business',     // R$ 247,00 (Mensal)
-      'price_1SlI9lI5Cu8MrWaG2NXdqrAM': 'business',     // R$ 2.472,00 (Anual)
-      
-      // Enterprise
-      'price_1SpuPcI5Cu8MrWaGukdBmBdX': 'enterprise',   // (Exemplo para R$ 397 se tiver)
-      'price_1SpuPcI5Cu8MrWaGukdBm3Hy': 'enterprise',   // R$ 3.970,00 (Anual)
+    // 2. Validar Assinatura
+    let event
+    try {
+      event = await stripe.webhooks.constructEventAsync(
+        body,
+        signature!,
+        webhookSecret,
+        undefined,
+        cryptoProvider
+      )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error(`Erro de assinatura: ${err.message}`)
+      return new Response(err.message, { status: 400 })
     }
 
-    const planName = PLAN_MAPPING[priceId] || 'starter' // Se não achar, garante Starter
-    console.log(`Usuário ${userId} comprou o plano: ${planName} (Preço: ${priceId})`)
-
-    // 4. Gravar no Banco de Dados (Supabase)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    // Configuração do Supabase
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Atualiza o perfil do usuário
-    const { error } = await supabase
-      .from('profiles')
-      .update({ 
-        plan: planName, 
-        plan_status: 'active',
-        stripe_customer_id: session.customer,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-
-    if (error) {
-      console.error('Erro ao atualizar Supabase:', error)
-      return new Response('Erro no Banco', { status: 500 })
+    // Mapa de Preços
+    const PLAN_MAPPING: Record<string, string> = {
+      'price_1SlI8pI5Cu8MrWaGjBdlVYnu': 'starter',
+      'price_1SlI8pI5Cu8MrWaGYJih1P0D': 'starter',
+      'price_1SlI8pI5Cu8MrWaGNgMPqkQN': 'professional',
+      'price_1SlI8pI5Cu8MrWaGAX4FfQHX': 'professional',
+      'price_1SlI8pI5Cu8MrWaGYq5KS1Lz': 'business',
+      'price_1SlI9lI5Cu8MrWaG2NXdqrAM': 'business',
+      'price_1SpuPcI5Cu8MrWaGukdBmBdX': 'enterprise',
+      'price_1SpuPcI5Cu8MrWaGukdBm3Hy': 'enterprise',
     }
-  }
 
-  return new Response(JSON.stringify({ received: true }), {
-    headers: { "Content-Type": "application/json" },
-  })
+    console.log(`🔔 Evento Recebido: ${event.type}`)
+
+    // --- EVENTO 1: CHECKOUT COMPLETADO ---
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object
+      const userId = session.client_reference_id
+      const customerEmail = session.customer_details?.email
+
+      // Identificar Plano
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
+      const priceId = lineItems.data[0]?.price?.id
+      const planName = priceId ? (PLAN_MAPPING[priceId] || 'starter') : 'starter'
+
+      // Identificar Status
+      let planStatus = 'active'
+      let trialEnd = null
+
+      if (session.subscription) {
+          try {
+              const sub = await stripe.subscriptions.retrieve(session.subscription as string)
+              if (sub.status === 'trialing') {
+                  planStatus = 'trial'
+                  trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
+              }
+          } catch (e) {
+              console.error('Erro ao buscar subscription:', e)
+          }
+      }
+
+      const updateData = { 
+          plan: planName, 
+          plan_status: planStatus,
+          trial_ends_at: trialEnd,
+          stripe_customer_id: session.customer,
+          stripe_subscription_id: session.subscription,
+          updated_at: new Date().toISOString()
+      }
+
+      if (userId) {
+          await supabase.from('profiles').update(updateData).eq('id', userId)
+      } else if (customerEmail) {
+          await supabase.from('profiles').update(updateData).eq('email', customerEmail)
+      }
+      console.log('✅ Checkout processado.')
+    }
+
+    // --- EVENTO 2: MUDANÇA DE STATUS ---
+    else if (event.type === 'customer.subscription.updated') {
+        const subscription = event.data.object
+        const customerId = subscription.customer
+        
+        const statusMap: Record<string, string> = {
+            'active': 'active',
+            'trialing': 'trial',
+            'past_due': 'active',
+            'canceled': 'canceled',
+            'unpaid': 'canceled',
+            'incomplete': 'canceled',
+            'incomplete_expired': 'canceled',
+            'paused': 'canceled'
+        }
+        const newStatus = statusMap[subscription.status] || 'free'
+        
+        await supabase
+          .from('profiles')
+          .update({
+              plan_status: newStatus,
+              updated_at: new Date().toISOString()
+          })
+          .eq('stripe_customer_id', customerId)
+    }
+
+    // --- EVENTO 3: CANCELAMENTO ---
+    else if (event.type === 'customer.subscription.deleted') {
+        const subscription = event.data.object
+        const customerId = subscription.customer
+        
+        await supabase
+          .from('profiles')
+          .update({
+              plan_status: 'canceled',
+              stripe_subscription_id: null,
+              updated_at: new Date().toISOString()
+          })
+          .eq('stripe_customer_id', customerId)
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    console.error(`Server Error: ${err.message}`)
+    return new Response(`Server Error: ${err.message}`, { status: 500 })
+  }
 })

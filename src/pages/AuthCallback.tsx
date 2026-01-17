@@ -5,40 +5,39 @@ import { Loader2 } from 'lucide-react';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  // Precisamos do profile e loading para decidir
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading } = useAuth(); // <--- Agora precisamos do profile também
 
   useEffect(() => {
-    // 1. Enquanto carrega dados do banco, não fazemos nada
+    // Se ainda está carregando o AuthContext, aguarda.
     if (loading) return;
 
-    // 2. Se terminou de carregar e NÃO tem usuário, manda pro login
+    // Se não tem usuário, manda pro login
     if (!user) {
         const timer = setTimeout(() => navigate('/login'), 3000);
         return () => clearTimeout(timer);
     }
 
-    // 3. A BLITZ: Se tem usuário, verificamos o Plano
-    if (user) {
-        console.log('[AuthCallback] Usuário identificado. Verificando plano...');
-
-        // Limpa a URL (remove tokens)
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        if (profile) {
-            // Se já temos o perfil carregado, verificamos o status
-            if (profile.plan_status === 'active' || profile.plan_status === 'trial') {
-                navigate('/dashboard', { replace: true });
-            } else {
-                // Status cancelado, free, ou null -> PLANOS
-                console.warn('[AuthCallback] Plano inválido ou inexistente. Redirecionando para Planos.');
-                navigate('/plans', { replace: true });
-            }
+    // A BLITZ: Só entra no Dashboard se tiver plano Ativo ou Trial
+    if (profile) {
+        console.log('[AuthCallback] Verificando plano:', profile.plan_status);
+        
+        if (profile.plan_status === 'active' || profile.plan_status === 'trial') {
+            // Plano OK -> Dashboard
+            window.history.replaceState({}, document.title, window.location.pathname);
+            navigate('/dashboard', { replace: true });
         } else {
-            // Se tem User mas o Profile veio nulo (usuário 100% novo sem registro no banco ainda)
-            // MANDA PARA PLANOS para ele criar a assinatura
+            // Sem plano ou cancelado -> Vai comprar
+            console.warn('[AuthCallback] Sem plano ativo. Redirecionando para Planos.');
             navigate('/plans', { replace: true });
         }
+    } else {
+        // Se o usuário existe mas o perfil demorou para carregar...
+        // Por segurança para NOVOS usuários, mandamos para /plans
+        // (Quem já tem conta consegue clicar em "Login" lá na página de planos se for engano)
+        const timer = setTimeout(() => {
+             navigate('/plans', { replace: true });
+        }, 2000);
+        return () => clearTimeout(timer);
     }
 
   }, [user, profile, loading, navigate]);
@@ -48,7 +47,6 @@ const AuthCallback: React.FC = () => {
       <div className="text-center animate-pulse">
         <Loader2 className="w-12 h-12 text-brand-blue animate-spin mx-auto mb-4" />
         <h2 className="text-white font-bold text-lg">Verificando sua assinatura...</h2>
-        <p className="text-slate-400 text-sm mt-2">Aguarde um momento.</p>
       </div>
     </div>
   );
