@@ -1,8 +1,7 @@
-
 import TribeBuildLogo from '../components/TribeBuildLogo';
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { XCircle, ArrowLeft, HelpCircle, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, HelpCircle, AlertTriangle } from 'lucide-react';
 import Button from '../components/Button';
 
 const SubscriptionCancelPage: React.FC = () => {
@@ -35,16 +34,16 @@ const SubscriptionCancelPage: React.FC = () => {
 
           {/* Descrição */}
           <p className="text-slate-500 font-medium leading-relaxed mb-10">
-            Parece que o processo de pagamento não foi concluído. Não se preocupe, seus dados estão seguros e você pode tentar novamente quando estiver pronto.
+            O processo foi cancelado. Seus dados não foram cobrados. Você pode retomar a assinatura quando quiser.
           </p>
 
           {/* Botões */}
           <div className="space-y-4">
             <Button
-              onClick={() => navigate('/dashboard/plans')}
+              onClick={() => navigate('/plans')} // CORREÇÃO: Manda para a seleção de planos pública
               className="w-full h-16 text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-500/20"
             >
-              Tentar Novamente
+              Escolher Plano Novamente
             </Button>
             <button
               onClick={() => navigate('/')}
