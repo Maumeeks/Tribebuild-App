@@ -1,25 +1,33 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Smartphone, Plus, ArrowRight, ShieldCheck, Globe, CreditCard, Link2, ExternalLink, Zap } from 'lucide-react';
+import { Smartphone, Plus, ArrowRight, ShieldCheck, Globe, CreditCard, Link2, ExternalLink, Zap, Clock } from 'lucide-react';
 import { useApps } from '../../contexts/AppsContext';
-import { useAuth } from '../../contexts/AuthContext'; // <--- Importamos a Autenticação
+import { useAuth } from '../../contexts/AuthContext';
 
 const DashboardHome: React.FC = () => {
   const { apps } = useApps();
-  const { profile } = useAuth(); // <--- Pegamos os dados do perfil (onde está o plano real)
+  // 1. Pegamos o isTrialActive e trialDaysLeft do contexto
+  const { profile, isTrialActive, trialDaysLeft } = useAuth(); 
   
-  // Define os limites baseados no plano real do banco de dados
+  // 2. Lógica Inteligente do Plano:
+  // Se o trial estiver ativo, consideramos o plano como 'starter' visualmente e funcionalmente,
+  // mesmo que no banco ainda esteja escrito 'free'.
+  const rawPlan = profile?.plan || 'free';
+  const effectivePlan = isTrialActive ? 'starter' : rawPlan;
+
+  // 3. Define os limites baseados no plano efetivo
   const getPlanLimits = (plan: string) => {
     switch (plan) {
-      case 'professional': return 3;
-      case 'business': return 5;
-      case 'enterprise': return 10;
-      default: return 1; // starter ou free
+      case 'starter': return 3;      // Agora Starter libera 3
+      case 'professional': return 10; // Aumentei professional para 10 (exemplo)
+      case 'business': return 20;
+      case 'enterprise': return 50;
+      case 'free': return 1;
+      default: return 1; 
     }
   };
 
-  const currentPlan = profile?.plan || 'starter';
-  const maxApps = getPlanLimits(currentPlan);
+  const maxApps = getPlanLimits(effectivePlan);
   
   // Verificação de segurança
   const safeApps = apps || [];
@@ -35,8 +43,12 @@ const DashboardHome: React.FC = () => {
         <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
           Bem-vindo, {profile?.full_name?.split(' ')[0] || 'Criador'}! 👋
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-lg">
-          Você está no plano <span className="text-brand-blue font-bold uppercase">{currentPlan}</span>.
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-lg flex items-center gap-2">
+          Você está no plano 
+          <span className="text-brand-blue font-bold uppercase">
+            {effectivePlan} 
+            {isTrialActive && <span className="text-amber-500 ml-1 text-sm">(Período de Testes)</span>}
+          </span>
         </p>
       </div>
 
@@ -75,10 +87,19 @@ const DashboardHome: React.FC = () => {
               )}
 
               <div className="mt-5 flex flex-wrap items-center gap-4">
-                {/* AQUI ESTÁ A MÁGICA: O texto agora muda sozinho */}
+                {/* Badge do Plano */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-800">
-                  PLANO {currentPlan}
+                  {effectivePlan}
                 </span>
+
+                {/* Badge do Trial (se ativo) */}
+                {isTrialActive && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-100 dark:border-amber-800">
+                        <Clock className="w-3 h-3" />
+                        {trialDaysLeft} DIAS RESTANTES
+                    </span>
+                )}
+
                 <span className={`text-xs font-bold uppercase tracking-widest ${isLimitReached ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
                   APPS: <span className={isLimitReached ? 'text-red-600' : 'text-slate-900 dark:text-white'}>{safeApps.length}/{maxApps}</span>
                 </span>

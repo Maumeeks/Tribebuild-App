@@ -1,239 +1,231 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, Profile } from '../lib/supabase';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Smartphone, Plus, ArrowRight, ShieldCheck, Globe, CreditCard, Link2, ExternalLink, Zap, Clock } from 'lucide-react';
+import { useApps } from '../../contexts/AppsContext';
+import { useAuth } from '../../contexts/AuthContext';
 
-interface AuthContextType {
-  refreshProfile: () => Promise<void>;
-  user: User | null;
-  profile: Profile | null;
-  session: Session | null;
-  loading: boolean;
-  signUp: (email: string, password: string, fullName: string, cpf?: string) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
-  isTrialActive: boolean;
-  trialDaysLeft: number;
-}
+const DashboardHome: React.FC = () => {
+  const { apps } = useApps();
+  // 1. Pegamos o isTrialActive e trialDaysLeft do contexto
+  const { profile, isTrialActive, trialDaysLeft } = useAuth(); 
+  
+  // 2. Lógica Inteligente do Plano:
+  // Se o trial estiver ativo, consideramos o plano como 'starter' visualmente e funcionalmente,
+  // mesmo que no banco ainda esteja escrito 'free'.
+  const rawPlan = profile?.plan || 'free';
+  const effectivePlan = isTrialActive ? 'starter' : rawPlan;
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // 1. Função auxiliar para buscar o perfil no banco
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.warn('[Auth] Perfil não encontrado ou erro:', error.message);
-        return null;
-      }
-      return data as Profile;
-    } catch (err) {
-      console.error('[Auth] Erro crítico ao buscar perfil:', err);
-      return null;
+  // 3. Define os limites baseados no plano efetivo
+  const getPlanLimits = (plan: string) => {
+    switch (plan) {
+      case 'starter': return 3;      // Agora Starter libera 3
+      case 'professional': return 10; // Aumentei professional para 10 (exemplo)
+      case 'business': return 20;
+      case 'enterprise': return 50;
+      case 'free': return 1;
+      default: return 1; 
     }
   };
 
-  // 2. Inicialização e Listener de Mudanças
-  useEffect(() => {
-    let mounted = true;
-
-    const initAuth = async () => {
-      try {
-        console.log('[Auth] Iniciando verificação de sessão...');
-        
-        // Pega sessão atual
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-
-          if (currentSession?.user) {
-            console.log('[Auth] Sessão encontrada. Buscando perfil...');
-            const userProfile = await fetchProfile(currentSession.user.id);
-            if (mounted) setProfile(userProfile);
-          } else {
-            console.log('[Auth] Nenhuma sessão ativa.');
-          }
-        }
-      } catch (err) {
-        console.error('[Auth] Falha na inicialização:', err);
-      } finally {
-        if (mounted) setLoading(false); // <--- DESTRAMELA O LOADING SEMPRE
-      }
-    };
-
-    initAuth();
-
-    // Listener para mudanças em tempo real (Login, Logout, Auto-refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (!mounted) return;
-        
-        console.log(`[Auth] Evento: ${event}`);
-
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            if (newSession?.user) {
-                const userProfile = await fetchProfile(newSession.user.id);
-                if (mounted) setProfile(userProfile);
-            }
-        } 
-        
-        if (event === 'SIGNED_OUT') {
-            if (mounted) {
-                setProfile(null);
-                setUser(null);
-            }
-        }
-
-        if (mounted) setLoading(false);
-      }
-    );
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // --- AÇÕES DE AUTENTICAÇÃO ---
-
-  const signUp = async (email: string, password: string, fullName: string, cpf?: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            cpf: cpf || null,
-          },
-        },
-      });
-
-      if (error) return { error };
-      return { error: null };
-    } catch (err) {
-      return { error: err as AuthError };
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { error };
-    } catch (err) {
-      return { error: err as AuthError };
-    }
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    // O onAuthStateChange cuidará de limpar o estado
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      return { error };
-    } catch (err) {
-      return { error: err as AuthError };
-    }
-  };
-
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return { error: new Error('No user logged in') };
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (error) return { error };
-
-      if (profile) {
-        setProfile({ ...profile, ...updates });
-      }
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
-    }
-  };
-
-  // Função manual para recarregar dados (Usada no Pós-Pagamento)
-  const refreshProfile = async () => {
-    if (!user) return;
-    console.log('[Auth] Recarregando perfil manualmente...');
-    // Não ativamos setLoading(true) aqui para não piscar a tela inteira,
-    // apenas atualizamos os dados silenciosamente ou deixamos quem chamou controlar o loading.
-    const userProfile = await fetchProfile(user.id);
-    setProfile(userProfile);
-  };
-
-  // Cálculos de Trial
-  const isTrialActive = Boolean(
-    profile?.plan_status === 'trial' && 
-    profile?.trial_ends_at && 
-    new Date(profile.trial_ends_at) > new Date()
-  );
-
-  const trialDaysLeft = profile?.trial_ends_at 
-    ? Math.max(0, Math.ceil((new Date(profile.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
-
-  const value: AuthContextType = {
-    user,
-    profile,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    resetPassword,
-    updateProfile,
-    refreshProfile,
-    isTrialActive,
-    trialDaysLeft,
-  };
+  const maxApps = getPlanLimits(effectivePlan);
+  
+  // Verificação de segurança
+  const safeApps = apps || [];
+  const isLimitReached = safeApps.length >= maxApps;
+  
+  // Pega o primeiro app
+  const mainApp = safeApps.length > 0 ? safeApps[0] : null;
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <div className="space-y-10 pb-20">
+      {/* Boas-vindas */}
+      <div className="animate-slide-up">
+        <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+          Bem-vindo, {profile?.full_name?.split(' ')[0] || 'Criador'}! 👋
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-lg flex items-center gap-2">
+          Você está no plano 
+          <span className="text-brand-blue font-bold uppercase">
+            {effectivePlan} 
+            {isTrialActive && <span className="text-amber-500 ml-1 text-sm">(Período de Testes)</span>}
+          </span>
+        </p>
+      </div>
+
+      {/* CARD PRINCIPAL */}
+      <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-8 md:p-10 shadow-sm hover:shadow-2xl hover:border-brand-blue/30 transition-all duration-500 group animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+          
+          <div className="flex items-start gap-6">
+            <div className="w-16 h-16 bg-brand-blue/10 dark:bg-brand-blue/20 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
+              <Smartphone className="w-8 h-8 text-brand-blue" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {mainApp ? mainApp.name : "Meus Apps"}
+              </h2>
+              
+              {mainApp ? (
+                <div className="mt-2 space-y-1">
+                   <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+                     Seu aplicativo está ativo e rodando.
+                   </p>
+                   <a 
+                     href={mainApp.customDomain ? `https://${mainApp.customDomain}` : mainApp.accessLink}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="text-xs font-bold text-brand-blue hover:underline flex items-center gap-1"
+                   >
+                     {mainApp.customDomain || mainApp.accessLink}
+                     <ExternalLink className="w-3 h-3" />
+                   </a>
+                </div>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 leading-relaxed font-medium max-w-xl">
+                  Crie seu primeiro aplicativo agora mesmo e comece a escalar.
+                </p>
+              )}
+
+              <div className="mt-5 flex flex-wrap items-center gap-4">
+                {/* Badge do Plano */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-800">
+                  {effectivePlan}
+                </span>
+
+                {/* Badge do Trial (se ativo) */}
+                {isTrialActive && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-100 dark:border-amber-800">
+                        <Clock className="w-3 h-3" />
+                        {trialDaysLeft} DIAS RESTANTES
+                    </span>
+                )}
+
+                <span className={`text-xs font-bold uppercase tracking-widest ${isLimitReached ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                  APPS: <span className={isLimitReached ? 'text-red-600' : 'text-slate-900 dark:text-white'}>{safeApps.length}/{maxApps}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+           
+          {/* BOTÕES DE AÇÃO */}
+          <div className="flex flex-col gap-3 w-full md:w-auto">
+            {mainApp ? (
+              <>
+                <a
+                  href={mainApp.customDomain ? `https://${mainApp.customDomain}` : mainApp.accessLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-emerald-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 w-full md:w-auto"
+                >
+                  <Zap className="w-5 h-5 fill-current" />
+                  Acessar App
+                </a>
+                <Link
+                  to="/dashboard/apps"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all w-full md:w-auto"
+                >
+                  Gerenciar
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/dashboard/builder"
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 w-full md:w-auto"
+              >
+                <Plus className="w-5 h-5" />
+                Criar Meu App
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de Links Rápidos */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Link
+          to="/dashboard/integrations"
+          className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 p-8 hover:border-brand-blue/30 hover:shadow-2xl transition-all duration-500 group"
+        >
+          <div className="w-12 h-12 bg-purple-50 dark:bg-purple-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+             <Link2 className="w-6 h-6 text-purple-500" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+            Integrações
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-6">
+            Conecte seu app com Hotmart, Kiwify e Eduzz.
+          </p>
+          <div className="flex items-center gap-2 text-brand-blue text-xs font-bold uppercase tracking-widest group-hover:gap-3 transition-all">
+            Configurar
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </Link>
+
+        <Link
+          to="/dashboard/domains"
+          className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 p-8 hover:border-brand-blue/30 hover:shadow-2xl transition-all duration-500 group"
+        >
+          <div className="w-12 h-12 bg-green-50 dark:bg-green-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+             <Globe className="w-6 h-6 text-green-500" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+            Domínios
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-6">
+            Use seu próprio endereço (ex: app.seunome.com).
+          </p>
+          <div className="flex items-center gap-2 text-brand-blue text-xs font-bold uppercase tracking-widest group-hover:gap-3 transition-all">
+            Configurar
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </Link>
+
+        <Link
+          to="/dashboard/plans"
+          className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 p-8 hover:border-brand-blue/30 hover:shadow-2xl transition-all duration-500 group"
+        >
+          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+             <CreditCard className="w-6 h-6 text-amber-500" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+            Assinatura
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-6">
+            Gerencie seu plano e faturas.
+          </p>
+          <div className="flex items-center gap-2 text-brand-blue text-xs font-bold uppercase tracking-widest group-hover:gap-3 transition-all">
+            Ver Detalhes
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Info Section */}
+      <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 md:p-12 text-white overflow-hidden relative group animate-slide-up border border-slate-800" style={{ animationDelay: '300ms' }}>
+         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-blue/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-4">
+               <div className="flex items-center gap-3 px-4 py-2 bg-white/10 rounded-full w-fit backdrop-blur-sm border border-white/10">
+                  <ShieldCheck className="w-4 h-4 text-green-400" />
+                  <span className="text-xs font-bold uppercase tracking-widest">Seu ambiente está seguro</span>
+               </div>
+               <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Precisa de ajuda?</h3>
+               <p className="text-slate-400 font-medium max-w-lg leading-relaxed">
+                 Acesse nossa base de conhecimento ou fale com o suporte.
+               </p>
+            </div>
+            <a 
+              href="https://wa.me/5561982199922" 
+              target="_blank" 
+              rel="noreferrer"
+              className="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-slate-100 transition-all shadow-xl w-full md:w-auto text-center"
+            >
+              Falar com Suporte
+            </a>
+         </div>
+      </div>
+    </div>
   );
 };
 
-export default AuthContext;
+export default DashboardHome;
