@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Link2,
@@ -10,11 +9,11 @@ import {
   CheckCircle2,
   Settings,
   Trash2,
-  HelpCircle,
-  ArrowRight
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
+import { useAuth } from '../../contexts/AuthContext'; // <--- Adicionado para pegar o ID real
 
 // Tipos
 interface Platform {
@@ -28,15 +27,14 @@ interface Platform {
   webhookEvents: string[];
 }
 
-// Plataformas disponíveis conforme o prompt
+// Dados ricos das plataformas
 const initialPlatforms: Platform[] = [
   {
     id: 'hotmart',
     name: 'Hotmart',
     logo: '🔥',
     color: 'bg-orange-500',
-    connected: true,
-    connectedAt: '2025-04-10',
+    connected: false,
     description: 'A maior plataforma de produtos digitais da América Latina.',
     webhookEvents: ['Compra aprovada', 'Compra cancelada', 'Reembolso', 'Assinatura cancelada']
   },
@@ -87,10 +85,8 @@ const initialPlatforms: Platform[] = [
   }
 ];
 
-// Webhook URL do usuário (mock)
-const userWebhookUrl = 'https://api.tribebuild.com/webhook/usr_abc123xyz789';
-
 const IntegrationsPage: React.FC = () => {
+  const { user } = useAuth(); // <--- Pegando usuário real
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,6 +95,11 @@ const IntegrationsPage: React.FC = () => {
     open: false,
     platformId: null
   });
+
+  // URL Dinâmica baseada no ID do usuário
+  const userWebhookUrl = user?.id 
+    ? `https://api.tribebuild.com/webhook/${user.id}`
+    : 'Carregando URL...';
 
   const handleCopyWebhook = async () => {
     try {
@@ -146,7 +147,7 @@ const IntegrationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
+    <div className="space-y-10 font-['Inter'] pb-20">
       {/* Header */}
       <div className="space-y-3 animate-slide-up">
         <h1 className="text-3xl font-black text-brand-blue tracking-tighter leading-tight">Integrações</h1>
