@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import TribeBuildLogo from '../components/TribeBuildLogo';
-import { supabase } from '../lib/supabase';
+// Removida a importação direta do supabase para usar a do contexto e evitar conflitos
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile } = useAuth();
+  
+  // CORREÇÃO 1: Pegamos o signIn e loading do contexto para manter tudo sincronizado
+  const { user, profile, signIn, loading: authLoading } = useAuth();
   
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,6 +23,9 @@ const LoginPage: React.FC = () => {
     general: ''
   });
 
+  // Estado local apenas para interação do formulário (validação)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const benefits = [
     'Mais de 1.247 criadores ativos',
     'Crie seu app sem programar',
@@ -29,26 +33,33 @@ const LoginPage: React.FC = () => {
     'Suporte dedicado em português',
   ];
 
-  // Redireciona se já estiver logado
-useEffect(() => {
-  if (user && profile) {
-    console.log('[Login] Usuário já logado, redirecionando...', { 
-      email: user.email, 
-      plan_status: profile.plan_status 
-    });
-    
-    const from = location.state?.from?.pathname;
-    
-    if (from) {
-      navigate(from, { replace: true });
-    } else if (profile.plan_status === 'active') {
-      navigate('/dashboard', { replace: true });
-    } else {
-      // Trial ou inactive -> vai para /plans (fora do dashboard)
-      navigate('/plans', { replace: true });
+  // CORREÇÃO 2: Redirecionamento mais robusto
+  useEffect(() => {
+    // Se o AuthContext diz que acabou de carregar e temos usuário...
+    if (!authLoading && user) {
+      console.log('[Login] Usuário detectado, redirecionando...');
+      
+      const from = location.state?.from?.pathname;
+      
+      if (from) {
+        navigate(from, { replace: true });
+        return;
+      }
+      
+      // Se tiver perfil, direciona com base no plano
+      if (profile) {
+        if (profile.plan_status === 'active' || profile.plan_status === 'trial') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/plans', { replace: true });
+        }
+      } else {
+        // Se tem user mas não tem perfil ainda, manda pro dashboard e deixa ele tratar
+        // Isso evita o travamento eterno
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }
-}, [user, profile, navigate, location]);
+  }, [user, profile, authLoading, navigate, location]);
 
   const validateForm = () => {
     let isValid = true;
@@ -74,27 +85,25 @@ useEffect(() => {
     return isValid;
   };
 
-      const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    console.log('[Login] Tentando login...', { email: formData.email });
-    setIsLoading(true);
+    setIsSubmitting(true);
     setErrors(prev => ({ ...prev, general: '' }));
 
     try {
-      console.log('[Login] Chamando supabase.auth.signInWithPassword...');
+      console.log('[Login] Iniciando login via Contexto...');
       
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email.trim(),
-        password: formData.password,
-      });
+      // CORREÇÃO 3: Usamos a função do contexto. 
+      // Ela já trata o estado global de autenticação.
+      const { error } = await signIn(formData.email.trim(), formData.password);
 
       if (error) {
-        console.error('[Login] ❌ Erro no login:', error);
-        
+        console.error('[Login] Erro:', error);
         let errorMessage = 'Email ou senha incorretos.';
+        
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Email ou senha incorretos.';
         } else if (error.message.includes('Email not confirmed')) {
@@ -104,37 +113,24 @@ useEffect(() => {
         }
         
         setErrors(prev => ({ ...prev, general: errorMessage }));
-        setIsLoading(false);
+        setIsSubmitting(false); // Só paramos de carregar se DEU ERRO
         return;
       }
 
-      console.log('[Login] ✅ Login feito com sucesso! Aguardando redirecionamento...');
-      setErrors(prev => ({ ...prev, general: 'Login feito! Redirecionando...' }));
+      console.log('[Login] Sucesso! Aguardando redirecionamento automático...');
+      // NÃO colocamos setIsSubmitting(false) aqui.
+      // Deixamos o botão "carregando" até o useEffect redirecionar a página.
+      // Isso evita a sensação de "travamento".
 
     } catch (err: any) {
       console.error('[Login] Erro inesperado:', err);
       setErrors(prev => ({ 
         ...prev, 
-        general: 'Problema ao conectar. Tente novamente em alguns segundos.' 
+        general: 'Problema ao conectar. Tente novamente.' 
       }));
-      } finally {
-    setIsLoading(false);
-
-    // Força redirecionamento se o useEffect não rodar rápido o suficiente
-    setTimeout(() => {
-      const currentUser = user; // captura o valor atual
-      const currentProfile = profile;
-
-      if (currentUser && currentProfile) {
-        if (currentProfile.plan_status === 'active') {
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/plans', { replace: true });
-        }
-      }
-    }, 3000); // 3 segundos de segurança
-  }
-};
+      setIsSubmitting(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -144,10 +140,13 @@ useEffect(() => {
     }
   };
 
+  // Combina o loading local com o loading global para travar a interface
+  const isBusy = isSubmitting || authLoading;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden px-4 py-8">
       
-      {/* Background Blobs */}
+      {/* Background Blobs (Mantidos do seu código original) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-20 left-[10%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-blue/10 dark:bg-brand-blue/20 rounded-full blur-[100px] animate-blob" />
         <div className="absolute bottom-20 right-[10%] w-[250px] h-[250px] md:w-[400px] md:h-[400px] bg-brand-coral/10 dark:bg-brand-coral/20 rounded-full blur-[100px] animate-blob" style={{ animationDelay: '2s' }} />
@@ -205,7 +204,8 @@ useEffect(() => {
               
               {/* Erro Geral */}
               {errors.general && (
-                <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium">
+                <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
                   {errors.general}
                 </div>
               )}
@@ -224,7 +224,7 @@ useEffect(() => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="Digite seu email"
-                    disabled={isLoading}
+                    disabled={isBusy}
                     className={`block w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none focus:bg-white dark:focus:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${
                       errors.email 
                         ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
@@ -251,7 +251,7 @@ useEffect(() => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Digite sua senha"
-                    disabled={isLoading}
+                    disabled={isBusy}
                     className={`block w-full pl-12 pr-12 py-4 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none focus:bg-white dark:focus:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${
                       errors.password 
                         ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
@@ -261,7 +261,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
+                    disabled={isBusy}
                     className="absolute inset-y-0 right-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-brand-blue transition-colors disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -285,13 +285,13 @@ useEffect(() => {
               {/* Botão Submit */}
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isBusy}
                 className="w-full flex justify-center items-center py-4 px-6 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-display font-bold text-sm uppercase tracking-widest shadow-lg shadow-brand-blue/25 hover:shadow-xl hover:shadow-brand-blue/30 transform hover:-translate-y-0.5 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {isLoading ? (
+                {isBusy ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin mr-3" />
-                    Entrando...
+                    ENTRANDO...
                   </>
                 ) : (
                   <>
