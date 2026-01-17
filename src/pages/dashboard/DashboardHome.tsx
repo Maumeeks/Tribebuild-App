@@ -6,34 +6,27 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const DashboardHome: React.FC = () => {
   const { apps } = useApps();
-  // 1. Pegamos o isTrialActive e trialDaysLeft do contexto
   const { profile, isTrialActive, trialDaysLeft } = useAuth(); 
   
-  // 2. Lógica Inteligente do Plano:
-  // Se o trial estiver ativo, consideramos o plano como 'starter' visualmente e funcionalmente,
-  // mesmo que no banco ainda esteja escrito 'free'.
-  const rawPlan = profile?.plan || 'free';
-  const effectivePlan = isTrialActive ? 'starter' : rawPlan;
+  // Define o plano atual (do banco de dados ou 'free' se nulo)
+  const currentPlan = profile?.plan || 'free';
 
-  // 3. Define os limites baseados no plano efetivo
+  // --- CONFIGURAÇÃO OFICIAL DOS LIMITES (Baseado na sua Oferta) ---
   const getPlanLimits = (plan: string) => {
     switch (plan) {
-      case 'starter': return 3;      // Agora Starter libera 3
-      case 'professional': return 10; // Aumentei professional para 10 (exemplo)
-      case 'business': return 20;
-      case 'enterprise': return 50;
-      case 'free': return 1;
+      case 'starter': return 1;       // Starter: 1 App
+      case 'professional': return 3;  // Professional: 3 Apps
+      case 'business': return 5;      // Business: 5 Apps
+      case 'enterprise': return 10;   // Enterprise: 10 Apps
+      case 'free': return 1;          // Free: 1 App (Trial ou básico)
       default: return 1; 
     }
   };
 
-  const maxApps = getPlanLimits(effectivePlan);
-  
-  // Verificação de segurança
+  const maxApps = getPlanLimits(currentPlan);
   const safeApps = apps || [];
   const isLimitReached = safeApps.length >= maxApps;
   
-  // Pega o primeiro app
   const mainApp = safeApps.length > 0 ? safeApps[0] : null;
 
   return (
@@ -46,7 +39,7 @@ const DashboardHome: React.FC = () => {
         <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-lg flex items-center gap-2">
           Você está no plano 
           <span className="text-brand-blue font-bold uppercase">
-            {effectivePlan} 
+            {currentPlan} 
             {isTrialActive && <span className="text-amber-500 ml-1 text-sm">(Período de Testes)</span>}
           </span>
         </p>
@@ -89,7 +82,7 @@ const DashboardHome: React.FC = () => {
               <div className="mt-5 flex flex-wrap items-center gap-4">
                 {/* Badge do Plano */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-800">
-                  {effectivePlan}
+                  {currentPlan}
                 </span>
 
                 {/* Badge do Trial (se ativo) */}
@@ -140,7 +133,7 @@ const DashboardHome: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid de Links Rápidos */}
+      {/* Grid de Links Rápidos (Mantido inalterado) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
         <Link
           to="/dashboard/integrations"
