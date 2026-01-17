@@ -7,15 +7,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Configuração do Cliente Supabase
+// flowType: 'pkce' é CRÍTICO para evitar problemas de login e loops em navegadores modernos
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    flowType: 'pkce',
   },
 });
 
-// Tipos do banco de dados
+// --- DEFINIÇÕES DE TIPOS (TYPES) ---
+
 export type Profile = {
   id: string;
   email: string;
