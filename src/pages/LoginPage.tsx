@@ -32,33 +32,29 @@ const LoginPage: React.FC = () => {
     'Suporte dedicado em português',
   ];
 
-  // CORREÇÃO: Redirecionamento com BLITZ DE PLANO
+  // CORREÇÃO: Lógica Blindada de Redirecionamento
   useEffect(() => {
-    // Se o AuthContext diz que acabou de carregar e temos usuário...
+    // 1. Só agimos quando o AuthContext terminar de carregar e tivermos usuário
     if (!authLoading && user) {
-      console.log('[Login] Usuário detectado, verificando destino...');
+      console.log('[Login] Usuário autenticado. Verificando permissões...');
       
-      const from = location.state?.from?.pathname;
-      
-      if (from) {
-        navigate(from, { replace: true });
-        return;
-      }
-      
-      // Se tiver perfil, direciona com base no plano
       if (profile) {
-        if (profile.plan_status === 'active' || profile.plan_status === 'trial') {
-          console.log('[Login] Plano OK. Dashboard.');
-          navigate('/dashboard', { replace: true });
+        // 2. REGRA MESTRA: Status do Plano define o destino
+        const hasValidPlan = profile.plan_status === 'active' || profile.plan_status === 'trial';
+
+        if (hasValidPlan) {
+          // CENÁRIO A: Plano OK. Respeita o histórico ou vai pro Dashboard.
+          const destination = location.state?.from?.pathname || '/dashboard';
+          console.log(`[Login] Plano ${profile.plan_status} validado. Indo para: ${destination}`);
+          navigate(destination, { replace: true });
         } else {
-           console.log('[Login] Sem plano ativo. Planos.');
+          // CENÁRIO B: Sem plano válido. IGNORA histórico. Vai para Planos.
+          console.warn('[Login] Sem plano ativo. Forçando redirecionamento para /plans.');
           navigate('/plans', { replace: true });
         }
       } else {
-        // CORREÇÃO CRÍTICA AQUI:
-        // Se tem user mas NÃO tem perfil (usuário novo criado agora), 
-        // ele DEVE ir para /plans, e não para /dashboard.
-        console.log('[Login] Perfil não encontrado (Novo Usuário). Planos.');
+        // CENÁRIO C: Usuário novo (sem perfil). Vai para Planos.
+        console.log('[Login] Novo usuário. Redirecionando para /plans.');
         navigate('/plans', { replace: true });
       }
     }
@@ -99,7 +95,6 @@ const LoginPage: React.FC = () => {
     try {
       console.log('[Login] Iniciando login via Contexto...');
       
-      // Usamos a função do contexto. 
       const { error } = await signIn(formData.email.trim(), formData.password);
 
       if (error) {
@@ -115,12 +110,11 @@ const LoginPage: React.FC = () => {
         }
         
         setErrors(prev => ({ ...prev, general: errorMessage }));
-        setIsSubmitting(false); // Só paramos de carregar se DEU ERRO
+        setIsSubmitting(false);
         return;
       }
 
       console.log('[Login] Sucesso! Aguardando redirecionamento automático...');
-      // Deixamos o botão "carregando" até o useEffect redirecionar a página.
 
     } catch (err: any) {
       console.error('[Login] Erro inesperado:', err);
@@ -140,13 +134,12 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Combina o loading local com o loading global para travar a interface
   const isBusy = isSubmitting || authLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden px-4 py-8">
       
-      {/* Background Blobs (Mantidos do seu código original) */}
+      {/* Background Blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-20 left-[10%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-blue/10 dark:bg-brand-blue/20 rounded-full blur-[100px] animate-blob" />
         <div className="absolute bottom-20 right-[10%] w-[250px] h-[250px] md:w-[400px] md:h-[400px] bg-brand-coral/10 dark:bg-brand-coral/20 rounded-full blur-[100px] animate-blob" style={{ animationDelay: '2s' }} />
@@ -156,7 +149,7 @@ const LoginPage: React.FC = () => {
       {/* Container Principal */}
       <div className="relative z-10 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-20 w-full max-w-5xl">
         
-        {/* Benefícios - Desktop */}
+        {/* Benefícios */}
         <div className="hidden lg:block flex-1 max-w-md animate-fade-in">
           <div className="space-y-8">
             <div>
@@ -170,7 +163,6 @@ const LoginPage: React.FC = () => {
                 Crie seu próprio aplicativo de membros em minutos, sem precisar programar.
               </p>
             </div>
-            
             <div className="space-y-4">
               {benefits.map((benefit, index) => (
                 <div key={index} className="flex items-center gap-3 group">
@@ -187,8 +179,6 @@ const LoginPage: React.FC = () => {
         {/* Card de Login */}
         <div className="w-full max-w-md animate-slide-up">
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-black/30 p-8 md:p-10 border border-white/60 dark:border-slate-700/60">
-            
-            {/* Logo */}
             <div className="text-center mb-10">
               <Link to="/" className="inline-block mb-6 group">
                 <div className="group-hover:scale-105 transition-transform">
@@ -199,10 +189,7 @@ const LoginPage: React.FC = () => {
               <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Portal Administrativo</p>
             </div>
 
-            {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Erro Geral */}
               {errors.general && (
                 <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-2">
                   <AlertCircle className="w-4 h-4" />
@@ -210,7 +197,6 @@ const LoginPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Email */}
               <div>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -237,7 +223,6 @@ const LoginPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Senha */}
               <div>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -272,7 +257,6 @@ const LoginPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Esqueci Senha */}
               <div className="text-right">
                 <Link 
                   to="/forgot-password" 
@@ -282,7 +266,6 @@ const LoginPage: React.FC = () => {
                 </Link>
               </div>
 
-              {/* Botão Submit */}
               <button
                 type="submit"
                 disabled={isBusy}
@@ -301,7 +284,6 @@ const LoginPage: React.FC = () => {
                 )}
               </button>
 
-              {/* Info e Links */}
               <div className="mt-8 text-center space-y-4">
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
                   Área restrita apenas para administradores
@@ -328,11 +310,9 @@ const LoginPage: React.FC = () => {
                   </Link>
                 </p>
               </div>
-
             </form>
           </div>
 
-          {/* Voltar para Home */}
           <div className="mt-8 text-center">
             <Link 
               to="/" 

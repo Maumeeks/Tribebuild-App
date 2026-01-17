@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './AuthContext'; // <--- Importação para verificar o plano
 
 export interface App {
   id: string;
@@ -23,10 +23,22 @@ interface AppsContextType {
   getApp: (id: string) => App | undefined;
 }
 
+// Regras de Negócio (Limites por Plano)
+const PLAN_LIMITS = {
+  free: 1,
+  starter: 1,
+  professional: 3,
+  business: 5,
+  enterprise: 10
+};
+
 const AppsContext = createContext<AppsContextType | undefined>(undefined);
 
 export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [apps, setApps] = useState<App[]>([]);
+  
+  // Pegamos o perfil do usuário para saber qual é o plano atual
+  const { profile } = useAuth(); 
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -48,6 +60,19 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
   const addApp = (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => {
+    // --- LÓGICA DE LIMITE (BLINDAGEM) ---
+    // Se não tiver perfil carregado, assume 'free' por segurança
+    const userPlan = profile?.plan || 'free'; 
+    const limit = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || 1;
+
+    // Verifica se já atingiu o limite
+    if (apps.length >= limit) {
+      const message = `Limite atingido! O plano ${userPlan.toUpperCase()} permite apenas ${limit} aplicativo(s).`;
+      alert(message); // Alerta visual simples para o usuário
+      throw new Error(message); // Interrompe a execução
+    }
+    // ------------------------------------
+
     const id = generateId();
     const newApp: App = {
       ...appData,
