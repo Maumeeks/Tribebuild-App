@@ -5,25 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TribeBuild - Crie sua Tribo</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
-              display: ['Outfit', 'system-ui', 'sans-serif'],
-            },
-            colors: {
-              primary: { DEFAULT: '#245EE3', 50: '#EEF6FF', 500: '#245EE3', 600: '#1a4bc0' },
-              brand: { blue: '#2563EB', 'blue-dark': '#1D4ED8', coral: '#FF6B6B', 'coral-dark': '#ff5252' },
-            },
-          }
-        }
-      }
-    </script>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -41,7 +22,7 @@
       }
     </style>
   </head>
-  <body class="bg-white dark:bg-background-dark">
+  <body class="bg-white dark:bg-background-dark text-slate-900 dark:text-white antialiased">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
