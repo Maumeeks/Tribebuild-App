@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import TribeBuildLogo from '../components/TribeBuildLogo';
-// Removida a importação direta do supabase para usar a do contexto e evitar conflitos
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // CORREÇÃO 1: Pegamos o signIn e loading do contexto para manter tudo sincronizado
+  // Pegamos o signIn e loading do contexto para manter tudo sincronizado
   const { user, profile, signIn, loading: authLoading } = useAuth();
   
   const [showPassword, setShowPassword] = useState(false);
@@ -33,11 +32,11 @@ const LoginPage: React.FC = () => {
     'Suporte dedicado em português',
   ];
 
-  // CORREÇÃO 2: Redirecionamento mais robusto
+  // CORREÇÃO: Redirecionamento com BLITZ DE PLANO
   useEffect(() => {
     // Se o AuthContext diz que acabou de carregar e temos usuário...
     if (!authLoading && user) {
-      console.log('[Login] Usuário detectado, redirecionando...');
+      console.log('[Login] Usuário detectado, verificando destino...');
       
       const from = location.state?.from?.pathname;
       
@@ -49,14 +48,18 @@ const LoginPage: React.FC = () => {
       // Se tiver perfil, direciona com base no plano
       if (profile) {
         if (profile.plan_status === 'active' || profile.plan_status === 'trial') {
+          console.log('[Login] Plano OK. Dashboard.');
           navigate('/dashboard', { replace: true });
         } else {
+           console.log('[Login] Sem plano ativo. Planos.');
           navigate('/plans', { replace: true });
         }
       } else {
-        // Se tem user mas não tem perfil ainda, manda pro dashboard e deixa ele tratar
-        // Isso evita o travamento eterno
-        navigate('/dashboard', { replace: true });
+        // CORREÇÃO CRÍTICA AQUI:
+        // Se tem user mas NÃO tem perfil (usuário novo criado agora), 
+        // ele DEVE ir para /plans, e não para /dashboard.
+        console.log('[Login] Perfil não encontrado (Novo Usuário). Planos.');
+        navigate('/plans', { replace: true });
       }
     }
   }, [user, profile, authLoading, navigate, location]);
@@ -96,8 +99,7 @@ const LoginPage: React.FC = () => {
     try {
       console.log('[Login] Iniciando login via Contexto...');
       
-      // CORREÇÃO 3: Usamos a função do contexto. 
-      // Ela já trata o estado global de autenticação.
+      // Usamos a função do contexto. 
       const { error } = await signIn(formData.email.trim(), formData.password);
 
       if (error) {
@@ -118,9 +120,7 @@ const LoginPage: React.FC = () => {
       }
 
       console.log('[Login] Sucesso! Aguardando redirecionamento automático...');
-      // NÃO colocamos setIsSubmitting(false) aqui.
       // Deixamos o botão "carregando" até o useEffect redirecionar a página.
-      // Isso evita a sensação de "travamento".
 
     } catch (err: any) {
       console.error('[Login] Erro inesperado:', err);
