@@ -7,7 +7,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Configuração do Cliente (incluindo o PKCE para corrigir o loop)
+// Configuração do Cliente
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -17,7 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// --- É AQUI QUE O ERRO ACONTECE: ESSES TIPOS PRECISAM EXISTIR ---
+// --- TIPOS (ESSENCIAIS PARA O AUTHCONTEXT) ---
 
 export type Profile = {
   id: string;
@@ -49,7 +49,77 @@ export type App = {
   updated_at: string;
 };
 
-// Adicionei os outros tipos essenciais para evitar erros futuros
+export type Product = {
+  id: string;
+  app_id: string;
+  name: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  price: number;
+  is_active: boolean;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Module = {
+  id: string;
+  product_id: string;
+  name: string;
+  description: string | null;
+  order_index: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Lesson = {
+  id: string;
+  module_id: string;
+  name: string;
+  description: string | null;
+  video_url: string | null;
+  video_duration: number;
+  content: string | null;
+  attachments: any[];
+  order_index: number;
+  is_active: boolean;
+  is_free: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Client = {
+  id: string;
+  app_id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  status: 'active' | 'inactive' | 'blocked';
+  source: string;
+  external_id: string | null;
+  metadata: Record<string, any>;
+  last_access_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Integration = {
+  id: string;
+  user_id: string;
+  app_id: string;
+  platform: string;
+  webhook_url: string;
+  webhook_secret: string | null;
+  is_active: boolean;
+  product_mapping: Record<string, any>;
+  last_webhook_at: string | null;
+  webhook_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Subscription = {
   id: string;
   user_id: string;
@@ -57,6 +127,10 @@ export type Subscription = {
   stripe_price_id: string | null;
   plan: 'starter' | 'professional' | 'business' | 'enterprise';
   status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing';
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
   created_at: string;
   updated_at: string;
 };
