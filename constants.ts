@@ -18,29 +18,35 @@ export const PLANS = [
     name: 'Starter',
     price: 67,
     period: 'mês',
+    description: 'Quem está dando os primeiros passos.',
     features: [
-      '1 App PWA White-label',
-      'Até 500 usuários ativos',
-      'Produtos ilimitados',
+      '1 Aplicativo',
+      '500 membros ativos',
+      'Produtos e cursos ilimitados',
+      'Comunidade + Feed',
+      'Notificações Push ilimitadas',
+      'Integração (Hotmart/Kiwify)',
       'Domínio Personalizado',
-      'Push Notifications',
-      'Comunidade + Feed'
+      'Acesso a Tutoriais'
     ],
     recommended: false,
-    cta: 'Começar com Starter'
+    cta: 'Começar Agora' // Ajustei para não confundir com Gratis, já que é pago
   },
   {
     id: 'professional',
     name: 'Professional',
     price: 127,
     period: 'mês',
+    description: 'Criadores em crescimento constante.',
     features: [
-      '3 Apps PWA White-label',
-      'Até 1.500 usuários ativos',
-      'Produtos ilimitados',
+      '3 Aplicativos',
+      '1.500 membros ativos',
+      'Produtos e cursos ilimitados',
+      'Comunidade + Feed',
+      'Notificações Push ilimitadas',
+      'Integração (Hotmart/Kiwify)',
       'Domínio Personalizado',
-      'Suporte via E-mail (48h)',
-      'Integração Hotmart/Kiwify'
+      'Suporte via E-mail (48h)'
     ],
     recommended: true,
     cta: 'Escolher Professional'
@@ -48,34 +54,41 @@ export const PLANS = [
   {
     id: 'business',
     name: 'Business',
-    price: 247,
+    price: 197, // Atualizado para 197
     period: 'mês',
+    description: 'Operações escalando sem limites.',
     features: [
-      '5 Apps PWA White-label',
-      'Até 2.800 usuários ativos',
-      'Produtos ilimitados',
+      '5 Aplicativos',
+      '2.800 membros ativos',
+      'Produtos e cursos ilimitados',
+      'Comunidade + Feed',
+      'Notificações Push ilimitadas',
+      'Integração (Hotmart/Kiwify)',
       'Domínio Personalizado',
-      'Suporte via E-mail (24h)',
-      'Múltiplos Administradores'
+      'Suporte via E-mail (48h)'
     ],
     recommended: false,
-    cta: 'Ir para o Business'
+    cta: 'Selecionar Business'
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
     price: 397,
     period: 'mês',
+    description: 'Máxima potência e exclusividade.',
     features: [
-      '10 Apps PWA White-label',
-      'Até 6.000 usuários ativos',
-      'Produtos ilimitados',
-      'White Label Total (Sem marca)',
-      'Suporte Prioritário VIP',
-      'Consultoria de Implementação'
+      '10 Aplicativos',
+      '6.000 membros ativos',
+      'Produtos e cursos ilimitados',
+      'Comunidade + Feed',
+      'Notificações Push ilimitadas',
+      'Integração (Hotmart/Kiwify)',
+      'Domínio Personalizado',
+      'Suporte Prioritário',
+      'White Label (Sem marca TribeBuild)'
     ],
     recommended: false,
-    cta: 'Assinar Enterprise'
+    cta: 'Selecionar Enterprise'
   }
 ];
 
@@ -147,8 +160,8 @@ export const FAQ_ITEMS = [
     answer: 'É simples: você conecta via Webhook. Assim que uma venda é aprovada, o TribeBuild cria o acesso do aluno automaticamente.'
   },
   {
-    question: 'Meu app vai estar na Apple Store e Google Play?',
-    answer: 'O TribeBuild foca na tecnologia PWA, que permite a instalação via navegador. Isso evita taxas de 30% das lojas e aprovações lentas.'
+    question: 'O recurso White Label remove toda a marca?',
+    answer: 'Sim, no plano Enterprise a marca "Powered by TribeBuild" é removida do rodapé e dos e-mails.'
   },
   {
     question: 'Posso usar meu próprio domínio?',
@@ -164,7 +177,6 @@ export const FAQ_ITEMS = [
   }
 ];
 
-// Mock data for the dashboard to fix import errors
 export const MOCK_APPS: PWAApp[] = [
   {
     id: '1',
