@@ -1,9 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase, Profile } from '../lib/supabase';
 
 interface AuthContextType {
-  refreshProfile: () => Promise<void>;
   user: User | null;
   profile: Profile | null;
   session: Session | null;
@@ -13,6 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
+  refreshProfile: () => Promise<void>;
   isTrialActive: boolean;
   trialDaysLeft: number;
 }
@@ -27,19 +27,15 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Função auxiliar para buscar o perfil no banco
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
+      console.log('[Auth] Buscando profile para:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -47,190 +43,149 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-        console.warn('[Auth] Perfil não encontrado ou erro:', error.message);
+        console.warn('[Auth] Erro ao buscar profile:', error.message);
         return null;
       }
+      console.log('[Auth] Profile encontrado:', data?.plan_status);
       return data as Profile;
     } catch (err) {
-      console.error('[Auth] Erro crítico ao buscar perfil:', err);
+      console.error('[Auth] Erro critico:', err);
       return null;
     }
-  };
+  }, []);
 
-  // 2. Inicialização e Listener de Mudanças
   useEffect(() => {
     let mounted = true;
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
-    const initAuth = async () => {
+    const initialize = async () => {
       try {
-        console.log('[Auth] Iniciando verificação de sessão...');
+        console.log('[Auth] Inicializando...');
         
-        // Pega sessão atual
+        // Primeiro: configura o listener ANTES de pegar a sessão
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log('[Auth] Evento:', event);
+            
+            if (!mounted) return;
+
+            if (event === 'SIGNED_OUT') {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setLoading(false);
+              return;
+            }
+
+            if (newSession?.user) {
+              setSession(newSession);
+              setUser(newSession.user);
+              
+              // Busca profile em background
+              const userProfile = await fetchProfile(newSession.user.id);
+              if (mounted) {
+                setProfile(userProfile);
+                setLoading(false);
+              }
+            } else {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setLoading(false);
+            }
+          }
+        );
+        
+        authSubscription = subscription;
+
+        // Segundo: pega sessão atual (pode já existir)
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        if (mounted) {
+        if (mounted && currentSession?.user) {
+          console.log('[Auth] Sessao existente encontrada');
           setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-
-          if (currentSession?.user) {
-            console.log('[Auth] Sessão encontrada. Buscando perfil...');
-            const userProfile = await fetchProfile(currentSession.user.id);
-            if (mounted) setProfile(userProfile);
-          } else {
-            console.log('[Auth] Nenhuma sessão ativa.');
+          setUser(currentSession.user);
+          
+          const userProfile = await fetchProfile(currentSession.user.id);
+          if (mounted) {
+            setProfile(userProfile);
           }
         }
+        
+        // Sempre finaliza loading
+        if (mounted) {
+          setLoading(false);
+        }
+
       } catch (err) {
-        console.error('[Auth] Falha na inicialização:', err);
-      } finally {
-        if (mounted) setLoading(false); // <--- DESTRAMELA O LOADING SEMPRE
+        console.error('[Auth] Falha na inicializacao:', err);
+        if (mounted) setLoading(false);
       }
     };
 
-    initAuth();
-
-    // Listener para mudanças em tempo real (Login, Logout, Auto-refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (!mounted) return;
-        
-        console.log(`[Auth] Evento: ${event}`);
-
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            if (newSession?.user) {
-                const userProfile = await fetchProfile(newSession.user.id);
-                if (mounted) setProfile(userProfile);
-            }
-        } 
-        
-        if (event === 'SIGNED_OUT') {
-            if (mounted) {
-                setProfile(null);
-                setUser(null);
-            }
-        }
-
-        if (mounted) setLoading(false);
-      }
-    );
+    initialize();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      authSubscription?.unsubscribe();
     };
-  }, []);
-
-  // --- AÇÕES DE AUTENTICAÇÃO ---
+  }, [fetchProfile]);
 
   const signUp = async (email: string, password: string, fullName: string, cpf?: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            cpf: cpf || null,
-          },
-        },
-      });
-
-      if (error) return { error };
-      return { error: null };
-    } catch (err) {
-      return { error: err as AuthError };
-    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName, cpf: cpf || null } },
+    });
+    return { error };
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { error };
-    } catch (err) {
-      return { error: err as AuthError };
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    // O onAuthStateChange cuidará de limpar o estado
   };
 
   const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      return { error };
-    } catch (err) {
-      return { error: err as AuthError };
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return { error: new Error('No user logged in') };
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (error) return { error };
-
-      if (profile) {
-        setProfile({ ...profile, ...updates });
-      }
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
-    }
+    if (!user) return { error: new Error('No user') };
+    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+    if (!error && profile) setProfile({ ...profile, ...updates });
+    return { error };
   };
 
-  // Função manual para recarregar dados (Usada no Pós-Pagamento)
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) return;
-    console.log('[Auth] Recarregando perfil manualmente...');
-    // Não ativamos setLoading(true) aqui para não piscar a tela inteira,
-    // apenas atualizamos os dados silenciosamente ou deixamos quem chamou controlar o loading.
+    console.log('[Auth] Refresh manual do profile...');
     const userProfile = await fetchProfile(user.id);
     setProfile(userProfile);
-  };
+  }, [user, fetchProfile]);
 
-  // Cálculos de Trial
   const isTrialActive = Boolean(
-    profile?.plan_status === 'trial' && 
-    profile?.trial_ends_at && 
+    profile?.plan_status === 'trial' &&
+    profile?.trial_ends_at &&
     new Date(profile.trial_ends_at) > new Date()
   );
 
-  const trialDaysLeft = profile?.trial_ends_at 
-    ? Math.max(0, Math.ceil((new Date(profile.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+  const trialDaysLeft = profile?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(profile.trial_ends_at).getTime() - Date.now()) / 86400000))
     : 0;
 
-  const value: AuthContextType = {
-    user,
-    profile,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    resetPassword,
-    updateProfile,
-    refreshProfile,
-    isTrialActive,
-    trialDaysLeft,
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user, profile, session, loading,
+      signUp, signIn, signOut, resetPassword, updateProfile, refreshProfile,
+      isTrialActive, trialDaysLeft,
+    }}>
       {children}
     </AuthContext.Provider>
   );

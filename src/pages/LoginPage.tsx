@@ -7,22 +7,12 @@ import { useAuth } from '../contexts/AuthContext';
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Pegamos o signIn e loading do contexto para manter tudo sincronizado
-  const { user, profile, signIn, loading: authLoading } = useAuth();
-  
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [errors, setErrors] = useState({
-    email: '',
-    password: '',
-    general: ''
-  });
 
-  // Estado local apenas para interação do formulário (validação)
+  const { user, profile, signIn, loading } = useAuth();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({ email: '', password: '', general: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const benefits = [
@@ -32,124 +22,82 @@ const LoginPage: React.FC = () => {
     'Suporte dedicado em português',
   ];
 
-  // CORREÇÃO: Lógica Blindada de Redirecionamento
+  // REDIRECIONAMENTO BLINDADO
   useEffect(() => {
-    // 1. Só agimos quando o AuthContext terminar de carregar e tivermos usuário
-    if (!authLoading && user) {
-      console.log('[Login] Usuário autenticado. Verificando permissões...');
-      
-      if (profile) {
-        // 2. REGRA MESTRA: Status do Plano define o destino
-        const hasValidPlan = profile.plan_status === 'active' || profile.plan_status === 'trial';
+    if (loading) return;
+    if (user && profile) {
+      const hasValidPlan =
+        profile.plan_status === 'active' ||
+        (profile.plan_status === 'trial' &&
+          profile.trial_ends_at &&
+          new Date(profile.trial_ends_at) > new Date());
 
-        if (hasValidPlan) {
-          // CENÁRIO A: Plano OK. Respeita o histórico ou vai pro Dashboard.
-          const destination = location.state?.from?.pathname || '/dashboard';
-          console.log(`[Login] Plano ${profile.plan_status} validado. Indo para: ${destination}`);
-          navigate(destination, { replace: true });
-        } else {
-          // CENÁRIO B: Sem plano válido. IGNORA histórico. Vai para Planos.
-          console.warn('[Login] Sem plano ativo. Forçando redirecionamento para /plans.');
-          navigate('/plans', { replace: true });
-        }
-      } else {
-        // CENÁRIO C: Usuário novo (sem perfil). Vai para Planos.
-        console.log('[Login] Novo usuário. Redirecionando para /plans.');
-        navigate('/plans', { replace: true });
-      }
+      window.location.href = hasValidPlan ? '/dashboard' : '/plans';
     }
-  }, [user, profile, authLoading, navigate, location]);
+  }, [user, profile, loading]);
 
   const validateForm = () => {
-    let isValid = true;
     const newErrors = { email: '', password: '', general: '' };
+    let valid = true;
 
     if (!formData.email) {
       newErrors.email = 'Email é obrigatório';
-      isValid = false;
+      valid = false;
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email inválido';
-      isValid = false;
+      valid = false;
     }
 
     if (!formData.password) {
       newErrors.password = 'Senha é obrigatória';
-      isValid = false;
+      valid = false;
     } else if (formData.password.length < 6) {
       newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
-      isValid = false;
+      valid = false;
     }
 
     setErrors(newErrors);
-    return isValid;
+    return valid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    setErrors(prev => ({ ...prev, general: '' }));
+    setErrors((p) => ({ ...p, general: '' }));
 
     try {
-      console.log('[Login] Iniciando login via Contexto...');
-      
       const { error } = await signIn(formData.email.trim(), formData.password);
-
       if (error) {
-        console.error('[Login] Erro:', error);
-        let errorMessage = 'Email ou senha incorretos.';
-        
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Email ou senha incorretos.';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Confirme seu email antes de fazer login.';
-        } else {
-          errorMessage = error.message;
-        }
-        
-        setErrors(prev => ({ ...prev, general: errorMessage }));
+        setErrors((p) => ({ ...p, general: error.message }));
         setIsSubmitting(false);
         return;
       }
-
-      console.log('[Login] Sucesso! Aguardando redirecionamento automático...');
-
     } catch (err: any) {
-      console.error('[Login] Erro inesperado:', err);
-      setErrors(prev => ({ 
-        ...prev, 
-        general: 'Problema ao conectar. Tente novamente.' 
-      }));
+      setErrors((p) => ({ ...p, general: 'Problema ao conectar. Tente novamente.' }));
       setIsSubmitting(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((p) => ({ ...p, [name]: value }));
     if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((p) => ({ ...p, [name]: '' }));
     }
   };
 
-  const isBusy = isSubmitting || authLoading;
+  const isBusy = isSubmitting || loading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden px-4 py-8">
-      
-      {/* Background Blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-20 left-[10%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-blue/10 dark:bg-brand-blue/20 rounded-full blur-[100px] animate-blob" />
         <div className="absolute bottom-20 right-[10%] w-[250px] h-[250px] md:w-[400px] md:h-[400px] bg-brand-coral/10 dark:bg-brand-coral/20 rounded-full blur-[100px] animate-blob" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-[120px] animate-blob" style={{ animationDelay: '4s' }} />
       </div>
 
-      {/* Container Principal */}
       <div className="relative z-10 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-20 w-full max-w-5xl">
-        
-        {/* Benefícios */}
         <div className="hidden lg:block flex-1 max-w-md animate-fade-in">
           <div className="space-y-8">
             <div>
@@ -176,7 +124,6 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card de Login */}
         <div className="w-full max-w-md animate-slide-up">
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-black/30 p-8 md:p-10 border border-white/60 dark:border-slate-700/60">
             <div className="text-center mb-10">
@@ -212,8 +159,8 @@ const LoginPage: React.FC = () => {
                     placeholder="Digite seu email"
                     disabled={isBusy}
                     className={`block w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none focus:bg-white dark:focus:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      errors.email 
-                        ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                      errors.email
+                        ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                         : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
                     }`}
                   />
@@ -238,8 +185,8 @@ const LoginPage: React.FC = () => {
                     placeholder="Digite sua senha"
                     disabled={isBusy}
                     className={`block w-full pl-12 pr-12 py-4 bg-slate-50 dark:bg-slate-900 border-2 rounded-2xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition-all focus:outline-none focus:bg-white dark:focus:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      errors.password 
-                        ? 'border-red-300 dark:border-red-500/50 focus:border-red-500' 
+                      errors.password
+                        ? 'border-red-300 dark:border-red-500/50 focus:border-red-500'
                         : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10'
                     }`}
                   />
@@ -258,10 +205,7 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="text-right">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-brand-blue hover:text-brand-coral font-bold transition-colors"
-                >
+                <Link to="/forgot-password" className="text-sm text-brand-blue hover:text-brand-coral font-bold transition-colors">
                   Esqueceu a senha?
                 </Link>
               </div>
@@ -288,13 +232,10 @@ const LoginPage: React.FC = () => {
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
                   Área restrita apenas para administradores
                 </p>
-                
+
                 <div className="flex items-center justify-center gap-2 text-sm">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">Não tem uma conta?</span>
-                  <Link 
-                    to="/register" 
-                    className="text-brand-blue hover:text-brand-coral font-bold transition-colors"
-                  >
+                  <Link to="/register" className="text-brand-blue hover:text-brand-coral font-bold transition-colors">
                     Registre-se aqui
                   </Link>
                 </div>
@@ -314,8 +255,8 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="mt-8 text-center">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="inline-flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-medium transition-colors"
             >
               <ArrowRight className="w-4 h-4 rotate-180" />
@@ -323,7 +264,6 @@ const LoginPage: React.FC = () => {
             </Link>
           </div>
         </div>
-
       </div>
     </div>
   );
