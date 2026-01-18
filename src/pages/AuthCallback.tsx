@@ -1,119 +1,118 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-
-interface Profile {
-  subscription_status: 'free' | 'trial' | 'active' | 'cancelled';
-  subscription_plan: string | null;
-}
+import { supabase, Profile } from '../lib/supabase';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // 1. Processar o callback do OAuth
+        console.log('[AuthCallback] Processando callback...');
+
+        // 1. Obter sessão atual
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          console.error('Session error:', sessionError);
+          console.error('[AuthCallback] Erro de sessão:', sessionError);
           setError('Erro ao processar autenticação');
-          // Limpar storage e redirecionar para login
-          localStorage.clear();
-          sessionStorage.clear();
-          navigate('/login', { replace: true });
+          setTimeout(() => navigate('/login', { replace: true }), 2000);
           return;
         }
 
         if (!session) {
-          console.log('No session found after OAuth callback');
-          // Limpar storage e redirecionar para login
-          localStorage.clear();
-          sessionStorage.clear();
+          console.log('[AuthCallback] Sem sessão, redirecionando para login');
           navigate('/login', { replace: true });
           return;
         }
 
-        // 2. Buscar o perfil do usuário
+        console.log('[AuthCallback] Sessão encontrada, buscando profile...');
+
+        // 2. Buscar profile do usuário
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('subscription_status, subscription_plan')
+          .select('*')
           .eq('id', session.user.id)
           .single();
 
         if (profileError) {
-          console.error('Profile error:', profileError);
-          
-          // Se o perfil não existe, criar um perfil free e redirecionar para /plans
+          console.error('[AuthCallback] Erro ao buscar profile:', profileError);
+
+          // Se profile não existe, criar um novo como 'free'
           if (profileError.code === 'PGRST116') {
-            console.log('Profile not found, creating free profile');
-            
+            console.log('[AuthCallback] Criando profile para novo usuário...');
+
             const { error: insertError } = await supabase
               .from('profiles')
               .insert({
                 id: session.user.id,
                 email: session.user.email,
-                subscription_status: 'free',
-                subscription_plan: null
+                full_name: session.user.user_metadata?.full_name || null,
+                plan: 'free',
+                plan_status: 'free',
+                trial_ends_at: null
               });
 
             if (insertError) {
-              console.error('Error creating profile:', insertError);
+              console.error('[AuthCallback] Erro ao criar profile:', insertError);
               setError('Erro ao criar perfil');
-              navigate('/login', { replace: true });
+              setTimeout(() => navigate('/login', { replace: true }), 2000);
               return;
             }
 
-            // Perfil criado como free - redirecionar para plans
+            // Profile criado como free -> vai para plans
+            console.log('[AuthCallback] Profile criado, redirecionando para /plans');
             navigate('/plans', { replace: true });
             return;
           }
 
-          // Outro erro de perfil
+          // Outro erro
           setError('Erro ao carregar perfil');
-          navigate('/login', { replace: true });
+          setTimeout(() => navigate('/login', { replace: true }), 2000);
           return;
         }
 
-        // 3. Redirecionar baseado no status do plano
-        const redirectPath = determineRedirectPath(profile);
-        console.log(`Redirecting to: ${redirectPath}`, { profile });
-        
+        // 3. Determinar redirecionamento baseado no plan_status (CAMPO CORRETO!)
+        const redirectPath = determineRedirectPath(profile as Profile);
+        console.log('[AuthCallback] Redirecionando para:', redirectPath, '| plan_status:', profile?.plan_status);
+
         navigate(redirectPath, { replace: true });
 
       } catch (err) {
-        console.error('Unexpected error in auth callback:', err);
+        console.error('[AuthCallback] Erro inesperado:', err);
         setError('Erro inesperado');
-        localStorage.clear();
-        sessionStorage.clear();
-        navigate('/login', { replace: true });
-      } finally {
-        setLoading(false);
+        setTimeout(() => navigate('/login', { replace: true }), 2000);
       }
     };
 
-    // Executar imediatamente - SEM setTimeout
     handleAuthCallback();
   }, [navigate]);
 
-  // Função pura para determinar o redirecionamento
+  // Função para determinar redirecionamento baseado no profile
   const determineRedirectPath = (profile: Profile | null): string => {
     if (!profile) {
       return '/plans';
     }
 
-    const { subscription_status } = profile;
+    const { plan_status, trial_ends_at } = profile;
 
-    // Usuários com plano ativo ou trial -> dashboard
-    if (subscription_status === 'active' || subscription_status === 'trial') {
+    // Usuário com plano ativo -> dashboard
+    if (plan_status === 'active') {
       return '/dashboard';
     }
 
-    // Usuários free ou cancelled -> plans
-    if (subscription_status === 'free' || subscription_status === 'cancelled') {
+    // Usuário em trial -> verificar se ainda é válido
+    if (plan_status === 'trial') {
+      if (trial_ends_at && new Date(trial_ends_at) > new Date()) {
+        return '/dashboard';
+      }
+      // Trial expirado -> plans
+      return '/plans';
+    }
+
+    // Usuários free, canceled, expired -> plans
+    if (plan_status === 'free' || plan_status === 'canceled' || plan_status === 'expired') {
       return '/plans';
     }
 
@@ -123,18 +122,15 @@ const AuthCallback = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl max-w-md w-full mx-4">
           <div className="text-center">
-            <div className="text-red-600 text-5xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Erro de Autenticação</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => navigate('/login', { replace: true })}
-              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
-            >
-              Voltar ao Login
-            </button>
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              Erro de Autenticação
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
+            <p className="text-sm text-slate-500">Redirecionando...</p>
           </div>
         </div>
       </div>
@@ -142,14 +138,14 @@ const AuthCallback = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl">
         <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-brand-blue mb-4"></div>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
             Processando autenticação...
           </h2>
-          <p className="text-gray-600">
+          <p className="text-slate-600 dark:text-slate-400">
             Você será redirecionado em instantes
           </p>
         </div>
