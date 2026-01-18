@@ -8,11 +8,19 @@ interface ProtectedRouteProps {
   requirePayment?: boolean;
 }
 
+/**
+ * ProtectedRoute.tsx - VERSÃO BLINDADA v2
+ * 
+ * CORREÇÕES:
+ * 1. Tratamento explícito do status 'free'
+ * 2. Verificação de trial expirado
+ * 3. Mensagens de redirecionamento mais claras
+ */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requirePayment = true }) => {
-  const { user, profile, loading, isTrialActive } = useAuth();
+  const { user, profile, loading, isTrialActive, trialDaysLeft } = useAuth();
   const location = useLocation();
 
-  // Enquanto está carregando user ou profile, mostra spinner
+  // 1. Loading: Mostra spinner enquanto AuthContext inicializa
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -24,13 +32,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requirePaymen
     );
   }
 
-  // Se não tem usuário logado
+  // 2. Sem usuário: Redireciona para login
   if (!user) {
+    console.log('[ProtectedRoute] Sem usuário -> Login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Se ainda não carregou o profile, espera (evita erro)
+  // 3. Sem profile: Aguarda ou redireciona
+  // (profile pode demorar a carregar em alguns casos)
   if (!profile) {
+    // Mostra loading temporário em vez de redirecionar imediatamente
+    // para evitar flicker em conexões lentas
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="text-center">
@@ -41,20 +53,43 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requirePaymen
     );
   }
 
-  // Verifica se precisa de plano pago
+  // 4. Verifica plano (se necessário)
   if (requirePayment) {
-    const hasActivePlan = profile.plan_status === 'active';
-    const hasActiveTrial = profile.plan_status === 'trial' && isTrialActive;
+    const { plan_status, trial_ends_at } = profile;
+    
+    // Status válidos para acesso
+    const hasActivePlan = plan_status === 'active';
+    
+    // Trial válido: status 'trial' E data não expirada
+    const hasValidTrial = 
+      plan_status === 'trial' && 
+      trial_ends_at && 
+      new Date(trial_ends_at) > new Date();
 
-    if (!hasActivePlan && !hasActiveTrial) {
+    // Se não tem plano ativo nem trial válido
+    if (!hasActivePlan && !hasValidTrial) {
+      // Determina a mensagem apropriada
+      let message = 'Escolha um plano para acessar o dashboard.';
+      
+      if (plan_status === 'free') {
+        message = 'Você está no plano gratuito. Escolha um plano para acessar todos os recursos.';
+      } else if (plan_status === 'trial' && !hasValidTrial) {
+        message = 'Seu período de teste expirou. Escolha um plano para continuar.';
+      } else if (plan_status === 'canceled') {
+        message = 'Sua assinatura foi cancelada. Escolha um plano para reativar.';
+      } else if (plan_status === 'expired') {
+        message = 'Sua assinatura expirou. Renove para continuar.';
+      }
+
+      console.log(`[ProtectedRoute] Status "${plan_status}" -> Planos`);
+      
       return (
         <Navigate 
           to="/plans" 
           state={{ 
-            expired: true,
-            message: hasActiveTrial === false && profile.plan_status === 'trial' 
-              ? 'Seu período de teste acabou. Escolha um plano para continuar.' 
-              : 'Escolha um plano para acessar o dashboard completo.'
+            expired: plan_status !== 'free',
+            message,
+            returnTo: location.pathname
           }} 
           replace 
         />
@@ -62,7 +97,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requirePaymen
     }
   }
 
-  // Tudo liberado
+  // 5. Tudo OK - renderiza children
   return <>{children}</>;
 };
 
