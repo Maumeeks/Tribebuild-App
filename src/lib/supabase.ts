@@ -27,11 +27,10 @@ export type Profile = {
   phone: string | null;
   avatar_url: string | null;
   plan: 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
-  // CORREÇÃO: Adicionado 'free' como status válido
-  plan_status: 'free' | 'trial' | 'active' | 'canceled' | 'expired';
+  plan_status: 'free' | 'trial' | 'active' | 'canceled' | 'expired';  // DEVE TER 'free' E 'trial'
   trial_ends_at: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id?: string | null;
+  stripe_subscription_id?: string | null;  // DEVE TER ESSE CAMPO
   created_at: string;
   updated_at: string;
 };

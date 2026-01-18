@@ -12,7 +12,7 @@ const PlansPage: React.FC = () => {
   const location = useLocation();
   const state = location.state as { expired?: boolean; message?: string };
 
-  // Helper para cores do Tailwind (Isso corrige o bug de cores sumindo)
+  // Helper para cores do Tailwind
   const getPlanColors = (color: string) => {
     switch (color) {
       case 'brand-blue': return { bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200' };
@@ -23,198 +23,126 @@ const PlansPage: React.FC = () => {
     }
   };
 
+  const plansData = [
+    {
+      name: 'Starter',
+      monthlyPrice: 67,
+      yearlyPrice: 672,
+      monthlyPriceId: 'price_1SlI8pI5Cu8MrWaGjBdlVYnu',
+      yearlyPriceId: 'price_1SlI8pI5Cu8MrWaGYJih1P0D',
+      description: 'Quem está dando os primeiros passos.',
+      icon: Zap,
+      color: 'brand-blue',
+      features: [
+        '1 Aplicativo',
+        '500 membros ativos',
+        'Produtos e cursos ilimitados',
+        'Comunidade + Feed',
+        'Notificações Push ilimitados',
+        'Integração (Hotmart/Kiwify)',
+        'Domínio Personalizado',
+        'Acesso a Tutoriais (Sem suporte humano)',
+      ],
+      popular: false,
+    },
+    {
+      name: 'Professional',
+      monthlyPrice: 127,
+      yearlyPrice: 1272,
+      monthlyPriceId: 'price_1SlI8pI5Cu8MrWaGNgMPqkQN',
+      yearlyPriceId: 'price_1SlI8pI5Cu8MrWaGAX4FfQHX',
+      description: 'Criadores em crescimento constante.',
+      icon: Crown,
+      color: 'brand-coral',
+      features: [
+        '3 Aplicativos',
+        '1.500 membros ativos',
+        'Produtos e cursos ilimitados',
+        'Comunidade + Feed',
+        'Notificações Push ilimitados',
+        'Integração (Hotmart/Kiwify)',
+        'Domínio Personalizado',
+        'Suporte via E-mail (48h)',
+      ],
+      popular: true,
+    },
+    {
+      name: 'Business',
+      monthlyPrice: 247,
+      yearlyPrice: 2472,
+      monthlyPriceId: 'price_1SlI8pI5Cu8MrWaGYq5KS1Lz',
+      yearlyPriceId: 'price_1SlI9lI5Cu8MrWaG2NXdqrAM',
+      description: 'Operações escalando sem limites.',
+      icon: Building2,
+      color: 'purple-500',
+      features: [
+        '5 Aplicativos',
+        '2.800 membros ativos',
+        'Produtos e cursos ilimitados',
+        'Comunidade + Feed',
+        'Notificações Push ilimitados',
+        'Integração (Hotmart/Kiwify)',
+        'Domínio Personalizado',
+        'Suporte via E-mail (48h)',
+      ],
+      popular: false,
+    },
+    {
+      name: 'Enterprise',
+      monthlyPrice: 397,
+      yearlyPrice: 3970,
+      monthlyPriceId: 'price_1SpuPcI5Cu8MrWaGP8LUZf0q',
+      yearlyPriceId: 'price_1SpuPcI5Cu8MrWaGukdBm3Hy',
+      description: 'Máxima potência e exclusividade.',
+      icon: Rocket,
+      color: 'indigo-500',
+      features: [
+        '10 Aplicativos',
+        '6.000 membros ativos',
+        'Produtos e cursos ilimitados',
+        'Comunidade + Feed',
+        'Notificações Push ilimitados',
+        'Integração (Hotmart/Kiwify)',
+        'Domínio Personalizado',
+        'Suporte via E-mail (prioritário)',
+        'White Label (sem marca TribeBuild)',
+      ],
+      popular: false,
+    },
+  ];
+
   const plans = {
-    monthly: [
-      {
-        id: 'starter',
-        name: 'Starter',
-        price: 67,
-        period: '/mês',
-        description: 'Quem está dando os primeiros passos.',
-        icon: Zap,
-        color: 'brand-blue',
-        features: [
-          '1 Aplicativo',
-          '500 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Acesso a Tutoriais (Sem suporte humano)',
-        ],
-        stripeLink: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
-        popular: false,
-      },
-      {
-        id: 'professional',
-        name: 'Professional',
-        price: 127,
-        period: '/mês',
-        description: 'Criadores em crescimento constante.',
-        icon: Crown,
-        color: 'brand-coral',
-        features: [
-          '3 Aplicativos',
-          '1.500 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Suporte via E-mail (48h)',
-        ],
-        stripeLink: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
-        popular: true,
-      },
-      {
-        id: 'business',
-        name: 'Business',
-        price: 197,
-        period: '/mês',
-        description: 'Operações escalando sem limites.',
-        icon: Building2,
-        color: 'purple-500',
-        features: [
-          '5 Aplicativos',
-          '2.800 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Suporte via E-mail (48h)',
-        ],
-        stripeLink: 'LINK_STRIPE_BUSINESS_MENSAL',
-        popular: false,
-      },
-      {
-        id: 'enterprise',
-        name: 'Enterprise',
-        price: 397,
-        period: '/mês',
-        description: 'Máxima potência e exclusividade.',
-        icon: Rocket,
-        color: 'indigo-500',
-        features: [
-          '10 Aplicativos',
-          '6.000 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Suporte via E-mail (prioritário)',
-          'White Label (sem marca TribeBuild)',
-        ],
-        stripeLink: 'LINK_STRIPE_ENTERPRISE_MENSAL',
-        popular: false,
-      },
-    ],
-    annual: [
-      {
-        id: 'starter',
-        name: 'Starter',
-        price: 56,
-        originalPrice: 67,
-        period: '/mês',
-        billedAs: 'R$ 672/ano',
-        description: 'Quem está dando os primeiros passos.',
-        icon: Zap,
-        color: 'brand-blue',
-        features: [
-          '1 Aplicativo',
-          '500 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Acesso a Tutoriais (Sem suporte humano)',
-        ],
-        stripeLink: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
-        popular: false,
-      },
-      {
-        id: 'professional',
-        name: 'Professional',
-        price: 106,
-        originalPrice: 127,
-        period: '/mês',
-        billedAs: 'R$ 1.272/ano',
-        description: 'Criadores em crescimento constante.',
-        icon: Crown,
-        color: 'brand-coral',
-        features: [
-          '3 Aplicativos',
-          '1.500 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Suporte via E-mail (48h)',
-        ],
-        stripeLink: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04',
-        popular: true,
-      },
-      {
-        id: 'business',
-        name: 'Business',
-        price: 164,
-        originalPrice: 197,
-        period: '/mês',
-        billedAs: 'R$ 1.970/ano',
-        description: 'Operações escalando sem limites.',
-        icon: Building2,
-        color: 'purple-500',
-        features: [
-          '5 Aplicativos',
-          '2.800 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Suporte via E-mail (48h)',
-        ],
-        stripeLink: 'LINK_STRIPE_BUSINESS_ANUAL',
-        popular: false,
-      },
-      {
-        id: 'enterprise',
-        name: 'Enterprise',
-        price: 330,
-        originalPrice: 397,
-        period: '/mês',
-        billedAs: 'R$ 3.970/ano',
-        description: 'Máxima potência e exclusividade.',
-        icon: Rocket,
-        color: 'indigo-500',
-        features: [
-          '10 Aplicativos',
-          '6.000 membros ativos',
-          'Produtos e cursos ilimitados',
-          'Comunidade + Feed',
-          'Notificações Push ilimitados',
-          'Integração (Hotmart/Kiwify)',
-          'Domínio Personalizado',
-          'Suporte via E-mail (prioritário)',
-          'White Label (sem marca TribeBuild)',
-        ],
-        stripeLink: 'LINK_STRIPE_ENTERPRISE_ANUAL',
-        popular: false,
-      },
-    ],
+    monthly: plansData.map(plan => ({
+      id: plan.name.toLowerCase(),
+      name: plan.name,
+      price: plan.monthlyPrice,
+      period: '/mês',
+      description: plan.description,
+      icon: plan.icon,
+      color: plan.color,
+      features: plan.features,
+      stripeLink: `https://buy.stripe.com/test_checkout?price_id=${plan.monthlyPriceId}`,
+      popular: plan.popular,
+    })),
+    annual: plansData.map(plan => ({
+      id: plan.name.toLowerCase(),
+      name: plan.name,
+      price: Math.round(plan.yearlyPrice / 12),
+      originalPrice: plan.monthlyPrice,
+      period: '/mês',
+      billedAs: `R$ ${plan.yearlyPrice}/ano`,
+      description: plan.description,
+      icon: plan.icon,
+      color: plan.color,
+      features: plan.features,
+      stripeLink: `https://buy.stripe.com/test_checkout?price_id=${plan.yearlyPriceId}`,
+      popular: plan.popular,
+    })),
   };
 
   const currentPlans = plans[billingPeriod];
 
   const handleSelectPlan = (baseLink: string, planId: string) => {
-    if (baseLink.includes('LINK_STRIPE')) {
-      alert('Este plano estará disponível em breve. Por favor, entre em contato para liberar seu acesso.');
-      return;
-    }
     setLoadingPlan(planId);
 
     let fullLink = baseLink;
@@ -227,7 +155,6 @@ const PlansPage: React.FC = () => {
       fullLink += (fullLink.includes('?') ? '&' : '?') + `prefilled_email=${encodeURIComponent(user.email || '')}`
     }
 
-    // GERAÇÃO DE URL DINÂMICA (CORRETA)
     const baseUrl = window.location.origin;
     fullLink +=
       (fullLink.includes('?') ? '&' : '?') +
@@ -318,7 +245,7 @@ const PlansPage: React.FC = () => {
           {currentPlans.map((plan) => {
             const Icon = plan.icon;
             const isPopular = plan.popular;
-            const colors = getPlanColors(plan.color); // USANDO O HELPER DE CORES
+            const colors = getPlanColors(plan.color);
 
             return (
               <div
