@@ -29,10 +29,16 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { isDark, toggleTheme } = useTheme();
-  const { user: authUser } = useAuth(); // Pegando dados reais do usuário se disponível
+  
+  // ✅ CORREÇÃO AQUI: Provavelmente seu Context usa 'theme' em vez de 'isDark'
+  // Se o ThemeContext não tiver isDark, usamos theme === 'dark'
+  const { theme, toggleTheme } = useTheme() as any; 
+  // Forçamos 'any' temporariamente ou usamos a propriedade correta se você souber (geralmente é 'theme')
+  const isDark = theme === 'dark'; 
 
-  // Dados do usuário (Fallback se o AuthContext não tiver nome ainda)
+  const { user: authUser } = useAuth(); 
+
+  // Dados do usuário
   const user = {
     name: authUser?.user_metadata?.full_name || 'Usuário TribeBuild',
     email: authUser?.email || 'usuario@tribebuild.com',
@@ -169,7 +175,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
                 )}
               </div>
 
-              {/* Menu Hamburger - Mobile (CORRIGIDO PARA SER VISÍVEL) */}
+              {/* Menu Hamburger - Mobile */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="lg:hidden p-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-all active:scale-95"

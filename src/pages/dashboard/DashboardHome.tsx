@@ -6,19 +6,33 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const DashboardHome: React.FC = () => {
   const { apps } = useApps();
-  const { profile, isTrialActive, trialDaysLeft } = useAuth(); 
+  // ✅ CORREÇÃO 1: Removemos isTrialActive e trialDaysLeft (que causavam o erro)
+  const { profile } = useAuth(); 
   
-  // Define o plano atual (do banco de dados ou 'free' se nulo)
+  // Define o plano atual
   const currentPlan = profile?.plan || 'free';
+  const planStatus = profile?.plan_status;
 
-  // --- CONFIGURAÇÃO OFICIAL DOS LIMITES (Baseado na sua Oferta) ---
+  // ✅ CORREÇÃO 2: Lógica local para exibição (sem depender do Context)
+  const isTrialActive = planStatus === 'trial';
+  
+  const getTrialDaysLeft = () => {
+    if (!profile?.trial_ends_at) return 0;
+    const end = new Date(profile.trial_ends_at).getTime();
+    const now = new Date().getTime();
+    return Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+  };
+
+  const trialDaysLeft = getTrialDaysLeft();
+
+  // --- CONFIGURAÇÃO OFICIAL DOS LIMITES ---
   const getPlanLimits = (plan: string) => {
     switch (plan) {
-      case 'starter': return 1;       // Starter: 1 App
-      case 'professional': return 3;  // Professional: 3 Apps
-      case 'business': return 5;      // Business: 5 Apps
-      case 'enterprise': return 10;   // Enterprise: 10 Apps
-      case 'free': return 1;          // Free: 1 App (Trial ou básico)
+      case 'starter': return 1;
+      case 'professional': return 3;
+      case 'business': return 5;
+      case 'enterprise': return 10;
+      case 'free': return 1;
       default: return 1; 
     }
   };
