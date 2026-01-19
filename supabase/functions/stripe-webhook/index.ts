@@ -5,23 +5,22 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 // ========================================
 // MAPEAMENTO DE PRICE IDs PARA PLANOS
 // ========================================
-// ✅ ATUALIZADO COM 4 PLANOS (8 PRICE IDs)
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
   // STARTER
-  'price_1SlI8pI5Cu8MrWaGjBdlVYnu': 'starter',        // R$ 67,00 (mensal)
-  'price_1SlI8pI5Cu8MrWaGYJih1P0D': 'starter',        // R$ 672,00 (anual)
+  'price_1SlI8pI5Cu8MrWaGjBdlVYnu': 'starter',
+  'price_1SlI8pI5Cu8MrWaGYJih1P0D': 'starter',
   
   // PROFESSIONAL
-  'price_1SlI8pI5Cu8MrWaGNgMPqkQN': 'professional',   // R$ 127,00 (mensal)
-  'price_1SlI8pI5Cu8MrWaGAX4FfQHX': 'professional',   // R$ 1.272,00 (anual)
+  'price_1SlI8pI5Cu8MrWaGNgMPqkQN': 'professional',
+  'price_1SlI8pI5Cu8MrWaGAX4FfQHX': 'professional',
   
   // BUSINESS
-  'price_1SlI8pI5Cu8MrWaGYq5KS1Lz': 'business',       // R$ 247,00 (mensal)
-  'price_1SlI9lI5Cu8MrWaG2NXdqrAM': 'business',       // R$ 2.472,00 (anual)
+  'price_1SlI8pI5Cu8MrWaGYq5KS1Lz': 'business',
+  'price_1SlI9lI5Cu8MrWaG2NXdqrAM': 'business',
   
-  // ENTERPRISE (ou PREMIUM)
-  'price_1SpuPcI5Cu8MrWaGP8LUZf0q': 'enterprise',     // R$ 397,00 (mensal) ⭐ NOVO
-  'price_1SpuPcI5Cu8MrWaGukdBm3Hy': 'enterprise',     // R$ 3.970,00 (anual)
+  // ENTERPRISE
+  'price_1SpuPcI5Cu8MrWaGP8LUZf0q': 'enterprise',
+  'price_1SpuPcI5Cu8MrWaGukdBm3Hy': 'enterprise',
 };
 
 // ========================================
@@ -108,32 +107,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
 
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
+  
+  // ✅ CORREÇÃO: Usar client_reference_id (user.id do Supabase)
+  const userId = session.client_reference_id;
   const customerEmail = session.customer_email || session.customer_details?.email;
 
-  if (!customerEmail) {
-    console.error('❌ No customer email in checkout session');
-    return;
-  }
+  console.log(`📧 Customer email: ${customerEmail}`);
+  console.log(`👤 Client reference ID (user_id): ${userId}`);
 
-  // Buscar usuário pelo email
-  const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-  
-  if (userError) {
-    console.error('❌ Error fetching users:', userError);
-    return;
-  }
-
-  const user = userData.users.find((u) => u.email === customerEmail);
-
-  if (!user) {
-    console.error(`❌ User not found for email: ${customerEmail}`);
-    return;
-  }
-
-  // Buscar a subscription para obter o price_id
+  // Buscar a subscription para obter o price_id e status
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const priceId = subscription.items.data[0]?.price.id;
   const planName = priceId ? PRICE_TO_PLAN_MAP[priceId] : null;
+  const isTrialing = subscription.status === 'trialing';
 
   if (!planName) {
     console.error(`❌ Unknown price ID: ${priceId}`);
@@ -141,26 +127,60 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
     return;
   }
 
-  console.log(`✅ Plan identified: ${planName} (${priceId})`);
+  console.log(`✅ Plan identified: ${planName} (${priceId}), trialing: ${isTrialing}`);
 
-  // Atualizar perfil
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
-      subscription_status: 'active',
-      subscription_plan: planName,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
+  // ✅ CORREÇÃO: Usar campos corretos do banco (plan_status e plan)
+  const updateData = {
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId,
+    plan: planName,                                    // ✅ CORRETO (era subscription_plan)
+    plan_status: isTrialing ? 'trial' : 'active',     // ✅ CORRETO (era subscription_status)
+    trial_ends_at: isTrialing && subscription.trial_end 
+      ? new Date(subscription.trial_end * 1000).toISOString() 
+      : null,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (updateError) {
-    console.error('❌ Error updating profile:', updateError);
-    return;
+  // Tentar atualizar por user_id primeiro (mais confiável)
+  if (userId) {
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('❌ Error updating profile by user_id:', updateError);
+    } else {
+      console.log(`✅ Profile updated for user ${userId}: ${planName} plan activated`);
+      return;
+    }
   }
 
-  console.log(`✅ Profile updated for user ${user.id}: ${planName} plan activated`);
+  // Fallback: buscar por email
+  if (customerEmail) {
+    const { data: profile, error: findError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', customerEmail)
+      .single();
+
+    if (findError || !profile) {
+      console.error(`❌ Profile not found for email: ${customerEmail}`);
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', profile.id);
+
+    if (updateError) {
+      console.error('❌ Error updating profile by email:', updateError);
+      return;
+    }
+
+    console.log(`✅ Profile updated for email ${customerEmail}: ${planName} plan activated`);
+  }
 }
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription): Promise<void> {
@@ -173,24 +193,35 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription): Prom
 
   console.log(`📊 Subscription status: ${status}, Price ID: ${priceId}`);
 
-  // Mapear status do Stripe para nosso formato
-  let subscriptionStatus: 'active' | 'cancelled' | 'trial' = 'active';
+  // ✅ CORREÇÃO: Mapear status do Stripe para plan_status do banco
+  let planStatus: 'active' | 'canceled' | 'trial' | 'expired' = 'active';
   
   if (status === 'trialing') {
-    subscriptionStatus = 'trial';
+    planStatus = 'trial';
   } else if (status === 'canceled' || status === 'unpaid' || status === 'incomplete_expired') {
-    subscriptionStatus = 'cancelled';
+    planStatus = 'canceled';
   } else if (status === 'active' || status === 'incomplete' || status === 'past_due') {
-    subscriptionStatus = 'active';
+    planStatus = 'active';
+  }
+
+  const updateData: Record<string, any> = {
+    plan_status: planStatus,      // ✅ CORRETO
+    updated_at: new Date().toISOString(),
+  };
+
+  // Só atualiza o plano se identificado
+  if (planName) {
+    updateData.plan = planName;   // ✅ CORRETO
+  }
+
+  // Atualiza trial_ends_at se estiver em trial
+  if (status === 'trialing' && subscription.trial_end) {
+    updateData.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
   }
 
   const { error } = await supabase
     .from('profiles')
-    .update({
-      subscription_status: subscriptionStatus,
-      subscription_plan: planName,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('stripe_customer_id', customerId);
 
   if (error) {
@@ -198,7 +229,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription): Prom
     return;
   }
 
-  console.log(`✅ Subscription updated for customer ${customerId}: ${subscriptionStatus} - ${planName}`);
+  console.log(`✅ Subscription updated for customer ${customerId}: ${planStatus} - ${planName}`);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
@@ -206,11 +237,14 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
 
   const customerId = subscription.customer as string;
 
+  // ✅ CORREÇÃO: Usar plan_status e plan
   const { error } = await supabase
     .from('profiles')
     .update({
-      subscription_status: 'cancelled',
+      plan_status: 'canceled',    // ✅ CORRETO
+      plan: 'free',               // ✅ Volta para free
       stripe_subscription_id: null,
+      trial_ends_at: null,
       updated_at: new Date().toISOString(),
     })
     .eq('stripe_customer_id', customerId);
@@ -234,11 +268,11 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
     return;
   }
 
-  // Garantir que o status está ativo após pagamento bem-sucedido
+  // ✅ CORREÇÃO: Usar plan_status
   const { error } = await supabase
     .from('profiles')
     .update({
-      subscription_status: 'active',
+      plan_status: 'active',      // ✅ CORRETO
       updated_at: new Date().toISOString(),
     })
     .eq('stripe_customer_id', customerId);
@@ -256,8 +290,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
 
   const customerId = invoice.customer as string;
 
+  // Opcional: marcar como expired ou manter active e notificar
   console.warn(`💳 Payment failed for customer ${customerId}`);
-  
-  // TODO: Implementar notificação por email ou outras ações
-  // Por enquanto, apenas logamos o evento
 }
