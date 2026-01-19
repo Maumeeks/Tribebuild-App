@@ -47,6 +47,7 @@ import ClientsPage from './pages/dashboard/ClientsPage';
 import DashboardPlansPage from './pages/dashboard/PlansPage';
 import DomainsPage from './pages/dashboard/DomainsPage';
 import BonusPage from './pages/dashboard/BonusPage';
+import AcademiaPage from './pages/dashboard/AcademiaPage'; // ✅ Nova Importação
 
 // Admin
 import AdminLayout from './layouts/AdminLayout';
@@ -117,6 +118,7 @@ const App: React.FC = () => {
                 }
               >
                 <Route index element={<DashboardHome />} />
+                <Route path="academia" element={<AcademiaPage />} /> {/* ✅ Nova Rota Adicionada */}
                 <Route path="apps" element={<AppsPage />} />
                 <Route path="apps/:appId/products" element={<ProductsPage />} />
                 <Route path="apps/:appId/feed" element={<FeedPage />} />

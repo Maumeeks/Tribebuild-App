@@ -13,9 +13,9 @@ const DashboardHelpBar: React.FC<DashboardHelpBarProps> = ({ onClose }) => {
         <HelpCircle className="w-4 h-4 flex-shrink-0" />
         <p>
           <span>Ficou com dúvidas? Acesse a </span>
-          {/* ✅ CORREÇÃO: Uso de Link para navegação interna rápida */}
+          {/* ✅ CORREÇÃO: Link apontando para a rota interna correta */}
           <Link
-            to="/academia"
+            to="/dashboard/academia"
             className="font-black underline hover:text-blue-200 transition-colors uppercase tracking-tight"
           >
             Academia TribeBuild
