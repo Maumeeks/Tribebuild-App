@@ -17,29 +17,29 @@ export interface App {
 
 interface AppsContextType {
   apps: App[];
-  addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => void;
+  addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => Promise<string>; // Alterado para Promise para permitir await
   updateApp: (id: string, data: Partial<App>) => void;
   deleteApp: (id: string) => void;
   getApp: (id: string) => App | undefined;
-  planLimit: number; // Exportamos o limite para a UI usar se quiser
+  planLimit: number;
 }
 
-// REGRAS DE NEGÓCIO (LIMITES)
+// REGRAS DE NEGÓCIO (LIMITES EXATOS DA OFERTA)
 const PLAN_LIMITS: Record<string, number> = {
-  free: 1, // Apenas visualização/teste limitado
-  starter: 1,
-  professional: 3,
-  business: 5,
-  enterprise: 10
+  free: 1,          // Degustação / Erro
+  starter: 1,       // Oferta: 1 App
+  professional: 3,  // Oferta: 3 Apps
+  business: 5,      // Oferta: 5 Apps
+  enterprise: 10    // Oferta: 10 Apps
 };
 
 const AppsContext = createContext<AppsContextType | undefined>(undefined);
 
 export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [apps, setApps] = useState<App[]>([]);
-  const { profile } = useAuth(); // <--- Acessamos o plano aqui
+  const { profile } = useAuth();
 
-  // Load from localStorage on mount
+  // Carrega apps do localStorage (Persistência Local para MVP)
   useEffect(() => {
     const savedApps = localStorage.getItem('tribebuild_apps');
     if (savedApps) {
@@ -51,24 +51,28 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  // Save to localStorage on change
+  // Salva no localStorage sempre que mudar
   useEffect(() => {
     localStorage.setItem('tribebuild_apps', JSON.stringify(apps));
   }, [apps]);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  // Calcula o limite atual baseado no perfil
-  const currentPlan = profile?.plan || 'free';
+  // --- A MÁGICA DA CORREÇÃO ---
+  // 1. Pega o plano ou assume 'free'
+  // 2. Transforma em minúsculo (.toLowerCase()) para garantir que "Professional" vire "professional"
+  const rawPlan = profile?.plan || 'free';
+  const currentPlan = rawPlan.toLowerCase();
+
+  // 3. Busca o limite correto na tabela. Se não achar, garante 1 (fallback seguro).
   const planLimit = PLAN_LIMITS[currentPlan] || 1;
 
-  const addApp = (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => {
+  const addApp = async (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>): Promise<string> => {
     // --- A BLINDAGEM ---
     if (apps.length >= planLimit) {
-      // Se tentar criar mais do que o permitido, bloqueia e avisa
       const errorMsg = `Limite atingido! O plano ${currentPlan.toUpperCase()} permite apenas ${planLimit} app(s).`;
-      alert(errorMsg); // Feedback imediato
-      throw new Error(errorMsg); // Interrompe a execução
+      alert(errorMsg);
+      throw new Error(errorMsg);
     }
     // -------------------
 
@@ -79,13 +83,13 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       createdAt: new Date().toISOString().split('T')[0],
       accessLink: `https://app.tribebuild.com/app/${appData.slug}`,
     };
+
     setApps(prev => [...prev, newApp]);
-    // Não precisamos retornar o ID aqui necessariamente, mas se precisar, mude a interface
-    return id; 
+    return id;
   };
 
   const updateApp = (id: string, data: Partial<App>) => {
-    setApps(prev => prev.map(app => 
+    setApps(prev => prev.map(app =>
       app.id === id ? { ...app, ...data } : app
     ));
   };

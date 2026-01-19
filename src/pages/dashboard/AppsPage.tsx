@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Plus, 
-  Smartphone,
-  Edit3,
+import { Link } from 'react-router-dom';
+import {
+  Plus,
   Package,
   Rss,
-  Users,
   Bell,
   Trash2,
   Copy,
   ExternalLink,
   Check,
   Snowflake,
-  MoreVertical,
   Calendar,
   AlertCircle,
   ChevronRight,
   MessagesSquare,
-  Crown
+  Crown,
+  Edit3
 } from 'lucide-react';
 import { useApps } from '../../contexts/AppsContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,47 +23,49 @@ import { cn } from '../../lib/utils';
 
 const AppsPage: React.FC = () => {
   const { apps, deleteApp } = useApps();
-  const { profile } = useAuth(); // Pegando dados reais do usuário
-  
+  const { profile } = useAuth();
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [appToDelete, setAppToDelete] = useState<string | null>(null);
 
-  // --- LÓGICA DE LIMITES POR PLANO (Conforme supabase.ts) ---
+  // --- LÓGICA CIRÚRGICA DE LIMITES (BASEADA NA OFERTA REAL) ---
   const getPlanDetails = (planName: string | undefined) => {
-    const plan = planName || 'free';
+    // Normaliza para minúsculo para segurança (Professional -> professional)
+    const plan = planName?.toLowerCase() || 'free';
 
     switch (plan) {
       case 'enterprise':
-        return { 
-          label: 'Enterprise', 
-          maxApps: 999, 
-          style: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800' 
+        return {
+          label: 'Enterprise',
+          maxApps: 10, // OFERTA: 10 Aplicativos
+          style: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
         };
       case 'business':
-        return { 
-          label: 'Business', 
-          maxApps: 20, 
-          style: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800' 
+        return {
+          label: 'Business',
+          maxApps: 5, // OFERTA: 5 Aplicativos
+          style: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800'
         };
       case 'professional':
-        return { 
-          label: 'Profissional', 
-          maxApps: 10, 
-          style: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800' 
+        return {
+          label: 'Professional',
+          maxApps: 3, // OFERTA: 3 Aplicativos
+          style: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800'
         };
       case 'starter':
-        return { 
-          label: 'Starter', 
-          maxApps: 3, 
-          style: 'bg-blue-50 text-brand-blue border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
+        return {
+          label: 'Starter',
+          maxApps: 1, // OFERTA: 1 Aplicativo
+          style: 'bg-blue-50 text-brand-blue border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
         };
       case 'free':
       default:
-        return { 
-          label: 'Gratuito', 
-          maxApps: 1, 
-          style: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' 
+        // Caso de falha ou Trial: Permite 1 app para degustação, mas avisa
+        return {
+          label: 'Gratuito/Trial',
+          maxApps: 1,
+          style: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
         };
     }
   };
@@ -117,29 +116,29 @@ const AppsPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Meus Apps</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-2xl leading-relaxed">
-            Gerencie seus aplicativos. Cada app pode ter sua própria identidade e conteúdo exclusivo.
+            Gerencie seus aplicativos PWA. Cada app pode ter sua própria identidade e conteúdo exclusivo.
           </p>
-          
+
           <div className="flex items-center gap-3 mt-4">
-             {/* Badge do Plano Atual */}
-             <div className={cn(
-               "inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border",
-               currentPlan.style
-             )}>
-               {profile?.plan !== 'free' && <Crown className="w-3 h-3" />}
-               Plano: {currentPlan.label}
-             </div>
-             
-             {/* Contador de Apps */}
-             <span className={cn(
-               "text-xs font-bold uppercase tracking-widest ml-2",
-               isLimitReached ? "text-brand-coral" : "text-slate-400 dark:text-slate-500"
-             )}>
-               Apps Criados: <span className={isLimitReached ? 'text-brand-coral' : 'text-slate-900 dark:text-white'}>{apps.length}</span> / {currentPlan.maxApps}
-             </span>
+            {/* Badge do Plano Atual */}
+            <div className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border",
+              currentPlan.style
+            )}>
+              {profile?.plan && profile.plan !== 'free' && <Crown className="w-3 h-3" />}
+              Plano: {currentPlan.label}
+            </div>
+
+            {/* Contador de Apps */}
+            <span className={cn(
+              "text-xs font-bold uppercase tracking-widest ml-2",
+              isLimitReached ? "text-brand-coral" : "text-slate-400 dark:text-slate-500"
+            )}>
+              Apps Criados: <span className={isLimitReached ? 'text-brand-coral' : 'text-slate-900 dark:text-white'}>{apps.length}</span> / {currentPlan.maxApps}
+            </span>
           </div>
         </div>
-        
+
         {isLimitReached ? (
           <div className="flex flex-col items-end gap-2">
             <button
@@ -165,7 +164,7 @@ const AppsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Alerta de Limite - DESIGN CORAL */}
+      {/* Alerta de Limite - Só aparece se REALMENTE atingiu */}
       {isLimitReached && (
         <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 rounded-[2rem] p-6 flex flex-col md:flex-row items-center justify-between gap-6 animate-slide-up shadow-sm">
           <div className="flex items-center gap-4">
@@ -212,7 +211,7 @@ const AppsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
           {apps.map((app, index) => (
-            <div 
+            <div
               key={app.id}
               className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden hover:shadow-2xl hover:border-brand-blue/30 dark:hover:border-brand-blue/30 transition-all duration-500 group animate-slide-up"
               style={{ animationDelay: `${index * 100}ms` }}
@@ -221,15 +220,15 @@ const AppsPage: React.FC = () => {
               <div className="p-6 md:p-8 pb-6 flex flex-col items-center">
                 <div className="relative mb-6">
                   {app.logo ? (
-                    <img 
-                      src={app.logo} 
+                    <img
+                      src={app.logo}
                       alt={app.name}
                       className="w-24 h-24 rounded-3xl object-cover shadow-xl border-4 border-white dark:border-slate-700"
                     />
                   ) : (
-                    <div 
-                        className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500 border-4 border-white dark:border-slate-700"
-                        style={{ backgroundColor: app.primaryColor }}
+                    <div
+                      className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500 border-4 border-white dark:border-slate-700"
+                      style={{ backgroundColor: app.primaryColor }}
                     >
                       <span className="text-white text-3xl font-black tracking-tighter">
                         {getInitials(app.name)}
@@ -238,11 +237,11 @@ const AppsPage: React.FC = () => {
                   )}
                   <div className={`absolute -bottom-2 -right-2 w-8 h-8 border-4 border-white dark:border-slate-800 rounded-full shadow-lg ${app.status === 'published' ? 'bg-green-500' : 'bg-orange-400'}`}></div>
                 </div>
-                
+
                 <h3 className="text-xl font-black text-slate-900 dark:text-white text-center tracking-tight">
                   {app.name}
                 </h3>
-                
+
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
                   <Calendar className="w-3.5 h-3.5" />
                   Criado em {formatDate(app.createdAt)}
@@ -341,7 +340,7 @@ const AppsPage: React.FC = () => {
       {/* Modal de Confirmação */}
       {deleteModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setDeleteModalOpen(false)}
           />

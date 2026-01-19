@@ -11,7 +11,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Button from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
 
 // --- CONFIGURAÇÃO DE TIPOS ---
@@ -131,18 +130,19 @@ const plans: Plan[] = [
 ];
 
 const PlansPage: React.FC = () => {
-  // ✅ CORREÇÃO 1: Usar dados reais do profile
   const { user, profile } = useAuth();
-  
+
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [retentionModalOpen, setRetentionModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
-  // ✅ CORREÇÃO 2: Encontrar plano atual baseado no banco de dados
-  // Se não tiver plano (null), assume que não tem plano atual
-  const currentPlanId = profile?.plan || '';
+  // ✅ CORREÇÃO: Normaliza o ID para minúsculo antes de buscar
+  const rawPlanId = profile?.plan || '';
+  const currentPlanId = rawPlanId.toLowerCase();
+
+  // Tenta achar o plano na lista. Se não achar, usa 'free' como fallback virtual se necessário
   const currentPlan = plans.find(p => p.id === currentPlanId);
 
   const formatDate = (dateString?: string | null) => {
@@ -165,25 +165,22 @@ const PlansPage: React.FC = () => {
   const handleConfirmUpgrade = () => {
     if (!selectedPlan) return;
 
-    // 1. Seleciona o link base
-    let checkoutUrl = billingCycle === 'monthly' 
-      ? selectedPlan.stripeUrls.monthly 
+    let checkoutUrl = billingCycle === 'monthly'
+      ? selectedPlan.stripeUrls.monthly
       : selectedPlan.stripeUrls.yearly;
 
     if (checkoutUrl) {
-      // 2. INJEÇÃO DO ID DO USUÁRIO (Crucial para o Webhook funcionar)
       const separator = checkoutUrl.includes('?') ? '&' : '?';
-      
+
       if (user) {
-         checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
+        checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
       }
 
-      // 3. Redireciona
       window.location.href = checkoutUrl;
     } else {
       alert(`Erro de configuração: Link de pagamento indisponível.`);
     }
-    
+
     setUpgradeModalOpen(false);
     setSelectedPlan(null);
   };
@@ -198,7 +195,7 @@ const PlansPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Plano Atual Card - Só exibe se o usuário tiver um plano identificado */}
+      {/* Plano Atual Card */}
       {currentPlan ? (
         <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
           <div className="p-8 md:p-10 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-800/50 dark:to-slate-800 border-b border-slate-50 dark:border-slate-700">
@@ -213,9 +210,8 @@ const PlansPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest bg-blue-100 px-2 py-0.5 rounded">Seu Plano Atual</span>
-                    {/* Exibe status do trial se houver */}
                     {profile?.plan_status === 'trial' && (
-                       <span className="text-[10px] font-black text-white uppercase tracking-widest bg-green-500 px-2 py-0.5 rounded">Período Grátis</span>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest bg-green-500 px-2 py-0.5 rounded">Período Grátis</span>
                     )}
                   </div>
                   <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentPlan.name}</h2>
@@ -228,8 +224,7 @@ const PlansPage: React.FC = () => {
                 </p>
                 <div className="flex items-center md:justify-end gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
                   <Calendar className="w-3.5 h-3.5" />
-                  {/* Como removemos o mock, usamos o trial_ends_at ou data genérica */}
-                  {profile?.plan_status === 'trial' && profile.trial_ends_at 
+                  {profile?.plan_status === 'trial' && profile.trial_ends_at
                     ? `Teste até: ${formatDate(profile.trial_ends_at)}`
                     : 'Renovação Mensal'}
                 </div>
@@ -238,48 +233,58 @@ const PlansPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        // Fallback se não tiver plano (Ex: conta antiga ou erro)
-        <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 text-orange-800 animate-slide-up">
-           <p className="font-bold">Nenhum plano ativo encontrado.</p>
-           <p className="text-sm">Escolha um dos planos abaixo para ativar sua conta.</p>
+        // Fallback: Se não encontrou (ex: é Free/Trial sem ID mapeado), mostra card genérico de "Gratuito/Inicial"
+        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <div className="p-8 md:p-10 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 rounded-[2rem] flex items-center justify-center text-slate-500 bg-slate-200 dark:bg-slate-700 shadow-lg">
+                <Zap className="w-10 h-10" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">Plano Inicial</span>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1">Gratuito / Trial</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Faça um upgrade para ter mais recursos.</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Toggle Mensal/Anual e Lista de Planos */}
       <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
-            <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Comparativo de Planos</h2>
-            </div>
-            
-            <div className="bg-slate-100 dark:bg-slate-700 p-1 rounded-full inline-flex self-center">
-                <button
-                    onClick={() => setBillingCycle('monthly')}
-                    className={cn(
-                        "px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all",
-                        billingCycle === 'monthly' 
-                            ? "bg-white text-brand-blue shadow-md" 
-                            : "text-slate-400 hover:text-slate-600"
-                    )}
-                >
-                    Mensal
-                </button>
-                <button
-                    onClick={() => setBillingCycle('yearly')}
-                    className={cn(
-                        "px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                        billingCycle === 'yearly' 
-                            ? "bg-white text-brand-blue shadow-md" 
-                            : "text-slate-400 hover:text-slate-600"
-                    )}
-                >
-                    Anual
-                    <span className="bg-green-100 text-green-600 text-[9px] px-1.5 py-0.5 rounded-full">-15%</span>
-                </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Comparativo de Planos</h2>
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-700 p-1 rounded-full inline-flex self-center">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={cn(
+                "px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all",
+                billingCycle === 'monthly'
+                  ? "bg-white text-brand-blue shadow-md"
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={cn(
+                "px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                billingCycle === 'yearly'
+                  ? "bg-white text-brand-blue shadow-md"
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Anual
+              <span className="bg-green-100 text-green-600 text-[9px] px-1.5 py-0.5 rounded-full">-15%</span>
+            </button>
+          </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((plan) => {
             const isCurrentPlan = plan.id === currentPlanId;
@@ -316,7 +321,7 @@ const PlansPage: React.FC = () => {
                   <div className="mt-2">
                     <span className="text-sm font-bold text-slate-400">R$</span>
                     <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mx-1">
-                        {displayPrice}
+                      {displayPrice}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{periodLabel}</span>
                   </div>
@@ -327,11 +332,11 @@ const PlansPage: React.FC = () => {
                     <li key={index} className="flex items-center gap-2">
                       {feature.included ? (
                         <div className="w-4 h-4 bg-blue-50 dark:bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Check className="w-2.5 h-2.5 text-brand-blue stroke-[4px]" />
+                          <Check className="w-2.5 h-2.5 text-brand-blue stroke-[4px]" />
                         </div>
                       ) : (
                         <div className="w-4 h-4 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
-                            <X className="w-2.5 h-2.5 text-slate-300 dark:text-slate-500 stroke-[4px]" />
+                          <X className="w-2.5 h-2.5 text-slate-300 dark:text-slate-500 stroke-[4px]" />
                         </div>
                       )}
                       <span className={cn(
@@ -365,12 +370,12 @@ const PlansPage: React.FC = () => {
       {/* Histórico de Faturas */}
       <div className="animate-slide-up" style={{ animationDelay: '300ms' }}>
         <div className="flex items-center gap-3 mb-8">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Histórico de Pagamentos</h2>
+          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+          <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Histórico de Pagamentos</h2>
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm p-16 text-center">
-            <CreditCard className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-400 font-bold">Nenhuma fatura registrada ainda.</p>
+          <CreditCard className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
+          <p className="text-slate-400 font-bold">Nenhuma fatura registrada ainda.</p>
         </div>
       </div>
 
@@ -385,26 +390,26 @@ const PlansPage: React.FC = () => {
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setRetentionModalOpen(false)} />
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
-             <h3 className="text-2xl font-black text-slate-900 mb-2">Poxa, vai embora? 😢</h3>
-             <p className="text-slate-500 mb-6">Seus apps serão desativados.</p>
-             <div className="flex flex-col gap-3">
-                 <button onClick={() => setRetentionModalOpen(false)} className="w-full py-4 bg-brand-blue text-white rounded-2xl font-black text-xs uppercase">Vou ficar!</button>
-                 <button onClick={() => { setRetentionModalOpen(false); setCancelModalOpen(true); }} className="text-slate-400 text-xs font-bold uppercase">Continuar Cancelamento</button>
-             </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Poxa, vai embora? 😢</h3>
+            <p className="text-slate-500 mb-6">Seus apps serão desativados.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => setRetentionModalOpen(false)} className="w-full py-4 bg-brand-blue text-white rounded-2xl font-black text-xs uppercase">Vou ficar!</button>
+              <button onClick={() => { setRetentionModalOpen(false); setCancelModalOpen(true); }} className="text-slate-400 text-xs font-bold uppercase">Continuar Cancelamento</button>
+            </div>
           </div>
         </div>
       )}
-      
+
       {cancelModalOpen && (
-         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setCancelModalOpen(false)} />
-         <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setCancelModalOpen(false)} />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
             <h3 className="text-2xl font-black text-red-500 mb-2">Tem certeza?</h3>
             <p className="text-slate-500 mb-6">Essa ação não pode ser desfeita.</p>
             <button onClick={() => alert('Para cancelar, entre em contato com o suporte ou gerencie via Stripe.')} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase mb-3">Sim, Cancelar</button>
             <button onClick={() => setCancelModalOpen(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase">Voltar</button>
-         </div>
-       </div>
+          </div>
+        </div>
       )}
 
       {upgradeModalOpen && selectedPlan && (
@@ -420,14 +425,14 @@ const PlansPage: React.FC = () => {
             <p className="text-slate-500 text-center mb-8 font-medium leading-relaxed">
               Você selecionou o ciclo <span className="text-brand-blue font-bold uppercase">{billingCycle === 'monthly' ? 'Mensal' : 'Anual'}</span>.
             </p>
-            
+
             <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 mb-10 border border-slate-100">
-                <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor a pagar:</span>
-                    <span className="text-2xl font-black text-brand-blue tracking-tighter">
-                        {formatCurrency(billingCycle === 'monthly' ? selectedPlan.prices.monthly : selectedPlan.prices.yearly)}
-                    </span>
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor a pagar:</span>
+                <span className="text-2xl font-black text-brand-blue tracking-tighter">
+                  {formatCurrency(billingCycle === 'monthly' ? selectedPlan.prices.monthly : selectedPlan.prices.yearly)}
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">

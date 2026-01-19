@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { HelpCircle, X } from 'lucide-react';
 
 interface DashboardHelpBarProps {
@@ -13,12 +13,13 @@ const DashboardHelpBar: React.FC<DashboardHelpBarProps> = ({ onClose }) => {
         <HelpCircle className="w-4 h-4 flex-shrink-0" />
         <p>
           <span>Ficou com dúvidas? Acesse a </span>
-          <a 
-            href="#/academia" 
+          {/* ✅ CORREÇÃO: Uso de Link para navegação interna rápida */}
+          <Link
+            to="/academia"
             className="font-black underline hover:text-blue-200 transition-colors uppercase tracking-tight"
           >
             Academia TribeBuild
-          </a>
+          </Link>
           <span> para tutoriais detalhados!</span>
         </p>
       </div>

@@ -1,12 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
-  Plus,
   Search,
-  Filter,
   MoreVertical,
-  Mail,
   Calendar,
   Shield,
   ShieldOff,
@@ -15,106 +11,186 @@ import {
   X,
   UserPlus,
   Download,
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
+import { useApps } from '../../contexts/AppsContext';
+import { supabase } from '../../lib/supabase';
 
 // Tipos
 interface Client {
   id: string;
   email: string;
   name: string | null;
-  appId: string;
-  appName: string;
+  app_id: string; // No banco geralmente é snake_case
   status: 'active' | 'blocked';
-  createdAt: string;
-  lastAccess: string | null;
+  created_at: string;
+  last_access: string | null;
   source: 'webhook' | 'manual' | 'import';
 }
 
-// Mock de apps do usuário
-const userApps = [
-  { id: '1', name: 'Dog Influencer' },
-  { id: '2', name: 'Mentalidade Vencedora' }
-];
-
-// Mock de clientes
-const initialClients: Client[] = [
-  { id: '1', email: 'maria.silva@email.com', name: 'Maria Silva', appId: '1', appName: 'Dog Influencer', status: 'active', createdAt: '2025-04-14', lastAccess: '2025-04-14', source: 'webhook' },
-  { id: '2', email: 'joao.santos@email.com', name: 'João Santos', appId: '1', appName: 'Dog Influencer', status: 'active', createdAt: '2025-04-12', lastAccess: '2025-04-13', source: 'webhook' },
-  { id: '3', email: 'ana.costa@email.com', name: 'Ana Costa', appId: '2', appName: 'Mentalidade Vencedora', status: 'blocked', createdAt: '2025-04-10', lastAccess: '2025-04-10', source: 'manual' },
-  { id: '4', email: 'pedro.lima@email.com', name: 'Pedro Lima', appId: '1', appName: 'Dog Influencer', status: 'active', createdAt: '2025-04-08', lastAccess: '2025-04-14', source: 'webhook' },
-  { id: '5', email: 'julia.mendes@email.com', name: 'Julia Mendes', appId: '2', appName: 'Mentalidade Vencedora', status: 'active', createdAt: '2025-04-05', lastAccess: '2025-04-12', source: 'webhook' },
-  { id: '6', email: 'lucas.ferreira@email.com', name: null, appId: '1', appName: 'Dog Influencer', status: 'active', createdAt: '2025-04-03', lastAccess: null, source: 'import' },
-];
-
 const ClientsPage: React.FC = () => {
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  const { apps } = useApps(); // ✅ Pegando os apps reais do usuário
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterApp, setFilterApp] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-  
-  // Estado do formulário de adicionar
+
   const [newClient, setNewClient] = useState({
     email: '',
     name: '',
     appId: ''
   });
 
-  // Filtrar clientes
+  // --- BUSCAR CLIENTES REAIS DO SUPABASE ---
+  const fetchClients = async () => {
+    try {
+      setIsLoading(true);
+      // Busca clientes que pertencem aos apps deste usuário
+      // Precisamos dos IDs dos apps para filtrar
+      const appIds = apps.map(app => app.id);
+
+      if (appIds.length === 0) {
+        setClients([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .in('app_id', appIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+      // Não trava a tela, apenas loga o erro (pode ser que a tabela não exista ainda)
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (apps.length > 0) {
+      fetchClients();
+    } else {
+      setIsLoading(false);
+    }
+  }, [apps]);
+
+  // --- LÓGICA DE FILTRO ---
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesApp = filterApp === 'all' || client.appId === filterApp;
+      (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // Mapeando app_id do banco
+    const matchesApp = filterApp === 'all' || client.app_id === filterApp;
     const matchesStatus = filterStatus === 'all' || client.status === filterStatus;
+
     return matchesSearch && matchesApp && matchesStatus;
   });
 
-  const handleAddClient = () => {
+  // --- HELPER PARA PEGAR NOME DO APP ---
+  const getAppName = (appId: string) => {
+    const app = apps.find(a => a.id === appId);
+    return app ? app.name : 'App Desconhecido';
+  };
+
+  // --- AÇÕES ---
+
+  const handleAddClient = async () => {
     if (!newClient.email || !newClient.appId) {
       alert('Preencha o email e selecione o app');
       return;
     }
 
-    const app = userApps.find(a => a.id === newClient.appId);
-    const client: Client = {
-      id: Math.random().toString(36).substr(2, 9),
-      email: newClient.email,
-      name: newClient.name || null,
-      appId: newClient.appId,
-      appName: app?.name || '',
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0],
-      lastAccess: null,
-      source: 'manual'
-    };
+    try {
+      setIsSubmitting(true);
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([{
+          email: newClient.email,
+          name: newClient.name || null,
+          app_id: newClient.appId,
+          status: 'active',
+          source: 'manual',
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
 
-    setClients([client, ...clients]);
-    setNewClient({ email: '', name: '', appId: '' });
-    setIsAddModalOpen(false);
+      if (error) throw error;
+
+      if (data) {
+        setClients([data, ...clients]);
+        setNewClient({ email: '', name: '', appId: '' });
+        setIsAddModalOpen(false);
+        alert('Cliente adicionado com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar cliente:', error);
+      alert('Erro ao adicionar cliente. Verifique se o e-mail já existe neste app.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleToggleStatus = (clientId: string) => {
-    setClients(clients.map(c =>
-      c.id === clientId
-        ? { ...c, status: c.status === 'active' ? 'blocked' : 'active' }
-        : c
-    ));
+  const handleToggleStatus = async (client: Client) => {
+    const newStatus = client.status === 'active' ? 'blocked' : 'active';
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ status: newStatus })
+        .eq('id', client.id);
+
+      if (error) throw error;
+
+      // Atualiza UI Otimista
+      setClients(clients.map(c =>
+        c.id === client.id ? { ...c, status: newStatus } : c
+      ));
+
+      // Se estiver no modal de detalhes, atualiza ele também
+      if (selectedClient && selectedClient.id === client.id) {
+        setSelectedClient({ ...selectedClient, status: newStatus });
+      }
+
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      alert('Não foi possível atualizar o status.');
+    }
     setActionMenuOpen(null);
   };
 
-  const handleRemoveClient = (clientId: string) => {
-    if (confirm('Tem certeza que deseja remover o acesso deste cliente?')) {
+  const handleRemoveClient = async (clientId: string) => {
+    if (!confirm('Tem certeza que deseja remover o acesso deste cliente? O histórico dele será perdido.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+
+      if (error) throw error;
+
       setClients(clients.filter(c => c.id !== clientId));
+    } catch (error) {
+      console.error('Erro ao remover cliente:', error);
+      alert('Erro ao remover cliente.');
     }
     setActionMenuOpen(null);
   };
@@ -125,7 +201,8 @@ const ClientsPage: React.FC = () => {
     setActionMenuOpen(null);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
   };
@@ -153,6 +230,7 @@ const ClientsPage: React.FC = () => {
           onClick={() => setIsAddModalOpen(true)}
           className="h-14 px-8 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20"
           leftIcon={UserPlus}
+          disabled={apps.length === 0}
         >
           Adicionar Cliente
         </Button>
@@ -164,16 +242,16 @@ const ClientsPage: React.FC = () => {
           <div className="lg:col-span-2">
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Buscar Usuário</label>
             <div className="relative group">
-                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300">
-                    <Search className="w-5 h-5 group-focus-within:text-brand-blue transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Email ou nome do cliente..."
-                  className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
-                />
+              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300">
+                <Search className="w-5 h-5 group-focus-within:text-brand-blue transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Email ou nome do cliente..."
+                className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
+              />
             </div>
           </div>
 
@@ -185,7 +263,7 @@ const ClientsPage: React.FC = () => {
               className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
             >
               <option value="all">Todos os Aplicativos</option>
-              {userApps.map(app => (
+              {apps.map(app => (
                 <option key={app.id} value={app.id}>{app.name}</option>
               ))}
             </select>
@@ -206,16 +284,16 @@ const ClientsPage: React.FC = () => {
         </div>
 
         <div className="mt-8 pt-8 border-t border-slate-50 dark:border-slate-700 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Total: <span className="text-slate-900 dark:text-white">{filteredClients.length}</span> clientes encontrados
-                </p>
-            </div>
-            <button className="text-[10px] font-black text-brand-blue uppercase tracking-widest hover:underline flex items-center gap-2">
-                <Download className="w-3 h-3" />
-                Exportar CSV
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              Total: <span className="text-slate-900 dark:text-white">{filteredClients.length}</span> clientes encontrados
+            </p>
+          </div>
+          <button className="text-[10px] font-black text-brand-blue uppercase tracking-widest hover:underline flex items-center gap-2">
+            <Download className="w-3 h-3" />
+            Exportar CSV
+          </button>
         </div>
       </div>
 
@@ -233,11 +311,19 @@ const ClientsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
-              {filteredClients.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-8 py-20 text-center">
+                    <Loader2 className="w-10 h-10 text-brand-blue mx-auto animate-spin" />
+                    <p className="text-slate-400 font-bold mt-4">Carregando clientes...</p>
+                  </td>
+                </tr>
+              ) : filteredClients.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-8 py-20 text-center">
                     <Users className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
-                    <p className="text-slate-400 font-bold">Nenhum cliente encontrado com os filtros selecionados.</p>
+                    <p className="text-slate-400 font-bold">Nenhum cliente encontrado.</p>
+                    {apps.length === 0 && <p className="text-xs text-slate-400 mt-2">Crie um aplicativo primeiro para adicionar clientes.</p>}
                   </td>
                 </tr>
               ) : (
@@ -246,7 +332,7 @@ const ClientsPage: React.FC = () => {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-black text-brand-blue group-hover:bg-white dark:group-hover:bg-slate-600 shadow-sm transition-colors">
-                            {client.email[0].toUpperCase()}
+                          {client.email[0].toUpperCase()}
                         </div>
                         <div>
                           <p className="font-black text-slate-900 dark:text-white tracking-tight leading-tight">{client.email}</p>
@@ -256,7 +342,7 @@ const ClientsPage: React.FC = () => {
                     </td>
                     <td className="px-8 py-6">
                       <span className="inline-flex items-center px-3 py-1 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-600">
-                        {client.appName}
+                        {getAppName(client.app_id)}
                       </span>
                     </td>
                     <td className="px-8 py-6 text-center">
@@ -275,7 +361,7 @@ const ClientsPage: React.FC = () => {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-2 text-slate-500 font-bold text-xs">
                         <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                        {formatDate(client.createdAt)}
+                        {formatDate(client.created_at)}
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
@@ -299,7 +385,7 @@ const ClientsPage: React.FC = () => {
                                 Ver detalhes
                               </button>
                               <button
-                                onClick={() => handleToggleStatus(client.id)}
+                                onClick={() => handleToggleStatus(client)}
                                 className="flex items-center gap-3 w-full px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 hover:text-orange-500 hover:bg-orange-50 transition-all"
                               >
                                 {client.status === 'active' ? (
@@ -381,7 +467,7 @@ const ClientsPage: React.FC = () => {
                   className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
                 >
                   <option value="">Selecione o aplicativo</option>
-                  {userApps.map(app => (
+                  {apps.map(app => (
                     <option key={app.id} value={app.id}>{app.name}</option>
                   ))}
                 </select>
@@ -389,13 +475,13 @@ const ClientsPage: React.FC = () => {
 
               <div className="p-5 rounded-[1.5rem] bg-blue-50 border border-blue-100 flex items-start gap-4">
                 <div className="p-2 bg-white rounded-xl shadow-sm text-brand-blue">
-                    <AlertCircle className="w-5 h-5" />
+                  <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                    <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Importante</p>
-                    <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
-                        Ao adicionar o cliente, ele receberá um e-mail de boas-vindas com as instruções de acesso para o app selecionado.
-                    </p>
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Importante</p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
+                    Ao adicionar o cliente, ele terá acesso imediato. O envio de e-mail automático será configurado nas Integrações.
+                  </p>
                 </div>
               </div>
             </div>
@@ -410,6 +496,7 @@ const ClientsPage: React.FC = () => {
               </Button>
               <Button
                 onClick={handleAddClient}
+                isLoading={isSubmitting}
                 className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-500/20"
                 leftIcon={CheckCircle2}
               >
@@ -426,66 +513,66 @@ const ClientsPage: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsDetailModalOpen(false)} />
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
             <div className="p-10 text-center bg-slate-900 text-white relative">
-               <div className="absolute top-4 right-4">
-                 <button onClick={() => setIsDetailModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                    <X className="w-5 h-5 text-white/60" />
-                 </button>
-               </div>
-               <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                 <span className="text-3xl font-black">{selectedClient.email[0].toUpperCase()}</span>
-               </div>
-               <h3 className="text-xl font-black tracking-tight">{selectedClient.name || 'Sem nome cadastrado'}</h3>
-               <p className="text-white/60 text-sm font-medium mt-1">{selectedClient.email}</p>
-               
-               <div className="mt-6 flex justify-center">
-                  <span className={cn(
-                    "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                    selectedClient.status === 'active' ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                  )}>
-                    {selectedClient.status === 'active' ? '● Usuário Ativo' : '○ Usuário Bloqueado'}
-                  </span>
-               </div>
+              <div className="absolute top-4 right-4">
+                <button onClick={() => setIsDetailModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                  <X className="w-5 h-5 text-white/60" />
+                </button>
+              </div>
+              <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                <span className="text-3xl font-black">{selectedClient.email[0].toUpperCase()}</span>
+              </div>
+              <h3 className="text-xl font-black tracking-tight">{selectedClient.name || 'Sem nome cadastrado'}</h3>
+              <p className="text-white/60 text-sm font-medium mt-1">{selectedClient.email}</p>
+
+              <div className="mt-6 flex justify-center">
+                <span className={cn(
+                  "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                  selectedClient.status === 'active' ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                )}>
+                  {selectedClient.status === 'active' ? '● Usuário Ativo' : '○ Usuário Bloqueado'}
+                </span>
+              </div>
             </div>
 
             <div className="p-8 space-y-6">
-               <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aplicativo</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">{selectedClient.appName}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cadastrado em</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatDate(selectedClient.createdAt)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Último Acesso</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selectedClient.lastAccess ? formatDate(selectedClient.lastAccess) : 'Nunca acessou'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem da Liberação</span>
-                    <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest px-2 py-1 bg-blue-50 rounded-lg">{getSourceLabel(selectedClient.source)}</span>
-                  </div>
-               </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aplicativo</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white">{getAppName(selectedClient.app_id)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cadastrado em</span>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatDate(selectedClient.created_at)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Último Acesso</span>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selectedClient.last_access ? formatDate(selectedClient.last_access) : 'Nunca acessou'}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem da Liberação</span>
+                  <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest px-2 py-1 bg-blue-50 rounded-lg">{getSourceLabel(selectedClient.source)}</span>
+                </div>
+              </div>
 
-               <div className="flex gap-4 mt-8">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsDetailModalOpen(false)}
-                    className="flex-1 font-black text-[10px] uppercase tracking-widest py-4"
-                  >
-                    Fechar
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                        handleToggleStatus(selectedClient.id);
-                        setIsDetailModalOpen(false);
-                    }}
-                    className="flex-1 font-black text-[10px] uppercase tracking-widest py-4"
-                  >
-                    {selectedClient.status === 'active' ? 'Bloquear Acesso' : 'Desbloquear'}
-                  </Button>
-               </div>
+              <div className="flex gap-4 mt-8">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="flex-1 font-black text-[10px] uppercase tracking-widest py-4"
+                >
+                  Fechar
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    handleToggleStatus(selectedClient);
+                    // Não fecha o modal, apenas atualiza o status visualmente
+                  }}
+                  className="flex-1 font-black text-[10px] uppercase tracking-widest py-4"
+                >
+                  {selectedClient.status === 'active' ? 'Bloquear Acesso' : 'Desbloquear'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
