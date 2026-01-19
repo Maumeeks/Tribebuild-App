@@ -7,7 +7,8 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, cpf?: string) => Promise<{ error: AuthError | null }>;
+  // ✅ ATUALIZADO: Agora aceita phone como parâmetro opcional
+  signUp: (email: string, password: string, fullName: string, cpf?: string, phone?: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -129,11 +130,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchProfile]);
 
-  const signUp = async (email: string, password: string, fullName: string, cpf?: string) => {
+  // ✅ FUNÇÃO CORRIGIDA: Recebe phone e envia para o Supabase
+  const signUp = async (email: string, password: string, fullName: string, cpf?: string, phone?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, cpf: cpf || null } },
+      options: { 
+        data: { 
+          full_name: fullName, 
+          cpf: cpf || null,
+          phone: phone || null // Agora salva o telefone no banco
+        } 
+      },
     });
     return { error };
   };
