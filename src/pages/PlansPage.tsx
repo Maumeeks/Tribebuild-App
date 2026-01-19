@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Check, Info, Loader2, Crown, Zap, Building2, Rocket, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Crown, Zap, Building2, Rocket, AlertCircle } from 'lucide-react';
 import TribeBuildLogo from '../components/TribeBuildLogo';
 import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from 'react-router-dom';
-import { cn } from '../lib/utils';
+import { useLocation, Link } from 'react-router-dom';
 
 const PlansPage: React.FC = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -12,7 +11,6 @@ const PlansPage: React.FC = () => {
   const location = useLocation();
   const state = location.state as { expired?: boolean; message?: string };
 
-  // Helper para cores do Tailwind
   const getPlanColors = (color: string) => {
     switch (color) {
       case 'brand-blue': return { bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200' };
@@ -23,16 +21,19 @@ const PlansPage: React.FC = () => {
     }
   };
 
+  // ✅ PLANOS COM LINKS CORRETOS DO STRIPE
   const plansData = [
     {
       name: 'Starter',
       monthlyPrice: 67,
       yearlyPrice: 672,
-      monthlyPriceId: 'price_1SlI8pI5Cu8MrWaGjBdlVYnu',
-      yearlyPriceId: 'price_1SlI8pI5Cu8MrWaGYJih1P0D',
-      description: 'Quem está dando os primeiros passos.',
       icon: Zap,
       color: 'brand-blue',
+      // ✅ LINKS DIRETOS DO STRIPE (Payment Links)
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
+        yearly: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
+      },
       features: [
         '1 Aplicativo',
         '500 membros ativos',
@@ -43,17 +44,19 @@ const PlansPage: React.FC = () => {
         'Domínio Personalizado',
         'Acesso a Tutoriais (Sem suporte humano)',
       ],
+      description: 'Quem está dando os primeiros passos.',
       popular: false,
     },
     {
       name: 'Professional',
       monthlyPrice: 127,
       yearlyPrice: 1272,
-      monthlyPriceId: 'price_1SlI8pI5Cu8MrWaGNgMPqkQN',
-      yearlyPriceId: 'price_1SlI8pI5Cu8MrWaGAX4FfQHX',
-      description: 'Criadores em crescimento constante.',
       icon: Crown,
       color: 'brand-coral',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
+        yearly: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04',
+      },
       features: [
         '3 Aplicativos',
         '1.500 membros ativos',
@@ -64,17 +67,19 @@ const PlansPage: React.FC = () => {
         'Domínio Personalizado',
         'Suporte via E-mail (48h)',
       ],
+      description: 'Criadores em crescimento constante.',
       popular: true,
     },
     {
       name: 'Business',
       monthlyPrice: 247,
       yearlyPrice: 2472,
-      monthlyPriceId: 'price_1SlI8pI5Cu8MrWaGYq5KS1Lz',
-      yearlyPriceId: 'price_1SlI9lI5Cu8MrWaG2NXdqrAM',
-      description: 'Operações escalando sem limites.',
       icon: Building2,
       color: 'purple-500',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_9B63cv0Zu8GGdiSbC12wU02',
+        yearly: 'https://buy.stripe.com/test_14A14n23yaOOdiSaxX2wU05',
+      },
       features: [
         '5 Aplicativos',
         '2.800 membros ativos',
@@ -85,17 +90,19 @@ const PlansPage: React.FC = () => {
         'Domínio Personalizado',
         'Suporte via E-mail (48h)',
       ],
+      description: 'Operações escalando sem limites.',
       popular: false,
     },
     {
       name: 'Enterprise',
       monthlyPrice: 397,
       yearlyPrice: 3970,
-      monthlyPriceId: 'price_1SpuPcI5Cu8MrWaGP8LUZf0q',
-      yearlyPriceId: 'price_1SpuPcI5Cu8MrWaGukdBm3Hy',
-      description: 'Máxima potência e exclusividade.',
       icon: Rocket,
       color: 'indigo-500',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_9B68wP9w07CC3Ii49z2wU06',
+        yearly: 'https://buy.stripe.com/test_00waEX23y0aa0w6cG52wU07',
+      },
       features: [
         '10 Aplicativos',
         '6.000 membros ativos',
@@ -107,61 +114,27 @@ const PlansPage: React.FC = () => {
         'Suporte via E-mail (prioritário)',
         'White Label (sem marca TribeBuild)',
       ],
+      description: 'Máxima potência e exclusividade.',
       popular: false,
     },
   ];
 
-  const plans = {
-    monthly: plansData.map(plan => ({
-      id: plan.name.toLowerCase(),
-      name: plan.name,
-      price: plan.monthlyPrice,
-      period: '/mês',
-      description: plan.description,
-      icon: plan.icon,
-      color: plan.color,
-      features: plan.features,
-      stripeLink: `https://buy.stripe.com/test_checkout?price_id=${plan.monthlyPriceId}`,
-      popular: plan.popular,
-    })),
-    annual: plansData.map(plan => ({
-      id: plan.name.toLowerCase(),
-      name: plan.name,
-      price: Math.round(plan.yearlyPrice / 12),
-      originalPrice: plan.monthlyPrice,
-      period: '/mês',
-      billedAs: `R$ ${plan.yearlyPrice}/ano`,
-      description: plan.description,
-      icon: plan.icon,
-      color: plan.color,
-      features: plan.features,
-      stripeLink: `https://buy.stripe.com/test_checkout?price_id=${plan.yearlyPriceId}`,
-      popular: plan.popular,
-    })),
-  };
+  const handleSelectPlan = (plan: typeof plansData[0]) => {
+    setLoadingPlan(plan.name.toLowerCase());
 
-  const currentPlans = plans[billingPeriod];
+    // Seleciona o link correto baseado no período
+    let checkoutUrl = billingPeriod === 'monthly' 
+      ? plan.stripeUrls.monthly 
+      : plan.stripeUrls.yearly;
 
-  const handleSelectPlan = (baseLink: string, planId: string) => {
-    setLoadingPlan(planId);
-
-    let fullLink = baseLink;
-
-    if (user?.id) {
-      fullLink += (fullLink.includes('?') ? '&' : '?') + `client_reference_id=${user.id}`;
+    // Adiciona client_reference_id e prefilled_email se o usuário estiver logado
+    if (user) {
+      const separator = checkoutUrl.includes('?') ? '&' : '?';
+      checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
     }
 
-    if (user?.email) {
-      fullLink += (fullLink.includes('?') ? '&' : '?') + `prefilled_email=${encodeURIComponent(user.email || '')}`
-    }
-
-    const baseUrl = window.location.origin;
-    fullLink +=
-      (fullLink.includes('?') ? '&' : '?') +
-      `success_url=${encodeURIComponent(baseUrl + '/subscription/success?session_id={CHECKOUT_SESSION_ID}')}` +
-      `&cancel_url=${encodeURIComponent(baseUrl + '/subscription/cancel')}`;
-
-    window.location.href = fullLink;
+    // Redireciona para o Stripe Checkout
+    window.location.href = checkoutUrl;
   };
 
   return (
@@ -175,9 +148,9 @@ const PlansPage: React.FC = () => {
       <div className="relative z-10 px-4 py-8 md:py-12">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-6">
+          <Link to="/" className="inline-block mb-6">
             <TribeBuildLogo size="lg" showText={true} />
-          </div>
+          </Link>
 
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-3">
             Escolha seu plano
@@ -185,9 +158,12 @@ const PlansPage: React.FC = () => {
           <p className="text-slate-600 dark:text-slate-400 text-lg mb-2 font-medium">
             Desbloqueie todo o potencial da sua comunidade
           </p>
+          <p className="text-sm text-green-600 dark:text-green-400 font-bold">
+            ✨ 7 dias grátis para testar • Cancele quando quiser
+          </p>
           {user?.email && (
-            <p className="text-sm text-slate-500 dark:text-slate-500 font-bold">
-              Conta atual: <span className="text-brand-blue">{user.email}</span>
+            <p className="text-sm text-slate-500 dark:text-slate-500 font-bold mt-2">
+              Conta: <span className="text-brand-blue">{user.email}</span>
             </p>
           )}
         </div>
@@ -221,10 +197,10 @@ const PlansPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Info Box */}
-        <div className="max-w-4xl mx-auto mb-10 space-y-4">
-          {state?.expired && (
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30 rounded-2xl p-6 flex items-start gap-4 shadow-sm animate-shake">
+        {/* Info Box - Expirado */}
+        {state?.expired && (
+          <div className="max-w-4xl mx-auto mb-10">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
               <div className="p-2 bg-white dark:bg-slate-800 rounded-xl text-orange-600 shadow-sm">
                 <AlertCircle className="w-5 h-5" />
               </div>
@@ -237,22 +213,23 @@ const PlansPage: React.FC = () => {
                 </p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Plans Grid Responsivo */}
+        {/* Plans Grid */}
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {currentPlans.map((plan) => {
+          {plansData.map((plan) => {
             const Icon = plan.icon;
             const isPopular = plan.popular;
             const colors = getPlanColors(plan.color);
+            const displayPrice = billingPeriod === 'monthly' ? plan.monthlyPrice : Math.round(plan.yearlyPrice / 12);
 
             return (
               <div
-                key={plan.id}
+                key={plan.name}
                 className={`relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl border-2 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ${
                   isPopular
-                    ? 'border-brand-coral dark:border-brand-coral z-10 scale-105 shadow-brand-coral/10'
+                    ? 'border-brand-coral dark:border-brand-coral z-10 lg:scale-105 shadow-brand-coral/10'
                     : 'border-slate-100 dark:border-slate-700 hover:border-brand-blue/30 dark:hover:border-brand-blue/30'
                 }`}
               >
@@ -267,9 +244,7 @@ const PlansPage: React.FC = () => {
                 <div className="p-6 flex flex-col h-full">
                   {/* Plan Header */}
                   <div className="flex items-center gap-4 mb-6">
-                    <div
-                      className={`w-12 h-12 rounded-2xl ${colors.bg} flex items-center justify-center flex-shrink-0`}
-                    >
+                    <div className={`w-12 h-12 rounded-2xl ${colors.bg} flex items-center justify-center flex-shrink-0`}>
                       <Icon className={`w-6 h-6 ${colors.text}`} />
                     </div>
                     <div>
@@ -286,12 +261,15 @@ const PlansPage: React.FC = () => {
                   <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
                     <div className="flex items-center justify-center gap-1 text-slate-900 dark:text-white">
                       <span className="text-xs font-bold text-slate-400">R$</span>
-                      <span className="text-4xl font-black tracking-tighter">{plan.price}</span>
-                      <span className="text-xs font-bold text-slate-400 self-end mb-1">{plan.period}</span>
+                      <span className="text-4xl font-black tracking-tighter">{displayPrice}</span>
+                      <span className="text-xs font-bold text-slate-400 self-end mb-1">/mês</span>
                     </div>
 
-                    {billingPeriod === 'annual' && 'originalPrice' in plan && (
+                    {billingPeriod === 'annual' && (
                       <div className="mt-2 flex flex-col items-center gap-1">
+                        <span className="text-[10px] font-bold text-slate-400 line-through">
+                          R$ {plan.monthlyPrice}/mês
+                        </span>
                         <span className="text-[10px] font-bold bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
                           Economia de 17%
                         </span>
@@ -315,7 +293,7 @@ const PlansPage: React.FC = () => {
 
                   {/* CTA Button */}
                   <button
-                    onClick={() => handleSelectPlan(plan.stripeLink, plan.id)}
+                    onClick={() => handleSelectPlan(plan)}
                     disabled={loadingPlan !== null}
                     className={`w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-auto transform hover:-translate-y-1 active:scale-95 ${
                       isPopular
@@ -323,13 +301,13 @@ const PlansPage: React.FC = () => {
                         : 'bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white shadow-lg'
                     }`}
                   >
-                    {loadingPlan === plan.id ? (
+                    {loadingPlan === plan.name.toLowerCase() ? (
                       <span className="flex items-center justify-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Processando...
                       </span>
                     ) : (
-                      'Assinar Agora'
+                      'Começar 7 dias grátis'
                     )}
                   </button>
                 </div>
@@ -343,6 +321,10 @@ const PlansPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
             <span className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-800">
               <Check className="w-3 h-3 text-green-500" />
+              7 dias grátis
+            </span>
+            <span className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-800">
+              <Check className="w-3 h-3 text-green-500" />
               Pagamento Seguro
             </span>
             <span className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-800">
@@ -350,6 +332,13 @@ const PlansPage: React.FC = () => {
               Cancele quando quiser
             </span>
           </div>
+          
+          <p className="mt-8 text-sm text-slate-400">
+            Já tem uma conta?{' '}
+            <Link to="/login" className="text-brand-blue font-bold hover:underline">
+              Faça login
+            </Link>
+          </p>
         </div>
       </div>
     </div>
