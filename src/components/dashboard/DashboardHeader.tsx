@@ -30,11 +30,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   
-  // ✅ CORREÇÃO AQUI: Provavelmente seu Context usa 'theme' em vez de 'isDark'
-  // Se o ThemeContext não tiver isDark, usamos theme === 'dark'
-  const { theme, toggleTheme } = useTheme() as any; 
-  // Forçamos 'any' temporariamente ou usamos a propriedade correta se você souber (geralmente é 'theme')
-  const isDark = theme === 'dark'; 
+  // ✅ CORREÇÃO: Forçamos a leitura correta do tema
+  const themeContext = useTheme() as any;
+  const toggleTheme = themeContext.toggleTheme;
+  // Se existir 'isDark', usa ele. Se não, verifica se 'theme' é 'dark'
+  const isDark = themeContext.isDark !== undefined ? themeContext.isDark : themeContext.theme === 'dark';
 
   const { user: authUser } = useAuth(); 
 

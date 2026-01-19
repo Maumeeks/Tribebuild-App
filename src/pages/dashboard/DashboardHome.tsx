@@ -6,14 +6,14 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const DashboardHome: React.FC = () => {
   const { apps } = useApps();
-  // ✅ CORREÇÃO 1: Removemos isTrialActive e trialDaysLeft (que causavam o erro)
+  // ✅ CORREÇÃO 1: Removido isTrialActive e trialDaysLeft que causavam o erro
   const { profile } = useAuth(); 
   
   // Define o plano atual
   const currentPlan = profile?.plan || 'free';
   const planStatus = profile?.plan_status;
 
-  // ✅ CORREÇÃO 2: Lógica local para exibição (sem depender do Context)
+  // ✅ CORREÇÃO 2: Lógica local para exibição visual
   const isTrialActive = planStatus === 'trial';
   
   const getTrialDaysLeft = () => {
@@ -147,7 +147,7 @@ const DashboardHome: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid de Links Rápidos (Mantido inalterado) */}
+      {/* Grid de Links Rápidos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
         <Link
           to="/dashboard/integrations"
