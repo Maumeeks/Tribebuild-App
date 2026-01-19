@@ -15,6 +15,10 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import SubscriptionSuccessPage from './pages/SubscriptionSuccessPage';
 import SubscriptionCancelPage from './pages/SubscriptionCancelPage';
 
+// ✅ ROTAS DE EMAIL RECUPERADAS
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import AuthCallback from './pages/AuthCallback';
+
 // PWA
 import PwaLoginPage from './pages/pwa/PwaLoginPage';
 import PwaRegisterPage from './pages/pwa/PwaRegisterPage';
@@ -61,7 +65,6 @@ const App: React.FC = () => {
     <AuthProvider>
       <AppsProvider>
         <ThemeProvider>
-          {/* ✅ CORREÇÃO: BrowserRouter para URLs limpas (sem #) */}
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
@@ -71,6 +74,10 @@ const App: React.FC = () => {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/plans" element={<PlansPage />} />
+
+              {/* ✅ ROTAS DE EMAIL REINSERIDAS */}
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
 
               {/* Subscription Callback Routes */}
               <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
@@ -109,7 +116,6 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               >
-                {/* ✅ AQUI ESTÁ O SEGREDO: Rota Index carrega a Home automaticamente */}
                 <Route index element={<DashboardHome />} />
                 <Route path="apps" element={<AppsPage />} />
                 <Route path="apps/:appId/products" element={<ProductsPage />} />
