@@ -1,55 +1,106 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AppsProvider } from './contexts/AppsContext'; // ✅ Adicionado para não quebrar a Home
-
-// Componentes de Proteção
+import { AuthProvider } from './contexts/AuthContext';
+import { AppsProvider } from './contexts/AppsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Layouts
-import DashboardLayout from './layout/DashboardLayout'; // Certifique-se que este arquivo existe (era o antigo AdminLayout ou DashboardLayout)
-
-// Pages - Públicas
+// Páginas públicas
+import PlansPage from './pages/PlansPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import PlansPage from './pages/PlansPage';
 import SubscriptionSuccessPage from './pages/SubscriptionSuccessPage';
 import SubscriptionCancelPage from './pages/SubscriptionCancelPage';
 
-// Pages - Dashboard (Recuperadas do arquivo antigo)
+// PWA
+import PwaLoginPage from './pages/pwa/PwaLoginPage';
+import PwaRegisterPage from './pages/pwa/PwaRegisterPage';
+import PwaForgotPasswordPage from './pages/pwa/PwaForgotPasswordPage';
+import PwaHomePage from './pages/pwa/PwaHomePage';
+import PwaProductPage from './pages/pwa/PwaProductPage';
+import PwaLessonPage from './pages/pwa/PwaLessonPage';
+import PwaFeedPage from './pages/pwa/PwaFeedPage';
+import PwaCommunityPage from './pages/pwa/PwaCommunityPage';
+import PwaProfilePage from './pages/pwa/PwaProfilePage';
+
+// Dashboard
+import DashboardLayout from './layout/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import AppsPage from './pages/dashboard/AppsPage';
 import AppBuilder from './pages/dashboard/AppBuilder';
+import ContentManager from './pages/dashboard/ContentManager';
+import Analytics from './pages/dashboard/Analytics';
+import Settings from './pages/dashboard/Settings';
+import ProductsPage from './pages/dashboard/ProductsPage';
+import FeedPage from './pages/dashboard/FeedPage';
+import CommunityPage from './pages/dashboard/CommunityPage';
+import NotificationsPage from './pages/dashboard/NotificationsPage';
 import IntegrationsPage from './pages/dashboard/IntegrationsPage';
 import ClientsPage from './pages/dashboard/ClientsPage';
-import DashboardPlansPage from './pages/dashboard/PlansPage'; // Página de planos interna
+import DashboardPlansPage from './pages/dashboard/PlansPage';
 import DomainsPage from './pages/dashboard/DomainsPage';
 import BonusPage from './pages/dashboard/BonusPage';
+
+// Admin
+import AdminLayout from './layouts/AdminLayout';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminSubscriptionsPage from './pages/admin/AdminSubscriptionsPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminSecurityPage from './pages/admin/AdminSecurityPage';
+
+// Dev
+import DevToolsPage from './pages/DevToolsPage';
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppsProvider> {/* ✅ O contexto de Apps precisa envolver as rotas */}
+      <AppsProvider>
         <ThemeProvider>
-          <HashRouter>
+          {/* ✅ CORREÇÃO: BrowserRouter para URLs limpas (sem #) */}
+          <BrowserRouter>
             <Routes>
-              {/* === ROTAS PÚBLICAS === */}
+              {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
-
-              {/* Rotas de Assinatura (Checkout) */}
               <Route path="/plans" element={<PlansPage />} />
+
+              {/* Subscription Callback Routes */}
               <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
               <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
 
-              {/* === ROTAS PROTEGIDAS DO DASHBOARD === */}
+              {/* Dev Tools */}
+              <Route path="/dev" element={<DevToolsPage />} />
+
+              {/* Master Admin Routes */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboardPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                <Route path="settings" element={<AdminSettingsPage />} />
+                <Route path="security" element={<AdminSecurityPage />} />
+              </Route>
+
+              {/* PWA End-User Routes */}
+              <Route path="/app/:appSlug/login" element={<PwaLoginPage />} />
+              <Route path="/app/:appSlug/register" element={<PwaRegisterPage />} />
+              <Route path="/app/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
+              <Route path="/app/:appSlug/home" element={<PwaHomePage />} />
+              <Route path="/app/:appSlug/product/:productId" element={<PwaProductPage />} />
+              <Route path="/app/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
+              <Route path="/app/:appSlug/feed" element={<PwaFeedPage />} />
+              <Route path="/app/:appSlug/community" element={<PwaCommunityPage />} />
+              <Route path="/app/:appSlug/profile" element={<PwaProfilePage />} />
+
+              {/* Protected Dashboard Routes */}
               <Route
                 path="/dashboard"
                 element={
@@ -60,10 +111,16 @@ const App: React.FC = () => {
               >
                 {/* ✅ AQUI ESTÁ O SEGREDO: Rota Index carrega a Home automaticamente */}
                 <Route index element={<DashboardHome />} />
-
-                {/* Rotas Internas */}
                 <Route path="apps" element={<AppsPage />} />
+                <Route path="apps/:appId/products" element={<ProductsPage />} />
+                <Route path="apps/:appId/feed" element={<FeedPage />} />
+                <Route path="apps/:appId/community" element={<CommunityPage />} />
+                <Route path="apps/:appId/notifications" element={<NotificationsPage />} />
                 <Route path="builder" element={<AppBuilder />} />
+                <Route path="content" element={<ContentManager />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="my-apps" element={<AppsPage />} />
                 <Route path="integrations" element={<IntegrationsPage />} />
                 <Route path="clients" element={<ClientsPage />} />
                 <Route path="plans" element={<DashboardPlansPage />} />
@@ -71,10 +128,10 @@ const App: React.FC = () => {
                 <Route path="bonus" element={<BonusPage />} />
               </Route>
 
-              {/* Rota de Redirecionamento (Catch-all) */}
+              {/* Catch-all redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </HashRouter>
+          </BrowserRouter>
         </ThemeProvider>
       </AppsProvider>
     </AuthProvider>
