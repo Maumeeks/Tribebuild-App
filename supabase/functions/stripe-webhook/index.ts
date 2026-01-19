@@ -53,7 +53,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+
+    // ✅ CORREÇÃO CRÍTICA AQUI:
+    // Mudamos de constructEvent para await constructEventAsync
+    // Isso resolve o erro "SubtleCryptoProvider cannot be used in a synchronous context"
+    const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
 
     console.log(`📥 Webhook received: ${event.type} [${event.id}]`);
 
@@ -133,8 +137,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
   const updateData = {
     stripe_customer_id: customerId,
     stripe_subscription_id: subscriptionId,
-    plan: planName,                                    // ✅ CORRETO (era subscription_plan)
-    plan_status: isTrialing ? 'trial' : 'active',     // ✅ CORRETO (era subscription_status)
+    plan: planName,                                        // ✅ CORRETO (era subscription_plan)
+    plan_status: isTrialing ? 'trial' : 'active',         // ✅ CORRETO (era subscription_status)
     trial_ends_at: isTrialing && subscription.trial_end 
       ? new Date(subscription.trial_end * 1000).toISOString() 
       : null,
