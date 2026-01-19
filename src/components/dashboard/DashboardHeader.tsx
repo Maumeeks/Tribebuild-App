@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Smartphone, 
-  Link2, 
-  Users, 
-  CreditCard, 
+import {
+  Smartphone,
+  Link2,
+  Users,
+  CreditCard,
   Globe,
   Gift,
   GraduationCap,
@@ -21,7 +21,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DashboardHeaderProps {
-  onLogout: () => void;
+  // ✅ ATUALIZADO: Aceita Promise para aguardar o logout do Supabase
+  onLogout: () => Promise<void> | void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
@@ -29,16 +30,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  
-  // ✅ CORREÇÃO: Forçamos a leitura correta do tema
+
+  // ✅ CORREÇÃO: Forçamos a leitura correta do tema (Blindagem TypeScript)
   const themeContext = useTheme() as any;
   const toggleTheme = themeContext.toggleTheme;
-  // Se existir 'isDark', usa ele. Se não, verifica se 'theme' é 'dark'
   const isDark = themeContext.isDark !== undefined ? themeContext.isDark : themeContext.theme === 'dark';
 
-  const { user: authUser } = useAuth(); 
+  const { user: authUser } = useAuth();
 
-  // Dados do usuário
+  // Dados do usuário (Puxando do Supabase com fallback seguro)
   const user = {
     name: authUser?.user_metadata?.full_name || 'Usuário TribeBuild',
     email: authUser?.email || 'usuario@tribebuild.com',
@@ -59,9 +59,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
   };
 
-  const handleLogout = () => {
-    onLogout();
-    navigate('/login');
+  // ✅ CORREÇÃO: Logout Assíncrono para garantir limpeza do cache
+  const handleLogout = async () => {
+    try {
+      await onLogout();
+    } finally {
+      navigate('/login');
+    }
   };
 
   return (
@@ -69,7 +73,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
       <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-40 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            
+
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center gap-3 group">
               <TribeBuildLogo size="md" showText={true} />
@@ -81,25 +85,23 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight transition-all flex items-center gap-2 ${
-                    isActive(item.href)
+                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight transition-all flex items-center gap-2 ${isActive(item.href)
                       ? 'bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   <item.icon className="w-4 h-4" />
                   {item.name}
                 </Link>
               ))}
-              
+
               {/* Bônus - Destaque especial */}
               <Link
                 to={bonusItem.href}
-                className={`ml-2 px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight transition-all flex items-center gap-2 ${
-                  isActive(bonusItem.href)
+                className={`ml-2 px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight transition-all flex items-center gap-2 ${isActive(bonusItem.href)
                     ? 'bg-gradient-to-r from-brand-coral to-orange-500 text-white shadow-lg shadow-brand-coral/30'
                     : 'bg-brand-coral/10 dark:bg-brand-coral/20 text-brand-coral hover:bg-brand-coral/20 dark:hover:bg-brand-coral/30 border border-brand-coral/20'
-                }`}
+                  }`}
               >
                 <Gift className="w-4 h-4" />
                 {bonusItem.name}
@@ -108,7 +110,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
 
             {/* Lado Direito */}
             <div className="flex items-center gap-4">
-              
+
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
@@ -123,7 +125,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
               </button>
 
               {/* Academia - Desktop */}
-              <a 
+              <a
                 href="#/academia"
                 className="hidden xl:flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-brand-blue transition-colors px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
               >
@@ -146,8 +148,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
                 {/* Dropdown do Usuário */}
                 {isUserMenuOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
+                    <div
+                      className="fixed inset-0 z-10"
                       onClick={() => setIsUserMenuOpen(false)}
                     />
                     <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 py-3 z-20 animate-slide-up origin-top-right">
