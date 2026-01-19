@@ -7,7 +7,6 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  // ✅ ATUALIZADO: Agora aceita phone como parâmetro opcional
   signUp: (email: string, password: string, fullName: string, cpf?: string, phone?: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -32,23 +31,58 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+  // 🛡️ PROTEÇÃO 1: Busca de perfil com Timeout e Auto-Criação
+  const fetchProfile = useCallback(async (userId: string, userEmail?: string): Promise<Profile | null> => {
     try {
       console.log('[Auth] Buscando profile para:', userId);
-      const { data, error } = await supabase
+
+      // Timeout Promise: Rejeita se demorar mais de 5s
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 5000)
+      );
+
+      // Corrida: Banco de Dados vs Timeout
+      const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
       if (error) {
+        // 🛡️ PROTEÇÃO 3: Auto-Healing (Se não achar, cria!)
+        if (error.code === 'PGRST116') {
+          console.warn('[Auth] Perfil não encontrado. Tentando criar perfil de emergência...');
+          // Tenta criar um perfil básico na hora
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: userId,
+              email: userEmail || 'no-email',
+              full_name: 'Usuário',
+              plan: 'starter',
+              plan_status: 'active'
+            }])
+            .select()
+            .single();
+
+          if (!createError && newProfile) {
+            console.log('[Auth] Perfil de emergência criado com sucesso!');
+            return newProfile as Profile;
+          }
+        }
+
         console.warn('[Auth] Erro ao buscar profile:', error.message);
         return null;
       }
+
       console.log('[Auth] Profile encontrado, status:', data?.plan_status);
       return data as Profile;
+
     } catch (err) {
-      console.error('[Auth] Erro critico:', err);
+      console.error('[Auth] Erro ou Timeout:', err);
+      // Em caso de timeout, retornamos null para não travar o app
       return null;
     }
   }, []);
@@ -60,12 +94,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initialize = async () => {
       try {
         console.log('[Auth] Inicializando...');
-        
-        // Primeiro: configura o listener ANTES de pegar a sessão
+
+        // Configura Listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             console.log('[Auth] Evento:', event);
-            
             if (!mounted) return;
 
             if (event === 'SIGNED_OUT') {
@@ -73,52 +106,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUser(null);
               setProfile(null);
               setLoading(false);
-              return;
-            }
-
-            if (newSession?.user) {
+            } else if (newSession?.user) {
               setSession(newSession);
               setUser(newSession.user);
-              
-              // Busca profile em background
-              const userProfile = await fetchProfile(newSession.user.id);
-              if (mounted) {
-                setProfile(userProfile);
-                setLoading(false);
+
+              // Tenta buscar profile, mas garante setLoading(false) no final
+              try {
+                const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
+                if (mounted) setProfile(userProfile);
+              } finally {
+                // 🛡️ PROTEÇÃO 2: Garantia de destravar o loading
+                if (mounted) setLoading(false);
               }
             } else {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
               setLoading(false);
             }
           }
         );
-        
+
         authSubscription = subscription;
 
-        // Segundo: pega sessão atual (pode já existir)
+        // Pega sessão inicial
         const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
+
         if (mounted && currentSession?.user) {
-          console.log('[Auth] Sessao existente encontrada');
+          console.log('[Auth] Sessão existente encontrada');
           setSession(currentSession);
           setUser(currentSession.user);
-          
-          const userProfile = await fetchProfile(currentSession.user.id);
-          if (mounted) {
-            setProfile(userProfile);
+
+          try {
+            const userProfile = await fetchProfile(currentSession.user.id, currentSession.user.email);
+            if (mounted) setProfile(userProfile);
+          } catch (e) {
+            console.error('Erro no fetch inicial', e);
           }
-        }
-        
-        // Sempre finaliza loading
-        if (mounted) {
-          setLoading(false);
         }
 
       } catch (err) {
         console.error('[Auth] Falha na inicializacao:', err);
-        if (mounted) setLoading(false);
+      } finally {
+        // 🛡️ PROTEÇÃO 2: Garantia de destravar o loading (para a inicialização)
+        if (mounted) {
+          // Pequeno delay para evitar flash se o listener já tiver resolvido
+          setTimeout(() => setLoading(false), 100);
+        }
       }
     };
 
@@ -130,17 +161,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchProfile]);
 
-  // ✅ FUNÇÃO CORRIGIDA: Recebe phone e envia para o Supabase
   const signUp = async (email: string, password: string, fullName: string, cpf?: string, phone?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { 
-        data: { 
-          full_name: fullName, 
+      options: {
+        data: {
+          full_name: fullName,
           cpf: cpf || null,
-          phone: phone || null // Agora salva o telefone no banco
-        } 
+          phone: phone || null
+        }
       },
     });
     return { error };
@@ -172,7 +202,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     console.log('[Auth] Refresh manual do profile...');
-    const userProfile = await fetchProfile(user.id);
+    const userProfile = await fetchProfile(user.id, user.email);
     setProfile(userProfile);
   }, [user, fetchProfile]);
 
