@@ -89,34 +89,21 @@ const AuthCallback = () => {
     handleAuthCallback();
   }, [navigate]);
 
-  // Função para determinar redirecionamento baseado no profile
+  // Função para determinar redirecionamento baseada SOMENTE no status
   const determineRedirectPath = (profile: Profile | null): string => {
     if (!profile) {
       return '/plans';
     }
 
-    const { plan_status, trial_ends_at } = profile;
+    const { plan_status } = profile;
 
-    // Usuário com plano ativo -> dashboard
-    if (plan_status === 'active') {
+    // Se o status for 'active' (pago) ou 'trial' (período de teste válido), libera o dashboard.
+    // O Stripe/Webhook são responsáveis por mudar 'trial' para 'active' ou 'expired'.
+    if (plan_status === 'active' || plan_status === 'trial') {
       return '/dashboard';
     }
 
-    // Usuário em trial -> verificar se ainda é válido
-    if (plan_status === 'trial') {
-      if (trial_ends_at && new Date(trial_ends_at) > new Date()) {
-        return '/dashboard';
-      }
-      // Trial expirado -> plans
-      return '/plans';
-    }
-
-    // Usuários free, canceled, expired -> plans
-    if (plan_status === 'free' || plan_status === 'canceled' || plan_status === 'expired') {
-      return '/plans';
-    }
-
-    // Fallback seguro
+    // Qualquer outro status (free, canceled, expired, null) manda para planos
     return '/plans';
   };
 

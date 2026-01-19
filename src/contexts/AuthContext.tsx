@@ -13,8 +13,6 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
-  isTrialActive: boolean;
-  trialDaysLeft: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.warn('[Auth] Erro ao buscar profile:', error.message);
         return null;
       }
-      console.log('[Auth] Profile encontrado:', data?.plan_status);
+      console.log('[Auth] Profile encontrado, status:', data?.plan_status);
       return data as Profile;
     } catch (err) {
       console.error('[Auth] Erro critico:', err);
@@ -170,21 +168,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProfile(userProfile);
   }, [user, fetchProfile]);
 
-  const isTrialActive = Boolean(
-    profile?.plan_status === 'trial' &&
-    profile?.trial_ends_at &&
-    new Date(profile.trial_ends_at) > new Date()
-  );
-
-  const trialDaysLeft = profile?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(profile.trial_ends_at).getTime() - Date.now()) / 86400000))
-    : 0;
-
   return (
     <AuthContext.Provider value={{
       user, profile, session, loading,
-      signUp, signIn, signOut, resetPassword, updateProfile, refreshProfile,
-      isTrialActive, trialDaysLeft,
+      signUp, signIn, signOut, resetPassword, updateProfile, refreshProfile
     }}>
       {children}
     </AuthContext.Provider>

@@ -37,15 +37,6 @@ interface Plan {
   popular?: boolean;
 }
 
-interface Invoice {
-  id: string;
-  date: string;
-  plan: string;
-  amount: number;
-  status: 'paid' | 'pending' | 'failed';
-  downloadUrl: string;
-}
-
 // --- LISTA DE PLANOS ---
 const plans: Plan[] = [
   {
@@ -139,25 +130,23 @@ const plans: Plan[] = [
   }
 ];
 
-// Mock do usuário atual
-const currentUserPlan = {
-  planId: 'starter',
-  startDate: '2025-04-14',
-  nextBillingDate: '2025-05-14',
-  status: 'active' as const
-};
-
 const PlansPage: React.FC = () => {
-  const { user } = useAuth();
+  // ✅ CORREÇÃO 1: Usar dados reais do profile
+  const { user, profile } = useAuth();
+  
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [retentionModalOpen, setRetentionModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
-  const currentPlan = plans.find(p => p.id === currentUserPlan.planId);
+  // ✅ CORREÇÃO 2: Encontrar plano atual baseado no banco de dados
+  // Se não tiver plano (null), assume que não tem plano atual
+  const currentPlanId = profile?.plan || '';
+  const currentPlan = plans.find(p => p.id === currentPlanId);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '---';
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
   };
@@ -167,7 +156,8 @@ const PlansPage: React.FC = () => {
   };
 
   const handleSelectPlan = (plan: Plan) => {
-    if (plan.id === currentUserPlan.planId) return;
+    // Evita selecionar o plano que o usuário já tem
+    if (plan.id === currentPlanId) return;
     setSelectedPlan(plan);
     setUpgradeModalOpen(true);
   };
@@ -185,7 +175,6 @@ const PlansPage: React.FC = () => {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
       
       if (user) {
-         // ✅ CORREÇÃO APLICADA: || '' garante que user.email nunca seja undefined
          checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
       }
 
@@ -209,8 +198,8 @@ const PlansPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Plano Atual Card */}
-      {currentPlan && (
+      {/* Plano Atual Card - Só exibe se o usuário tiver um plano identificado */}
+      {currentPlan ? (
         <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
           <div className="p-8 md:p-10 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-800/50 dark:to-slate-800 border-b border-slate-50 dark:border-slate-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -224,6 +213,10 @@ const PlansPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest bg-blue-100 px-2 py-0.5 rounded">Seu Plano Atual</span>
+                    {/* Exibe status do trial se houver */}
+                    {profile?.plan_status === 'trial' && (
+                       <span className="text-[10px] font-black text-white uppercase tracking-widest bg-green-500 px-2 py-0.5 rounded">Período Grátis</span>
+                    )}
                   </div>
                   <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentPlan.name}</h2>
                 </div>
@@ -235,16 +228,20 @@ const PlansPage: React.FC = () => {
                 </p>
                 <div className="flex items-center md:justify-end gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
                   <Calendar className="w-3.5 h-3.5" />
-                  Próxima cobrança: {formatDate(currentUserPlan.nextBillingDate)}
+                  {/* Como removemos o mock, usamos o trial_ends_at ou data genérica */}
+                  {profile?.plan_status === 'trial' && profile.trial_ends_at 
+                    ? `Teste até: ${formatDate(profile.trial_ends_at)}`
+                    : 'Renovação Mensal'}
                 </div>
               </div>
             </div>
           </div>
-           <div className="p-8 border-t border-slate-50 flex justify-center md:justify-start">
-              <Button onClick={() => handleSelectPlan(plans[1])} className="h-14 px-10 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20" leftIcon={Sparkles}>
-                  Fazer Upgrade
-              </Button>
-           </div>
+        </div>
+      ) : (
+        // Fallback se não tiver plano (Ex: conta antiga ou erro)
+        <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 text-orange-800 animate-slide-up">
+           <p className="font-bold">Nenhum plano ativo encontrado.</p>
+           <p className="text-sm">Escolha um dos planos abaixo para ativar sua conta.</p>
         </div>
       )}
 
@@ -285,7 +282,7 @@ const PlansPage: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((plan) => {
-            const isCurrentPlan = plan.id === currentUserPlan.planId;
+            const isCurrentPlan = plan.id === currentPlanId;
             const displayPrice = billingCycle === 'monthly' ? plan.prices.monthly : plan.prices.yearly;
             const periodLabel = billingCycle === 'monthly' ? '/mês' : '/ano';
 
@@ -404,7 +401,7 @@ const PlansPage: React.FC = () => {
          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
             <h3 className="text-2xl font-black text-red-500 mb-2">Tem certeza?</h3>
             <p className="text-slate-500 mb-6">Essa ação não pode ser desfeita.</p>
-            <button onClick={() => alert('Cancelado!')} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase mb-3">Sim, Cancelar</button>
+            <button onClick={() => alert('Para cancelar, entre em contato com o suporte ou gerencie via Stripe.')} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase mb-3">Sim, Cancelar</button>
             <button onClick={() => setCancelModalOpen(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase">Voltar</button>
          </div>
        </div>
