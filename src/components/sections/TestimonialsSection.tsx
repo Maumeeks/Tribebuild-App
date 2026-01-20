@@ -3,10 +3,10 @@ import { ZoomIn, X, Star, TrendingUp, CheckCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ScrollReveal from '../ScrollReveal';
 
-// Depoimentos que matam objeções específicas
+// Depoimentos que matam objeções específicas (Mantidos, pois são ótimos)
 const testimonials = [
-  { 
-    id: 1, 
+  {
+    id: 1,
     name: 'Rodrigo M.',
     avatar: 'RM',
     time: '14:32',
@@ -14,8 +14,8 @@ const testimonials = [
     result: '-75% reembolsos',
     objecao: 'funciona?'
   },
-  { 
-    id: 2, 
+  {
+    id: 2,
     name: 'Camila S.',
     avatar: 'CS',
     time: '09:47',
@@ -23,8 +23,8 @@ const testimonials = [
     result: 'Setup em 3h',
     objecao: 'difícil?'
   },
-  { 
-    id: 3, 
+  {
+    id: 3,
     name: 'Felipe A.',
     avatar: 'FA',
     time: '21:15',
@@ -32,8 +32,8 @@ const testimonials = [
     result: '+152% ticket',
     objecao: 'preço alto?'
   },
-  { 
-    id: 4, 
+  {
+    id: 4,
     name: 'Ana Paula R.',
     avatar: 'AR',
     time: '16:28',
@@ -41,8 +41,8 @@ const testimonials = [
     result: '4x engajamento',
     objecao: 'engaja?'
   },
-  { 
-    id: 5, 
+  {
+    id: 5,
     name: 'Thiago L.',
     avatar: 'TL',
     time: '11:03',
@@ -50,8 +50,8 @@ const testimonials = [
     result: '100% automático',
     objecao: 'integra?'
   },
-  { 
-    id: 6, 
+  {
+    id: 6,
     name: 'Marina C.',
     avatar: 'MC',
     time: '18:55',
@@ -59,8 +59,8 @@ const testimonials = [
     result: 'ROI 12x',
     objecao: 'vale a pena?'
   },
-  { 
-    id: 7, 
+  {
+    id: 7,
     name: 'Lucas P.',
     avatar: 'LP',
     time: '08:41',
@@ -68,8 +68,8 @@ const testimonials = [
     result: '+234% ativos',
     objecao: 'comunidade?'
   },
-  { 
-    id: 8, 
+  {
+    id: 8,
     name: 'Beatriz F.',
     avatar: 'BF',
     time: '20:12',
@@ -77,8 +77,8 @@ const testimonials = [
     result: 'Percepção premium',
     objecao: 'aparência?'
   },
-  { 
-    id: 9, 
+  {
+    id: 9,
     name: 'Daniel O.',
     avatar: 'DO',
     time: '15:33',
@@ -86,8 +86,8 @@ const testimonials = [
     result: '<30min resposta',
     objecao: 'suporte?'
   },
-  { 
-    id: 10, 
+  {
+    id: 10,
     name: 'Juliana K.',
     avatar: 'JK',
     time: '12:08',
@@ -104,7 +104,7 @@ interface WhatsAppCardProps {
 
 const WhatsAppCard: React.FC<WhatsAppCardProps> = ({ testimonial, onClick }) => {
   return (
-    <div 
+    <div
       className="flex-shrink-0 w-[300px] md:w-[340px] bg-[#e5ddd5] dark:bg-[#0b141a] rounded-2xl overflow-hidden cursor-pointer group relative shadow-lg hover:shadow-2xl transition-all duration-500 mx-3"
       onClick={onClick}
     >
@@ -160,12 +160,12 @@ const TestimonialsSection: React.FC = () => {
     <section id="depoimentos" className="py-24 relative overflow-hidden transition-colors">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50/90 via-slate-100/85 to-slate-50/90 dark:from-slate-900/90 dark:via-slate-950/85 dark:to-slate-900/90 backdrop-blur-[2px]"></div>
-      
+
       {/* Glow */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/8 via-transparent to-transparent dark:from-emerald-500/15 pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+
         {/* Header */}
         <ScrollReveal className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4 border border-emerald-200 dark:border-emerald-500/30">
@@ -179,15 +179,16 @@ const TestimonialsSection: React.FC = () => {
             </span>
             {' '}Dizem
           </h2>
+
+          {/* ✅ COPY ATUALIZADA: Mais natural e persuasiva */}
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
-            Prints reais de conversas no WhatsApp. Sem edição, sem script. 
-            Só a verdade de quem usa todo dia.
+            Não acredite em nós. Veja o que os criadores que já estão faturando com a TribeBuild falam nos bastidores.
           </p>
-          
+
           {/* Rating */}
           <div className="flex items-center justify-center gap-2 mt-6">
             <div className="flex">
-              {[1,2,3,4,5].map(i => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
               ))}
             </div>
@@ -197,14 +198,13 @@ const TestimonialsSection: React.FC = () => {
 
       </div>
 
-      {/* Carousel de WhatsApp (AJUSTADO: VELOCIDADE MAIS LENTA) */}
+      {/* Carousel de WhatsApp (VELOCIDADE MAIS LENTA) */}
       <div className="scroll-container relative mt-8">
-        {/* Adicionei style inline para forçar 90s de duração. Se 'animate-scroll-left' for muito rápido no CSS global, isso sobrescreve se o CSS permitir, senão teremos que alterar no tailwind config. Mas geralmente a classe padrão é rápida. Vou tentar injetar um estilo local. */}
-        <div 
-            className="flex w-max py-4 hover:pause"
-            style={{ 
-                animation: 'scroll-left 120s linear infinite' // Duração aumentada para 120 segundos (bem lento)
-            }}
+        <div
+          className="flex w-max py-4 hover:pause"
+          style={{
+            animation: 'scroll-left 120s linear infinite' // Duração aumentada para 120 segundos (bem lento)
+          }}
         >
           {/* Renderiza 3x para loop infinito suave */}
           {[...testimonials, ...testimonials, ...testimonials].map((testimonial, index) => (
@@ -248,7 +248,7 @@ const TestimonialsSection: React.FC = () => {
       {/* Modal de Detalhe */}
       <AnimatePresence>
         {selectedTestimonial && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -261,8 +261,8 @@ const TestimonialsSection: React.FC = () => {
             >
               <X className="w-6 h-6" />
             </button>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}

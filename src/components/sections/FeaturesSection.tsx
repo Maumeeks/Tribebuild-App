@@ -1,11 +1,10 @@
-
 import React from 'react';
-import { 
-  Palette, 
-  Home, 
-  MessageCircle, 
-  Bell, 
-  Rss, 
+import {
+  Palette,
+  Home,
+  MessageCircle,
+  Bell,
+  Rss,
   Globe,
   BookOpen,
   Video,
@@ -27,14 +26,16 @@ interface FeatureCardProps {
   result?: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ 
-  icon: Icon, 
-  title, 
+const FeatureCard: React.FC<FeatureCardProps> = ({
+  icon: Icon,
+  title,
   description,
   result
 }) => {
   return (
-    <div className="group bg-white dark:bg-white/5 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-white/10 hover:shadow-xl dark:hover:shadow-brand-blue/5 hover:-translate-y-1 transition-all duration-300">
+    // ✅ ADICIONADO: 'h-full' para garantir que todos os cards tenham a mesma altura
+    // ✅ ADICIONADO: 'flex flex-col' para organizar o conteúdo internamente
+    <div className="group h-full flex flex-col bg-white dark:bg-white/5 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-white/10 hover:shadow-xl dark:hover:shadow-brand-blue/5 hover:-translate-y-1 transition-all duration-300">
       {/* Icon */}
       <div className="w-12 h-12 rounded-xl bg-brand-blue/10 dark:bg-brand-blue/20 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">
         <Icon className="w-6 h-6 text-brand-blue" />
@@ -45,14 +46,14 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
         {title}
       </h3>
 
-      {/* Description */}
-      <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-3">
+      {/* Description - flex-grow empurra o resultado para baixo se precisar alinhar botões, mas aqui mantém fluxo natural */}
+      <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-3 flex-grow">
         {description}
       </p>
 
       {/* Result Tag */}
       {result && (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-full">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-full w-fit">
           <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{result}</span>
         </div>
@@ -61,7 +62,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
   );
 };
 
-// Features reescritas com BENEFÍCIOS e RESULTADOS
+// Features mantidas...
 const features = [
   {
     icon: Palette,
@@ -101,7 +102,7 @@ const features = [
   }
 ];
 
-// Target Audience com resultados específicos
+// Target Audience mantido...
 const targetAudience = [
   {
     icon: BookOpen,
@@ -140,19 +141,19 @@ const FeaturesSection: React.FC = () => {
     <section id="recursos" className="py-20 relative overflow-hidden transition-colors">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50/90 via-slate-100/80 to-slate-50/90 dark:from-slate-950/90 dark:via-slate-900/80 dark:to-slate-950/90 backdrop-blur-[2px]"></div>
-      
+
       {/* Glow */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-coral/8 via-transparent to-transparent dark:from-brand-coral/15 pointer-events-none"></div>
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+
         {/* ========== PART 1: 3 PILARES (Conexão com Logo) ========== */}
         <ScrollReveal className="text-center mb-16">
           {/* Logo TribeBuild */}
           <div className="inline-flex items-center justify-center mb-6">
             <TribeBuildLogo size="lg" showText={false} />
           </div>
-          
+
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-8 tracking-tight">
             Construa Sua{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-coral">
@@ -163,23 +164,25 @@ const FeaturesSection: React.FC = () => {
 
           {/* 3 Pilares Visuais */}
           <div className="grid md:grid-cols-3 gap-6 mb-16">
-            <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-8 border-2 border-brand-blue/20 hover:border-brand-blue/50 transition-all">
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-8 border-2 border-brand-blue/20 hover:border-brand-blue/50 transition-all h-full">
               <div className="w-12 h-12 bg-brand-blue/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-6 h-6 text-brand-blue" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Base Sólida</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">Tecnologia robusta, servidores rápidos, integração com Hotmart/Kiwify</p>
             </div>
-            <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-8 border-2 border-brand-blue/20 hover:border-brand-blue/50 transition-all">
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-8 border-2 border-brand-blue/20 hover:border-brand-blue/50 transition-all h-full">
               <div className="w-12 h-12 bg-brand-blue/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Palette className="w-6 h-6 text-brand-blue" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sua Marca</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">100% white-label. Logo, cores, domínio - ninguém sabe que é TribeBuild</p>
             </div>
-            <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-8 border-2 border-brand-coral/20 hover:border-brand-coral/50 transition-all">
-              <div className="w-12 h-12 bg-brand-coral/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-6 h-6 text-brand-coral" />
+
+            {/* ✅ CORREÇÃO: "Energia no Topo" agora usa padrão AZUL (Brand Blue) */}
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-8 border-2 border-brand-blue/20 hover:border-brand-blue/50 transition-all h-full">
+              <div className="w-12 h-12 bg-brand-blue/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-6 h-6 text-brand-blue" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Energia no Topo</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">Notificações push, comunidade ativa, feed de conteúdo - engajamento máximo</p>
@@ -202,9 +205,9 @@ const FeaturesSection: React.FC = () => {
         </ScrollReveal>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20 auto-rows-fr">
           {features.map((feature, index) => (
-            <ScrollReveal key={index} delay={index * 50}>
+            <ScrollReveal key={index} delay={index * 50} className="h-full">
               <FeatureCard
                 icon={feature.icon}
                 title={feature.title}
@@ -231,10 +234,10 @@ const FeaturesSection: React.FC = () => {
           </p>
         </ScrollReveal>
 
-        {/* Target Audience Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Target Audience Grid - Agora com alturas iguais */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
           {targetAudience.map((item, index) => (
-            <ScrollReveal key={index} delay={(index + 6) * 50}>
+            <ScrollReveal key={index} delay={(index + 6) * 50} className="h-full">
               <FeatureCard
                 icon={item.icon}
                 title={item.title}
