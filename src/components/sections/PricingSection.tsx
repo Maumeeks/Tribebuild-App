@@ -163,105 +163,109 @@ const PricingSection: React.FC = () => {
           {plans.map((plan, index) => {
             const delay = 200 + (index * 100);
             return (
+              // 1. WRAPPER DE ANIMAÇÃO DE ENTRADA (Controla opacidade e entrada)
               <div
                 key={plan.name}
-                // ✅ ADICIONADO: hover:-translate-y-2 para o efeito de "salto"
-                // ✅ ADICIONADO: h-full para garantir altura igual
-                className={`
-                    group relative flex flex-col h-full bg-white dark:bg-slate-900 rounded-[2rem] p-6 
-                    transition-all duration-300 ease-out cursor-pointer hover:-translate-y-2
-                    ${plan.highlight
-                    ? 'border-2 border-brand-blue shadow-2xl shadow-brand-blue/15 dark:shadow-brand-blue/10 z-10'
-                    : 'border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-brand-blue/30'}
-                `}
+                className="h-full" // Garante que o wrapper ocupe a altura toda do grid
                 style={{
                   opacity: isVisible ? 1 : 0,
                   transform: isVisible ? 'translateY(0)' : 'translateY(40px)',
-                  transition: `opacity 700ms ease-out ${delay}ms, transform 700ms ease-out ${delay}ms, border-color 300ms, box-shadow 300ms`
+                  transition: `opacity 700ms ease-out ${delay}ms, transform 700ms ease-out ${delay}ms`
                 }}
               >
-                {/* Badge Popular */}
-                {plan.highlight && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-max">
-                    <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-brand-blue text-white text-[10px] font-black rounded-full shadow-lg uppercase tracking-widest">
-                      <Rocket className="w-3.5 h-3.5" /> Mais Popular
-                    </span>
-                  </div>
-                )}
-
-                {/* Badge Trial */}
-                {plan.name === 'Starter' && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-max">
-                    <span className="px-3 py-1 bg-brand-coral text-white text-[10px] font-black rounded-full uppercase tracking-tighter shadow-lg shadow-brand-coral/20">
-                      7 dias grátis
-                    </span>
-                  </div>
-                )}
-
-                {/* --- HEADER (Altura Fixa para Alinhamento) --- */}
-                <div className="text-center mb-6 mt-2">
-                  <h3 className={`text-xl font-black tracking-tight ${plan.highlight ? 'text-brand-blue' : 'text-slate-900 dark:text-white'}`}>
-                    {plan.name}
-                  </h3>
-                  {/* min-h-[40px] força 2 linhas de altura mesmo que tenha 1 */}
-                  <p className="text-xs text-slate-500 mt-2 font-medium leading-relaxed min-h-[40px] flex items-center justify-center">
-                    {plan.description}
-                  </p>
-                </div>
-
-                {/* --- PREÇO (Sempre alinhado) --- */}
-                <div className="mb-8 pb-6 border-b border-slate-100 dark:border-slate-800 text-center">
-                  <div className="flex items-center justify-center">
-                    <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mr-1">R$</span>
-                    <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">{plan.priceDisplay}</span>
-                    <span className="text-slate-400 dark:text-slate-500 font-bold text-xs self-end mb-1">/mês</span>
-                  </div>
-                  {isAnnual && (
-                    <p className="text-[10px] text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-1 rounded">
-                      -15% OFF
-                    </p>
-                  )}
-                </div>
-
-                {/* --- LISTA (Empurra botão para baixo) --- */}
-                <ul className="space-y-4 mb-8 flex-grow">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <div className={`mt-0.5 p-0.5 rounded-full flex-shrink-0 ${plan.highlight ? 'bg-brand-blue/10 text-brand-blue' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
-                        <Check className="w-3 h-3 stroke-[3px]" />
-                      </div>
-                      <span className="text-slate-600 dark:text-slate-400 text-xs font-bold leading-tight">
-                        {feature}
+                {/* 2. CARD REAL (Controla o Hover e Layout) */}
+                <div
+                  className={`
+                      group relative flex flex-col h-full bg-white dark:bg-slate-900 rounded-[2rem] p-6 
+                      transition-all duration-300 ease-out cursor-pointer 
+                      hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand-blue/20
+                      ${plan.highlight
+                      ? 'border-2 border-brand-blue shadow-2xl shadow-brand-blue/15 dark:shadow-brand-blue/10 z-10'
+                      : 'border border-slate-100 dark:border-slate-800 shadow-sm hover:border-brand-blue/30'}
+                  `}
+                >
+                  {/* Badge Popular */}
+                  {plan.highlight && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-max">
+                      <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-brand-blue text-white text-[10px] font-black rounded-full shadow-lg uppercase tracking-widest">
+                        <Rocket className="w-3.5 h-3.5" /> Mais Popular
                       </span>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  )}
 
-                {/* --- FOOTER (Botão e Info Extra) --- */}
-                <div className="mt-auto">
-                  <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-[9px] font-bold uppercase tracking-widest mb-4 h-4">
-                    {plan.extraInfo && (
-                      <>
-                        <Info className="w-3 h-3" />
-                        <span>{plan.extraInfo}</span>
-                      </>
+                  {/* Badge Trial */}
+                  {plan.name === 'Starter' && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-max">
+                      <span className="px-3 py-1 bg-brand-coral text-white text-[10px] font-black rounded-full uppercase tracking-tighter shadow-lg shadow-brand-coral/20">
+                        7 dias grátis
+                      </span>
+                    </div>
+                  )}
+
+                  {/* HEADER */}
+                  <div className="text-center mb-6 mt-2">
+                    <h3 className={`text-xl font-black tracking-tight ${plan.highlight ? 'text-brand-blue' : 'text-slate-900 dark:text-white'}`}>
+                      {plan.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-2 font-medium leading-relaxed min-h-[40px] flex items-center justify-center">
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  {/* PREÇO */}
+                  <div className="mb-8 pb-6 border-b border-slate-100 dark:border-slate-800 text-center">
+                    <div className="flex items-center justify-center">
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mr-1">R$</span>
+                      <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">{plan.priceDisplay}</span>
+                      <span className="text-slate-400 dark:text-slate-500 font-bold text-xs self-end mb-1">/mês</span>
+                    </div>
+                    {isAnnual && (
+                      <p className="text-[10px] text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-1 rounded">
+                        -15% OFF
+                      </p>
                     )}
                   </div>
 
-                  {/* Botão Padronizado */}
-                  <button
-                    onClick={() => navigate('/register')}
-                    className={`
-                            block w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 
-                            flex items-center justify-center
-                            ${plan.highlight
-                        ? 'bg-brand-blue text-white hover:bg-brand-blue-dark shadow-xl shadow-brand-blue/30 hover:shadow-2xl hover:shadow-brand-blue/40 hover:-translate-y-1'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm hover:shadow-md'} 
-                            active:scale-95
-                        `}
-                  >
-                    {plan.cta}
-                  </button>
+                  {/* LISTA */}
+                  <ul className="space-y-4 mb-8 flex-grow">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-0.5 rounded-full flex-shrink-0 ${plan.highlight ? 'bg-brand-blue/10 text-brand-blue' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                          <Check className="w-3 h-3 stroke-[3px]" />
+                        </div>
+                        <span className="text-slate-600 dark:text-slate-400 text-xs font-bold leading-tight">
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* FOOTER */}
+                  <div className="mt-auto">
+                    <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-[9px] font-bold uppercase tracking-widest mb-4 h-4">
+                      {plan.extraInfo && (
+                        <>
+                          <Info className="w-3 h-3" />
+                          <span>{plan.extraInfo}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* BOTÃO CORRIGIDO: Removido 'block', mantido 'flex' */}
+                    <button
+                      onClick={() => navigate('/register')}
+                      className={`
+                              w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 
+                              flex items-center justify-center
+                              ${plan.highlight
+                          ? 'bg-brand-blue text-white hover:bg-brand-blue-dark shadow-xl shadow-brand-blue/30 hover:shadow-2xl hover:shadow-brand-blue/40'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm hover:shadow-md'} 
+                              active:scale-95
+                          `}
+                    >
+                      {plan.cta}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
