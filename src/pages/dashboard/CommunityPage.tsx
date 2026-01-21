@@ -8,8 +8,6 @@ import {
   Strikethrough,
   List,
   AlignLeft,
-  Link as LinkIcon,
-  Type,
   Image as ImageIcon,
   User,
   Upload,
@@ -19,8 +17,8 @@ import {
   MessageCircle,
   Send,
   X,
-  Plus,
-  ChevronRight
+  MoreHorizontal,
+  Clock
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -37,7 +35,7 @@ interface CommunityPost {
   comments: number;
 }
 
-// Mock de posts da comunidade
+// Mock de posts
 const initialPosts: CommunityPost[] = [
   {
     id: '1',
@@ -66,17 +64,17 @@ type Tab = 'create' | 'list';
 const CommunityPage: React.FC = () => {
   const { appId } = useParams();
   const navigate = useNavigate();
-  
+
   const [activeTab, setActiveTab] = useState<Tab>('create');
   const [posts, setPosts] = useState<CommunityPost[]>(initialPosts);
-  
+
   // Estado do formulário
   const [authorName, setAuthorName] = useState('');
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
-  
-  // Refs para Upload
+
+  // Refs
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const postImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,14 +128,14 @@ const CommunityPage: React.FC = () => {
     };
 
     setPosts([newPost, ...posts]);
-    
-    // Limpar formulário
+
+    // Limpar
     setAuthorName('');
     setAuthorAvatar(null);
     setContent('');
     setImage(null);
-    
-    alert('Post publicado na comunidade!');
+
+    alert('Post publicado com sucesso!');
     setActiveTab('list');
   };
 
@@ -158,245 +156,227 @@ const CommunityPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter'] pb-20">
-      {/* Header */}
-      <div className="space-y-3 animate-slide-up">
+    <div className="space-y-8 font-['Inter'] pb-20 animate-fade-in">
+
+      {/* Header Compacto */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div>
+          <button
+            onClick={() => navigate('/dashboard/apps')}
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold uppercase tracking-wide mb-2 transition-colors"
+          >
+            <ArrowLeft className="w-3 h-3" /> Voltar
+          </button>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Comunidade</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie interações e crie posts para engajar sua base.</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
         <button
-          onClick={() => navigate('/dashboard/apps')}
-          className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
+          onClick={() => setActiveTab('create')}
+          className={cn(
+            "px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all",
+            activeTab === 'create'
+              ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+              : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          )}
         >
-          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-          </div>
-          Voltar para Meus Apps
+          Criar Post
         </button>
-        <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Gerenciar Comunidade</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
-          Crie posts simulando usuários para gerar engajamento inicial ou modere as interações reais dos seus alunos. A interatividade é a chave da retenção.
-        </p>
+        <button
+          onClick={() => setActiveTab('list')}
+          className={cn(
+            "px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all",
+            activeTab === 'list'
+              ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+              : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          )}
+        >
+          Feed ({posts.length})
+        </button>
       </div>
 
-      {/* Tabs Design */}
-      <div className="bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center w-fit animate-slide-up" style={{ animationDelay: '50ms' }}>
-          <button
-            onClick={() => setActiveTab('create')}
-            className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeTab === 'create' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            Criar Post
-          </button>
-          <button
-            onClick={() => setActiveTab('list')}
-            className={cn(
-                "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeTab === 'list' ? "bg-slate-900 dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            Lista de Posts
-          </button>
-      </div>
+      {/* Content Area */}
+      <div className="animate-slide-up">
 
-      <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-        {/* Tab: Criar Post */}
+        {/* === CREATE POST === */}
         {activeTab === 'create' && (
-          <div className="space-y-8 max-w-4xl">
-            {/* Informações do Autor */}
-            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-8 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                    <h4 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Identidade do Autor</h4>
-                </div>
-                
-                <div className="flex flex-col md:flex-row gap-10 items-start">
-                    <div className="flex-1 w-full">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Nome do Aluno Simulado</label>
-                        <input
-                            type="text"
-                            value={authorName}
-                            onChange={(e) => setAuthorName(e.target.value)}
-                            placeholder="Ex: Maria Clara"
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
-                        />
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    <div className="flex-shrink-0">
-                        {/* Avatar do Autor - UPLOAD DE FOTO */}
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Avatar</label>
-                          
-                          {authorAvatar ? (
-                            // Preview da foto com botão remover
-                            <div className="flex items-center gap-4">
-                              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-brand-blue shadow-md">
-                                <img src={authorAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                              </div>
-                              <button
-                                onClick={() => setAuthorAvatar(null)}
-                                className="text-xs font-black text-red-500 hover:text-red-600 uppercase tracking-widest"
-                              >
-                                Remover foto
-                              </button>
-                            </div>
-                          ) : (
-                            // Área de upload
-                            <div 
-                              className="w-24 h-24 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-full flex flex-col items-center justify-center cursor-pointer hover:border-brand-blue hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all group"
-                              onClick={() => avatarInputRef.current?.click()}
-                            >
-                              <Upload className="w-6 h-6 text-slate-300 dark:text-slate-600 group-hover:text-brand-blue mb-1" />
-                              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 group-hover:text-brand-blue uppercase tracking-widest">Upload</span>
-                            </div>
-                          )}
-                          
-                          <input
-                            ref={avatarInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleAvatarUpload}
-                          />
-                          <p className="text-[10px] text-slate-400 font-medium mt-3 leading-relaxed">Foto de perfil do aluno simulado</p>
+            {/* Coluna Esquerda: Autor */}
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  Autor do Post
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center">
+                    <div
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/10 flex items-center justify-center cursor-pointer transition-all overflow-hidden relative group"
+                    >
+                      {authorAvatar ? (
+                        <>
+                          <img src={authorAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Edit3 className="w-5 h-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <User className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Foto</span>
                         </div>
+                      )}
                     </div>
+                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                    {authorAvatar && (
+                      <button onClick={() => setAuthorAvatar(null)} className="mt-2 text-[10px] font-bold text-red-500 hover:underline">Remover</button>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome</label>
+                    <input
+                      type="text"
+                      value={authorName}
+                      onChange={(e) => setAuthorName(e.target.value)}
+                      placeholder="Ex: Maria Clara"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue outline-none transition-all"
+                    />
+                  </div>
                 </div>
+              </div>
             </div>
 
-            {/* Conteúdo do Post */}
-            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">O que este usuário diria?</label>
-                    
-                    {/* Toolbar */}
-                    <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Bold size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Italic size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Underline size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><Strikethrough size={18} /></button>
-                        <div className="w-px h-6 bg-slate-100 dark:bg-slate-700 mx-1 self-center" />
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><List size={18} /></button>
-                        <button className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-900 dark:hover:text-white"><AlignLeft size={18} /></button>
-                    </div>
+            {/* Coluna Direita: Conteúdo */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]">
 
-                    <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="Digite o depoimento ou dúvida do aluno..."
-                        rows={6}
-                        className="w-full p-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-[2rem] focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
-                    />
+                {/* Toolbar */}
+                <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 overflow-x-auto">
+                  <div className="flex gap-1 pr-2 border-r border-slate-100 dark:border-slate-800">
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"><Bold className="w-4 h-4" /></button>
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"><Italic className="w-4 h-4" /></button>
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"><Underline className="w-4 h-4" /></button>
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"><Strikethrough className="w-4 h-4" /></button>
+                  </div>
+                  <div className="flex gap-1 pl-2">
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"><List className="w-4 h-4" /></button>
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"><AlignLeft className="w-4 h-4" /></button>
+                  </div>
                 </div>
 
-                <div className="p-8">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Anexar Imagem (Opcional)</label>
-                    <div 
-                      className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-10 text-center hover:border-brand-blue hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all cursor-pointer group relative overflow-hidden"
-                      onClick={() => postImageInputRef.current?.click()}
-                    >
-                        <input
-                          ref={postImageInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handlePostImageUpload}
-                        />
-                        
-                        {image ? (
-                          <div className="relative group/image">
-                            <img src={image} alt="Preview" className="mx-auto max-h-48 object-contain rounded-xl shadow-lg" />
-                            <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
-                              <p className="text-white font-bold text-xs">Trocar Imagem</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <ImageIcon className="w-10 h-10 text-slate-200 dark:text-slate-600 mx-auto mb-3 group-hover:scale-110 group-hover:text-brand-blue transition-all" />
-                            <p className="text-slate-900 dark:text-white font-black text-sm tracking-tight">Carregar imagem do post</p>
-                          </>
-                        )}
-                    </div>
-                    {image && (
-                      <button 
+                {/* Textarea */}
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Escreva algo legal para a comunidade..."
+                  className="w-full flex-1 p-6 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 resize-none outline-none leading-relaxed"
+                />
+
+                {/* Image Preview & Upload */}
+                {image && (
+                  <div className="px-6 pb-6">
+                    <div className="relative group inline-block">
+                      <img src={image} alt="Upload" className="max-h-60 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm" />
+                      <button
                         onClick={() => setImage(null)}
-                        className="mt-3 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
+                        className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                       >
-                        <X className="w-3 h-3" /> Remover imagem
+                        <X className="w-4 h-4" />
                       </button>
-                    )}
-                </div>
+                    </div>
+                  </div>
+                )}
 
-                <div className="p-8 border-t border-slate-50 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-900/20 flex justify-end">
-                    <Button
-                        onClick={handlePublish}
-                        className="h-16 px-12 font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/20"
-                        leftIcon={Send}
+                {/* Footer Actions */}
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => postImageInputRef.current?.click()}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"
                     >
-                        Publicar na Comunidade
-                    </Button>
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Adicionar Imagem</span>
+                    </button>
+                    <input ref={postImageInputRef} type="file" accept="image/*" className="hidden" onChange={handlePostImageUpload} />
+                  </div>
+
+                  <Button onClick={handlePublish} size="sm" leftIcon={Send} className="text-xs font-bold uppercase tracking-wide">
+                    Publicar
+                  </Button>
                 </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Tab: Lista de Posts */}
+        {/* === LIST POSTS === */}
         {activeTab === 'list' && (
-          <div className="space-y-6 max-w-4xl">
+          <div className="max-w-3xl mx-auto space-y-6">
             {posts.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-16 text-center shadow-sm">
-                <p className="text-slate-400 font-bold">Nenhum post na comunidade ainda.</p>
+              <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                <MessageCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 font-medium">Nenhuma publicação encontrada.</p>
               </div>
             ) : (
-              posts.map((post, idx) => (
-                <div key={post.id} className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="p-8">
-                    <div className="flex items-start justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 overflow-hidden flex-shrink-0 shadow-sm">
-                                {post.authorAvatar ? (
-                                    <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                                        <User size={24} />
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <h4 className="font-black text-slate-900 dark:text-white tracking-tight">{post.authorName}</h4>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDate(post.createdAt)}</span>
-                            </div>
+              posts.map((post) => (
+                <div key={post.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+
+                  {/* Post Header */}
+                  <div className="p-5 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0">
+                        {post.authorAvatar ? (
+                          <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400"><User className="w-5 h-5" /></div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{post.authorName}</h4>
+                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                          <Clock className="w-3 h-3" />
+                          {formatDate(post.createdAt)}
                         </div>
-                        
-                        <div className="flex items-center gap-1">
-                            <button className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"><Edit3 size={18} /></button>
-                            <button 
-                                onClick={() => setDeleteModal({ open: true, postId: post.id })}
-                                className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
+                      </div>
                     </div>
 
-                    <p className="text-slate-700 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap text-lg mb-6">{post.content}</p>
-                    
-                    {/* Imagem (se tiver) */}
+                    <div className="flex items-center gap-1">
+                      <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteModal({ open: true, postId: post.id })}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Post Content */}
+                  <div className="px-5 pb-4">
+                    <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
                     {post.image && (
-                      <div className="mb-6 rounded-[2rem] overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <img src={post.image} alt="Post content" className="w-full object-cover max-h-96" />
+                      <div className="mt-4 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
+                        <img src={post.image} alt="Post Attachment" className="w-full max-h-96 object-cover" />
                       </div>
                     )}
+                  </div>
 
-                    <div className="pt-6 border-t border-slate-50 dark:border-slate-700 flex items-center gap-8">
-                        <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                            <Heart className="w-4 h-4 text-red-400" />
-                            {post.likes} Curtidas
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                            <MessageCircle className="w-4 h-4 text-blue-400" />
-                            {post.comments} Comentários
-                        </div>
-                    </div>
+                  {/* Post Stats */}
+                  <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-6">
+                    <button className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">
+                      <Heart className="w-4 h-4" /> {post.likes}
+                    </button>
+                    <button className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-blue transition-colors">
+                      <MessageCircle className="w-4 h-4" /> {post.comments}
+                    </button>
                   </div>
                 </div>
               ))
@@ -407,34 +387,17 @@ const CommunityPage: React.FC = () => {
 
       {/* Modal de Exclusão */}
       {deleteModal.open && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" 
-            onClick={() => setDeleteModal({ open: false, postId: null })} 
-          />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <Trash2 className="w-10 h-10 text-red-500" />
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
-              Remover este post?
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 text-center mb-10 font-medium leading-relaxed">
-              Esta ação removerá o post permanentemente da comunidade do seu aplicativo. Deseja continuar?
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleDelete}
-                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20 transition-all active:scale-95"
-              >
-                Sim, excluir permanentemente
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDeleteModal({ open: false, postId: null })} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-slide-up border border-slate-200 dark:border-slate-800">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Excluir Publicação?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Esta ação é irreversível e removerá o post da comunidade.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteModal({ open: false, postId: null })} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                Cancelar
               </button>
-              <button
-                onClick={() => setDeleteModal({ open: false, postId: null })}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
-              >
-                Cancelar e Manter
+              <button onClick={handleDelete} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold uppercase transition-colors shadow-md">
+                Excluir
               </button>
             </div>
           </div>

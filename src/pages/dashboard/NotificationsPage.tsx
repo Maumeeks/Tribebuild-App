@@ -3,18 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Bell,
-  Plus,
   Send,
   X,
-  Smartphone,
   Link as LinkIcon,
   Clock,
   Users,
   Trash2,
   AlertCircle,
-  ChevronRight,
-  Info,
-  CheckCircle2
+  Plus
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
@@ -52,15 +48,15 @@ const initialNotifications: Notification[] = [
 const NotificationsPage: React.FC = () => {
   const { appId } = useParams();
   const navigate = useNavigate();
-  
+
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Estado do formulário
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [link, setLink] = useState('');
-  
+
   // Estado de exclusão
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; notificationId: string | null }>({
     open: false,
@@ -95,13 +91,13 @@ const NotificationsPage: React.FC = () => {
     };
 
     setNotifications([newNotification, ...notifications]);
-    
+
     // Limpar formulário e fechar modal
     setTitle('');
     setMessage('');
     setLink('');
     setIsModalOpen(false);
-    
+
     alert('Notificação enviada com sucesso!');
   };
 
@@ -123,89 +119,74 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter'] pb-20">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
-        <div className="space-y-3">
+    <div className="space-y-8 font-['Inter'] pb-20 animate-fade-in">
+
+      {/* Header Compacto */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div>
           <button
             onClick={() => navigate('/dashboard/apps')}
-            className="group inline-flex items-center gap-2 text-slate-400 hover:text-brand-blue font-black uppercase tracking-widest text-[10px] transition-all"
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold uppercase tracking-wide mb-2 transition-colors"
           >
-            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-brand-blue transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-            </div>
-            Voltar para Meus Apps
+            <ArrowLeft className="w-3 h-3" /> Voltar
           </button>
-          <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Notificações Push</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed">
-            Comunique-se instantaneamente com todos os usuários que instalaram seu app. Envie novidades, avisos e conteúdos importantes direto para a tela de bloqueio.
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Notificações Push</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Comunique-se diretamente com seus usuários.</p>
         </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="h-14 px-8 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20"
-          leftIcon={Bell}
-        >
+        <Button onClick={() => setIsModalOpen(true)} size="sm" leftIcon={Plus} className="text-xs font-bold uppercase tracking-wide">
           Nova Notificação
         </Button>
       </div>
 
       {/* Histórico de Notificações */}
-      <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-        <div className="flex items-center gap-3 mb-6">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Histórico de Envios</h2>
-        </div>
-        
+      <div className="animate-slide-up">
         {notifications.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-16 text-center shadow-sm">
-            <Bell className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-400 font-bold">Nenhuma notificação enviada ainda.</p>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-16 text-center shadow-sm">
+            <Bell className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500 font-medium">Nenhuma notificação enviada ainda.</p>
           </div>
         ) : (
-          <div className="space-y-4 max-w-5xl">
-            {notifications.map((notification, idx) => (
-              <div key={notification.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                <div className="p-6 flex flex-col md:flex-row md:items-start gap-6">
-                  <div className="w-14 h-14 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
-                    <Bell className="w-7 h-7 text-slate-400 group-hover:text-blue-500" />
+          <div className="space-y-4 max-w-4xl">
+            {notifications.map((notification) => (
+              <div key={notification.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all group">
+                <div className="p-5 flex flex-col md:flex-row md:items-start gap-5">
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-500 dark:text-slate-400">
+                    <Bell className="w-5 h-5" />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">{notification.title}</h3>
-                    <p className="text-slate-600 dark:text-slate-300 font-medium text-sm mt-1 leading-relaxed">{notification.message}</p>
-                    
-                    {notification.link && (
-                      <a 
-                        href={notification.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-brand-blue text-[10px] font-black uppercase tracking-widest mt-4 hover:underline bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg border border-blue-100 dark:border-blue-900/30"
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">{notification.title}</h3>
+                        <p className="text-slate-600 dark:text-slate-300 text-sm mt-1">{notification.message}</p>
+                      </div>
+                      <button
+                        onClick={() => setDeleteModal({ open: true, notificationId: notification.id })}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Remover do histórico"
                       >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {notification.link && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-brand-blue font-medium bg-blue-50 dark:bg-blue-900/10 px-3 py-1.5 rounded w-fit">
                         <LinkIcon className="w-3 h-3" />
-                        Ver Link de Redirecionamento
-                      </a>
+                        <span className="truncate max-w-[200px]">{notification.link}</span>
+                      </div>
                     )}
-                    
-                    <div className="flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-slate-50 dark:border-slate-700">
-                      <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                        <Clock className="w-4 h-4" />
+
+                    <div className="flex items-center gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
                         Enviada em {formatDate(notification.sentAt)}
                       </div>
-                      <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                        <Users className="w-4 h-4" />
-                        {notification.devicesReached} dispositivos alcançados
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" />
+                        {notification.devicesReached} dispositivos
                       </div>
                     </div>
                   </div>
-                  
-                  <button
-                    onClick={() => setDeleteModal({ open: true, notificationId: notification.id })}
-                    className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                    title="Remover do histórico"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -217,133 +198,103 @@ const NotificationsPage: React.FC = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Nova Notificação</h3>
-                <p className="text-sm text-slate-400 font-medium">Disparo em massa para todos os usuários</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up border border-slate-200 dark:border-slate-800">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Nova Notificação</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="p-8 space-y-8">
-              {/* Preview da Notificação - Visual Celular Style */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Preview em Tempo Real</label>
-                <div className="bg-slate-900 rounded-3xl p-6 shadow-xl border-4 border-slate-800">
-                    <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 flex items-start gap-4 border border-white/10">
-                        <div className="w-10 h-10 bg-brand-blue rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                            <Bell className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-0.5">
-                                <p className="font-black text-white text-sm truncate">
-                                    {title || 'Título da notificação'}
-                                </p>
-                                <span className="text-[9px] font-bold text-white/40 uppercase">Agora</span>
-                            </div>
-                            <p className="text-white/70 text-xs font-medium line-clamp-2 leading-relaxed">
-                                {message || 'O conteúdo da sua mensagem aparecerá aqui para o usuário...'}
-                            </p>
-                        </div>
+            <div className="p-6 space-y-6">
+
+              {/* Preview da Notificação (Estilo iOS Moderno) */}
+              <div className="bg-slate-100 dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-center">
+                <div className="w-full max-w-sm bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl p-3 shadow-lg border border-white/20 dark:border-slate-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-5 h-5 bg-brand-blue rounded-md flex items-center justify-center shadow-sm">
+                      <Bell className="w-3 h-3 text-white" />
                     </div>
+                    <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-wide">SEU APP</span>
+                    <span className="text-[10px] text-slate-400 ml-auto">Agora</span>
+                  </div>
+                  <div className="px-1">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                      {title || 'Título da notificação'}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                      {message || 'O conteúdo da sua mensagem aparecerá aqui...'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Título */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Título do Push</label>
-                    <span className={cn(
-                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
-                        title.length > 25 
-                            ? "text-orange-500 bg-orange-50 dark:bg-orange-900/20" 
-                            : "text-slate-400 bg-slate-50 dark:bg-slate-900"
-                    )}>
-                        {title.length}/30
+              <div className="space-y-4">
+                {/* Título */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Título</label>
+                    <span className={cn("text-[10px] font-bold", title.length > 25 ? "text-orange-500" : "text-slate-400")}>
+                      {title.length}/30
                     </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value.slice(0, 30))}
+                    placeholder="Ex: Novo conteúdo disponível!"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue outline-none transition-all"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value.slice(0, 30))}
-                  placeholder="Ex: Novo conteúdo disponível!"
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
-                />
-              </div>
 
-              {/* Mensagem */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Corpo da Mensagem</label>
-                    <span className={cn(
-                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
-                        message.length > 70 
-                            ? "text-orange-500 bg-orange-50 dark:bg-orange-900/20" 
-                            : "text-slate-400 bg-slate-50 dark:bg-slate-900"
-                    )}>
-                        {message.length}/80
+                {/* Mensagem */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mensagem</label>
+                    <span className={cn("text-[10px] font-bold", message.length > 70 ? "text-orange-500" : "text-slate-400")}>
+                      {message.length}/80
                     </span>
+                  </div>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value.slice(0, 80))}
+                    placeholder="Descreva o motivo da notificação..."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue outline-none transition-all resize-none"
+                  />
                 </div>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value.slice(0, 80))}
-                  placeholder="Descreva o motivo da notificação..."
-                  rows={3}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all resize-none"
-                />
-              </div>
 
-              {/* Link de Redirecionamento */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Link de Ação (Opcional)</label>
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300 dark:text-slate-600">
-                        <LinkIcon className="w-5 h-5" />
-                    </div>
+                {/* Link */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Link de Destino (Opcional)</label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="url"
                       value={link}
                       onChange={(e) => setLink(e.target.value)}
-                      placeholder="https://seuapp.com/aula-extra"
-                      className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
+                      placeholder="https://..."
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue outline-none transition-all"
                     />
+                  </div>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium mt-3 leading-relaxed">
-                    O usuário será levado para este endereço ao clicar na notificação.
-                </p>
               </div>
 
-              {/* Aviso de Envio Real */}
-              <div className="p-5 rounded-[1.5rem] bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 flex items-start gap-4">
-                <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-brand-blue">
-                    <AlertCircle className="w-5 h-5" />
-                </div>
-                <div>
-                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Envio em tempo real</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                        Ao clicar em enviar, todos os dispositivos conectados receberão a notificação instantaneamente.
-                    </p>
-                </div>
+              {/* Aviso */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 rounded-lg flex gap-3">
+                <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                  Esta notificação será enviada <strong>imediatamente</strong> para todos os usuários com o app instalado.
+                </p>
               </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4 sticky bottom-0 backdrop-blur-md">
-              <Button
-                variant="ghost"
-                onClick={() => setIsModalOpen(false)}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px]"
-              >
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex gap-3 sticky bottom-0">
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 Cancelar
-              </Button>
-              <Button
-                onClick={handleSendNotification}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-500/20"
-                leftIcon={Send}
-              >
-                Disparar Agora
+              </button>
+              <Button onClick={handleSendNotification} className="flex-1 text-xs font-bold uppercase tracking-wide" leftIcon={Send}>
+                Enviar Agora
               </Button>
             </div>
           </div>
@@ -352,34 +303,17 @@ const NotificationsPage: React.FC = () => {
 
       {/* Modal de Exclusão */}
       {deleteModal.open && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" 
-            onClick={() => setDeleteModal({ open: false, notificationId: null })} 
-          />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <Trash2 className="w-10 h-10 text-red-500" />
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
-              Remover do histórico?
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 text-center mb-10 font-medium leading-relaxed">
-              Isso apagará o registro de envio desta lista. A notificação já disparada não será afetada nos dispositivos.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleDelete}
-                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20 transition-all active:scale-95"
-              >
-                Sim, excluir do histórico
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDeleteModal({ open: false, notificationId: null })} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-slide-up border border-slate-200 dark:border-slate-800">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Remover do Histórico?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Isso apagará o registro do painel, mas não remove a notificação dos celulares.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteModal({ open: false, notificationId: null })} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                Cancelar
               </button>
-              <button
-                onClick={() => setDeleteModal({ open: false, notificationId: null })}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
-              >
-                Cancelar e Manter
+              <button onClick={handleDelete} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold uppercase transition-colors shadow-md">
+                Remover
               </button>
             </div>
           </div>
