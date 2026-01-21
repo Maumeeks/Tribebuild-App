@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -35,10 +34,8 @@ const Navbar: React.FC = () => {
     e.preventDefault();
     setIsMenuOpen(false);
 
-    // If we are not on the landing page, navigate there first
     if (location.pathname !== '/') {
       navigate('/');
-      // Delay to allow navigation before scrolling
       setTimeout(() => {
         const element = document.querySelector(href);
         element?.scrollIntoView({ behavior: 'smooth' });
@@ -50,33 +47,32 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <header 
+    <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b",
-        isScrolled 
-          ? "bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-brand-blue/10 dark:border-white/5 shadow-md py-3" 
-          : "bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-transparent py-5"
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 font-['Inter']",
+        isScrolled
+          ? "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-3 shadow-sm"
+          : "bg-transparent border-b border-transparent py-5"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between">
-          
+
           {/* Logo TribeBuild */}
-          <Link to="/" className="group">
+          <Link to="/" className="group flex-shrink-0">
             <TribeBuildLogo size="md" showText={true} />
           </Link>
 
           {/* Desktop Menu */}
-          <nav className="hidden lg:flex items-center gap-7">
+          <nav className="hidden lg:flex items-center gap-1">
             {menuItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleLinkClick(e, item.href)}
-                className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-brand-blue dark:hover:text-brand-coral transition-colors relative group"
+                className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all uppercase tracking-wide"
               >
                 {item.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-blue dark:bg-brand-coral transition-all group-hover:w-full"></span>
               </a>
             ))}
           </nav>
@@ -84,25 +80,35 @@ const Navbar: React.FC = () => {
           {/* Desktop Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <ThemeToggle />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
             <Link to="/login">
-              <Button variant="ghost" className="font-bold">Login</Button>
+              <Button
+                variant="ghost"
+                className="font-bold text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              >
+                Login
+              </Button>
             </Link>
             <Link to="/register">
-              <Button variant="primary" rightIcon={ArrowRight} className="font-bold">
-                COMECE AGORA
+              <Button
+                variant="primary"
+                rightIcon={ArrowRight}
+                className="font-black text-xs uppercase tracking-widest px-6 py-2.5 rounded-xl shadow-lg shadow-brand-blue/20"
+              >
+                Comece Agora
               </Button>
             </Link>
           </div>
 
           {/* Mobile: Theme Toggle + Hamburger */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-3">
             <ThemeToggle />
             <button
-              className="p-2 text-slate-600 dark:text-slate-300 hover:text-brand-blue dark:hover:text-brand-coral transition-colors"
+              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label="Toggle Menu"
             >
-              {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
@@ -111,28 +117,31 @@ const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       <div
         className={cn(
-          "lg:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800",
-          isMenuOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+          "lg:hidden fixed inset-x-0 top-[70px] bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ease-in-out z-40 border-t border-slate-100 dark:border-slate-800",
+          isMenuOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
         )}
       >
-        <div className="px-6 py-8 space-y-6">
-          {menuItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              onClick={(e) => handleLinkClick(e, item.href)}
-              className="block text-lg font-bold text-slate-700 dark:text-slate-200 hover:text-brand-blue dark:hover:text-brand-coral transition-colors"
-            >
-              {item.label}
-            </a>
-          ))}
-          <div className="grid grid-cols-1 gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-            <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-              <Button variant="outline" className="w-full h-12">Login</Button>
+        <div className="flex flex-col p-6 h-full overflow-y-auto">
+          <nav className="space-y-2 mb-8">
+            {menuItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={(e) => handleLinkClick(e, item.href)}
+                className="block text-lg font-bold text-slate-600 dark:text-slate-300 hover:text-brand-blue dark:hover:text-white py-3 border-b border-slate-50 dark:border-slate-800/50"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="mt-auto space-y-4 pb-8">
+            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="block">
+              <Button variant="outline" className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest border-slate-200 dark:border-slate-700">Login</Button>
             </Link>
-            <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-              <Button variant="primary" rightIcon={ArrowRight} className="w-full h-12">
-                COMECE AGORA
+            <Link to="/register" onClick={() => setIsMenuOpen(false)} className="block">
+              <Button variant="primary" rightIcon={ArrowRight} className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl">
+                Criar Conta Grátis
               </Button>
             </Link>
           </div>
