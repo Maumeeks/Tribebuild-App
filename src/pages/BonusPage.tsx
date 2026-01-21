@@ -15,9 +15,9 @@ import {
   ShieldCheck,
   AlertCircle
 } from 'lucide-react';
-// ✅ CORREÇÃO: Caminhos ajustados para ../../
-import TribeBuildLogo from '../../components/TribeBuildLogo';
-import { cn } from '../../lib/utils';
+// ✅ CORREÇÃO: Caminhos ajustados para ../ (nível correto para src/pages/)
+import TribeBuildLogo from '../components/TribeBuildLogo';
+import { cn } from '../lib/utils';
 
 // Tipo para os bônus
 interface Bonus {
@@ -80,6 +80,8 @@ const BonusPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
+    // Tenta pegar do localStorage ou cria agora (simulação)
+    // No futuro, isso virá de `user.created_at` do Supabase
     const storedDate = localStorage.getItem('tribebuild_registration_date');
     if (storedDate) {
       setRegistrationDate(new Date(storedDate));
@@ -96,7 +98,7 @@ const BonusPage: React.FC = () => {
     const calculateTimeLeft = () => {
       const now = new Date();
       const unlockDate = new Date(registrationDate);
-      unlockDate.setDate(unlockDate.getDate() + 7);
+      unlockDate.setDate(unlockDate.getDate() + 7); // +7 Dias
 
       const distance = unlockDate.getTime() - now.getTime();
 
@@ -123,6 +125,7 @@ const BonusPage: React.FC = () => {
 
   const handleDownload = (filename: string) => {
     if (!isUnlocked || !filename) return;
+    // Aqui você colocaria a URL real do seu bucket (S3/Supabase Storage)
     window.open(`/downloads/${filename}`, '_blank');
   };
 
@@ -160,7 +163,7 @@ const BonusPage: React.FC = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
-        {/* Hero Section - Dashboard Style */}
+        {/* Hero Section */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-12">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full mb-4 shadow-sm">
@@ -178,7 +181,7 @@ const BonusPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Timer Card - Estilo Técnico */}
+          {/* Timer Card */}
           <div className={cn(
             "p-5 rounded-xl border w-full md:w-auto min-w-[320px] shadow-sm transition-all",
             isUnlocked
@@ -189,7 +192,7 @@ const BonusPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center",
-                  isUnlocked ? "bg-emerald-100 dark:bg-emerald-800 text-emerald-600" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                  isUnlocked ? "bg-emerald-100 dark:bg-emerald-800 text-emerald-600" : "bg-slate-200 dark:bg-slate-800 text-slate-500"
                 )}>
                   {isUnlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                 </div>
@@ -297,7 +300,7 @@ const BonusPage: React.FC = () => {
                       )}
                     </button>
                   ) : (
-                    <div className="w-full py-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700">
+                    <div className="w-full py-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 border border-purple-100 dark:border-purple-800">
                       <ShieldCheck className="w-4 h-4 text-green-500" />
                       Ativado na Conta
                     </div>
@@ -308,17 +311,17 @@ const BonusPage: React.FC = () => {
           })}
         </div>
 
-        {/* Info Box - Explicação do Bloqueio */}
+        {/* Info Box */}
         {!isUnlocked && (
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-5 items-start">
-            <div className="p-2 bg-brand-blue/10 rounded-lg text-brand-blue flex-shrink-0">
-              <Sparkles className="w-5 h-5" />
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-6 items-center text-center md:text-left shadow-sm">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full">
+              <Clock className="w-6 h-6 text-slate-400" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Por que esperar 7 dias?</h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
-                Este período foi desenhado para que você foque 100% na configuração inicial da sua plataforma sem distrações.
-                Quando os bônus forem liberados, você já terá a base pronta para aplicar as estratégias de aceleração.
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">Por que existe esse bloqueio?</h4>
+              <p className="text-sm text-slate-500 mt-1 max-w-2xl">
+                Liberamos os bônus após 7 dias para garantir que você foque primeiro na configuração essencial da sua plataforma.
+                Isso evita sobrecarga de informação e aumenta suas chances de sucesso.
               </p>
             </div>
           </div>

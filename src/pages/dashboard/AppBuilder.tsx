@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // ✅ Importado useSearchParams
-import { Save, Eye, Palette, Globe, Smartphone, ArrowRight, ArrowLeft, Lock, Upload, X } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Save, Eye, Palette, Globe, Smartphone, ArrowRight, ArrowLeft, Lock, Upload, X, Check, AlertCircle, LayoutTemplate } from 'lucide-react';
 import Button from '../../components/Button';
 import MockupMobile from '../../components/MockupMobile';
 import { useApps } from '../../contexts/AppsContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { cn } from '../../lib/utils';
 
 const AppBuilder: React.FC = () => {
-  const { addApp, updateApp, apps, planLimit } = useApps(); // ✅ updateApp importado (assumindo que existe no contexto, se não existir, precisaremos criar)
+  const { addApp, updateApp, apps, planLimit } = useApps();
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams(); // ✅ Ler URL
+  const [searchParams] = useSearchParams();
 
   // Lógica de Edição
   const editMode = searchParams.get('mode') === 'edit';
@@ -20,23 +21,19 @@ const AppBuilder: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Normaliza o plano
   const currentPlan = profile?.plan || 'starter';
   const maxApps = planLimit;
-
-  // ✅ CORREÇÃO NO LIMITE: Se for edição, o limite não importa (já tem o app)
   const isLimitReached = !editMode && apps.length >= maxApps;
 
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     description: '',
-    primaryColor: 'brand-blue',
+    primaryColor: '#0066FF', // Default hex
     logo: null as string | null,
     language: 'PT'
   });
 
-  // ✅ EFEITO PARA CARREGAR DADOS NA EDIÇÃO
   useEffect(() => {
     if (editMode && appIdToEdit) {
       const app = apps.find(a => a.id === appIdToEdit);
@@ -52,10 +49,6 @@ const AppBuilder: React.FC = () => {
       }
     }
   }, [editMode, appIdToEdit, apps]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [step]);
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
@@ -76,350 +69,365 @@ const AppBuilder: React.FC = () => {
   };
 
   const handlePublish = async () => {
-    // Validação de limite apenas se for NOVO app
     if (!editMode && isLimitReached) {
-      alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
-      navigate('/dashboard/apps');
+      alert(`Limite atingido.`);
       return;
     }
 
     if (!formData.name || !formData.slug) {
-      alert('Por favor, preencha o nome e o slug do aplicativo.');
+      alert('Preencha os campos obrigatórios.');
       setStep(1);
       return;
     }
 
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simula delay para UX
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
+      const appData = {
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+        logo: formData.logo,
+        primaryColor: formData.primaryColor,
+        language: formData.language,
+        status: 'published' as const // Força o tipo
+      };
+
       if (editMode && appIdToEdit) {
-        // ✅ ATUALIZAR APP EXISTENTE
-        await updateApp(appIdToEdit, {
-          name: formData.name,
-          slug: formData.slug,
-          description: formData.description,
-          logo: formData.logo,
-          primaryColor: formData.primaryColor,
-          language: formData.language
-          // customDomain e status mantemos como estão ou tratamos separadamente
-        });
-        alert('Aplicativo atualizado com sucesso!');
+        await updateApp(appIdToEdit, appData);
       } else {
-        // ✅ CRIAR NOVO APP
-        await addApp({
-          name: formData.name,
-          slug: formData.slug,
-          description: formData.description,
-          logo: formData.logo,
-          primaryColor: formData.primaryColor,
-          language: formData.language,
-          customDomain: null,
-          status: 'published'
-        });
-        alert('Aplicativo publicado com sucesso!');
+        await addApp({ ...appData, customDomain: null });
       }
 
-      setIsSubmitting(false);
       navigate('/dashboard/apps');
     } catch (error) {
-      console.error("Erro ao salvar app:", error);
+      console.error("Erro:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Salvar Rascunho (Lógica similar para update)
   const handleSaveDraft = async () => {
-    if (!editMode && isLimitReached) {
-      alert(`Limite atingido.`);
-      navigate('/dashboard/apps');
-      return;
-    }
-
-    if (!formData.name) {
-      alert('Dê um nome ao seu rascunho.');
-      return;
-    }
+    if (!formData.name) return alert('Defina um nome para salvar rascunho.');
 
     try {
+      const appData = { ...formData, status: 'draft' as const };
       if (editMode && appIdToEdit) {
-        await updateApp(appIdToEdit, {
-          name: formData.name,
-          slug: formData.slug,
-          description: formData.description,
-          logo: formData.logo,
-          primaryColor: formData.primaryColor,
-          language: formData.language,
-          status: 'draft' // Opcional mudar status ao salvar rascunho na edição
-        });
-        alert('Rascunho atualizado!');
+        await updateApp(appIdToEdit, appData);
       } else {
-        await addApp({
-          name: formData.name,
-          slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
-          description: formData.description,
-          logo: formData.logo,
-          primaryColor: formData.primaryColor,
-          language: formData.language,
-          customDomain: null,
-          status: 'draft'
-        });
-        alert('Rascunho salvo!');
+        await addApp({ ...appData, customDomain: null });
       }
       navigate('/dashboard/apps');
     } catch (error) {
-      console.error("Erro ao salvar rascunho:", error);
+      console.error("Erro rascunho:", error);
     }
   };
 
-  const inputClass = "w-full px-4 py-3 bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 focus:outline-none placeholder:text-slate-400 font-medium transition-colors";
+  // Styles
+  const labelStyle = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2";
+  const inputStyle = "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue outline-none transition-all";
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 md:gap-8 h-[calc(100vh-100px)] lg:h-[calc(100vh-140px)] font-['Inter'] pb-20 lg:pb-0 animate-fade-in">
-      {/* Editor Side */}
-      <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden relative transition-colors duration-300">
+    <div className="flex h-[calc(100vh-100px)] overflow-hidden bg-white dark:bg-slate-950 font-['Inter'] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in">
 
-        {/* Bloqueio Inteligente: Só bloqueia se for NOVO e atingiu limite */}
-        {isLimitReached && (
-          <div className="absolute inset-0 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8">
-            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 p-10 max-w-md text-center animate-slide-up">
-              <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <Lock className="w-10 h-10 text-red-500" />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">Limite Atingido</h3>
-              <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-8">
-                Você atingiu o limite de apps do seu plano <span className="text-brand-blue font-bold uppercase">{currentPlan}</span> ({maxApps} apps). Faça upgrade para continuar criando novos projetos incríveis.
-              </p>
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={() => navigate('/dashboard/plans')}
-                  className="w-full py-4 h-auto text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/20"
-                >
-                  Fazer Upgrade Agora
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate('/dashboard/apps')}
-                  className="w-full py-4 h-auto text-xs font-black uppercase tracking-widest"
-                >
-                  Voltar para Meus Apps
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* --- LEFT SIDE: EDITOR --- */}
+      <div className="w-full lg:w-[500px] xl:w-[600px] flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 relative z-10">
 
-        {/* Steps Header */}
-        <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/30 dark:bg-slate-900/30">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-brand-blue flex items-center justify-center font-black text-sm">
-              {step}
-            </div>
-            <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-              {/* Mostra título dinâmico dependendo se é Edição ou Criação */}
-              {editMode ? "Editar App" : "Novo App"} - {
-                step === 1 ? "Info. Básicas" :
-                  step === 2 ? "Estilo & Cores" :
-                    step === 3 ? "Idioma" : "Revisão"
-              }
+        {/* Header do Editor */}
+        <div className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-slate-950">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/dashboard/apps')} className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              {editMode ? "Editar App" : "Novo App"}
             </h2>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={handleSaveDraft} className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden md:flex">Rascunho</Button>
-            <Button size="sm" onClick={handleSaveDraft} className="gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
-              <Save className="w-3 h-3 md:w-4 md:h-4" /> <span className="hidden md:inline">Salvar</span>
-            </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveDraft}
+              className="text-xs font-bold text-slate-500 hover:text-brand-blue px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              Salvar Rascunho
+            </button>
           </div>
         </div>
 
-        {/* Form Body */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
+        {/* Progress Bar */}
+        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1">
+          <div
+            className="bg-brand-blue h-1 transition-all duration-500 ease-out"
+            style={{ width: `${(step / 4) * 100}%` }}
+          />
+        </div>
+
+        {/* Scrollable Form Area */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 relative">
+
+          {/* Bloqueio de Limite */}
+          {isLimitReached && (
+            <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mb-4 border border-red-100 dark:border-red-900/30">
+                <Lock className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Limite Atingido</h3>
+              <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
+                Seu plano <strong>{currentPlan}</strong> permite apenas {maxApps} apps.
+              </p>
+              <Button onClick={() => navigate('/dashboard/plans')} className="w-full max-w-xs text-xs font-bold uppercase">
+                Fazer Upgrade
+              </Button>
+            </div>
+          )}
+
           {step === 1 && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6 animate-slide-up">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
+                  <LayoutTemplate className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Informações Básicas</h3>
+                  <p className="text-xs text-slate-500">Defina a identidade principal do seu projeto.</p>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Nome do Aplicativo</label>
+                <label className={labelStyle}>Nome do Aplicativo</label>
                 <input
                   type="text"
+                  autoFocus
                   value={formData.name}
                   onChange={(e) => updateField('name', e.target.value)}
-                  className={inputClass}
-                  placeholder="Ex: Expert Digital"
+                  className={inputStyle}
+                  placeholder="Ex: Comunidade Expert"
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Slug da URL</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-bold bg-slate-50 dark:bg-slate-900 px-3 py-3 rounded-xl border border-slate-100 dark:border-slate-700 text-xs md:text-sm">tribebuild.app/</span>
+                <label className={labelStyle}>URL Personalizada (Slug)</label>
+                <div className="flex rounded-lg shadow-sm">
+                  <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 text-xs font-mono">
+                    tribebuild.app/
+                  </span>
                   <input
                     type="text"
                     value={formData.slug}
                     onChange={(e) => updateField('slug', e.target.value)}
-                    className={inputClass}
+                    className={`${inputStyle} rounded-l-none`}
                     placeholder="seu-app"
                   />
                 </div>
               </div>
+
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Descrição</label>
+                <label className={labelStyle}>Descrição</label>
                 <textarea
                   rows={4}
                   value={formData.description}
                   onChange={(e) => updateField('description', e.target.value)}
-                  className={inputClass}
-                  placeholder="Conte um pouco sobre o seu app..."
+                  className={inputStyle}
+                  placeholder="Descrição curta para SEO e compartilhamento..."
                 ></textarea>
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-8 animate-slide-up">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Estilo & Marca</h3>
+                  <p className="text-xs text-slate-500">Personalize as cores e logo.</p>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Cor Primária</label>
-                <div className="flex flex-wrap gap-4">
-                  {['brand-blue', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(color => (
+                <label className={labelStyle}>Cor Principal</label>
+                <div className="grid grid-cols-6 gap-3">
+                  {['#0066FF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#111827'].map(color => (
                     <button
                       key={color}
                       onClick={() => updateField('primaryColor', color)}
-                      className={`w-12 h-12 rounded-2xl border-4 transition-all ${formData.primaryColor === color ? 'border-blue-400 scale-110 shadow-lg' : 'border-slate-100 dark:border-slate-700 hover:scale-105'}`}
-                      style={{ backgroundColor: color === 'brand-blue' ? '#0066FF' : color }}
+                      className={cn(
+                        "w-full aspect-square rounded-lg transition-all border-2",
+                        formData.primaryColor === color
+                          ? "border-slate-900 dark:border-white scale-110 shadow-md"
+                          : "border-transparent hover:scale-105"
+                      )}
+                      style={{ backgroundColor: color }}
                     />
                   ))}
-                  <div className="relative">
+                  <div className="relative w-full aspect-square rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center hover:border-slate-400 cursor-pointer overflow-hidden">
                     <input
                       type="color"
-                      value={formData.primaryColor === 'brand-blue' ? '#0066FF' : formData.primaryColor}
+                      value={formData.primaryColor}
                       onChange={(e) => updateField('primaryColor', e.target.value)}
-                      className="w-12 h-12 rounded-2xl p-0 border-none outline-none cursor-pointer hover:scale-105 transition-transform opacity-0 absolute inset-0"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                    <div className="w-12 h-12 rounded-2xl border-4 border-slate-100 dark:border-slate-700 flex items-center justify-center bg-white dark:bg-slate-900">
-                      <Palette className="w-5 h-5 text-slate-400" />
-                    </div>
+                    <div className="w-full h-full" style={{ backgroundColor: formData.primaryColor }} />
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Identidade Visual (Logo)</label>
 
-                {/* Área de Upload Clicável */}
+              <div>
+                <label className={labelStyle}>Logotipo</label>
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2rem] p-8 md:p-10 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 hover:bg-blue-50/50 hover:border-blue-200 dark:hover:border-blue-900/50 transition-all cursor-pointer group relative overflow-hidden"
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 flex flex-col items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer transition-colors group relative overflow-hidden"
                 >
                   <input
-                    type="file"
                     ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
+                    type="file"
                     className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
                   />
 
                   {formData.logo ? (
-                    <div className="relative group/image">
-                      <img src={formData.logo} alt="Logo Preview" className="w-32 h-32 object-contain rounded-xl shadow-lg" />
-                      <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity">
-                        <p className="text-white font-bold text-xs">Trocar Imagem</p>
-                      </div>
+                    <div className="relative z-10 text-center">
+                      <img src={formData.logo} alt="Logo" className="h-20 object-contain mx-auto mb-4 drop-shadow-sm" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateField('logo', ''); }}
+                        className="text-xs text-red-500 font-bold hover:underline flex items-center justify-center gap-1"
+                      >
+                        <X className="w-3 h-3" /> Remover
+                      </button>
                     </div>
                   ) : (
                     <>
-                      <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 group-hover:text-brand-blue" />
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <Upload className="w-5 h-5 text-slate-400" />
                       </div>
-                      <p className="text-slate-900 dark:text-white font-black tracking-tight">Clique para enviar sua logo</p>
-                      <p className="text-xs text-slate-400 font-medium mt-1">PNG ou JPG (512x512px)</p>
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Clique para enviar</p>
+                      <p className="text-xs text-slate-400 mt-1">PNG ou JPG (Recomendado 512px)</p>
                     </>
                   )}
                 </div>
-                {formData.logo && (
-                  <button
-                    onClick={() => updateField('logo', '')}
-                    className="mt-2 text-xs text-red-500 font-bold hover:underline flex items-center gap-1"
-                  >
-                    <X className="w-3 h-3" /> Remover logo
-                  </button>
-                )}
               </div>
             </div>
           )}
 
           {step === 3 && (
-            <div className="space-y-3 animate-fade-in">
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Selecione o Idioma Padrão</label>
-              {['Português (Brasil)', 'English', 'Español', 'Français'].map(lang => (
-                <label key={lang} className={`flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all ${formData.language === lang.substring(0, 2).toUpperCase()
-                  ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
-                  : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600'
-                  }`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-xl ${formData.language === lang.substring(0, 2).toUpperCase() ? 'bg-brand-blue text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
-                      <Globe className="w-5 h-5" />
+            <div className="space-y-6 animate-slide-up">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Configurações Regionais</h3>
+                  <p className="text-xs text-slate-500">Defina o idioma padrão da interface.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {['Português (Brasil)', 'English', 'Español'].map(lang => {
+                  const code = lang.substring(0, 2).toUpperCase();
+                  const isSelected = formData.language === code;
+                  return (
+                    <div
+                      key={lang}
+                      onClick={() => updateField('language', code)}
+                      className={cn(
+                        "flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all",
+                        isSelected
+                          ? "border-brand-blue bg-blue-50/50 dark:bg-blue-900/10 shadow-sm"
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      )}
+                    >
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{lang}</span>
+                      {isSelected && <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center text-white"><Check className="w-3 h-3" /></div>}
                     </div>
-                    <span className="font-black text-slate-900 dark:text-white tracking-tight">{lang}</span>
-                  </div>
-                  <input
-                    type="radio"
-                    name="lang"
-                    className="w-5 h-5 accent-brand-blue"
-                    checked={formData.language === lang.substring(0, 2).toUpperCase()}
-                    onChange={() => updateField('language', lang.substring(0, 2).toUpperCase())}
-                  />
-                </label>
-              ))}
+                  )
+                })}
+              </div>
             </div>
           )}
 
           {step === 4 && (
-            <div className="text-center py-8 md:py-12 animate-fade-in">
-              <div className="w-24 h-24 bg-green-50 dark:bg-green-500/10 text-green-500 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-                <Save className="w-10 h-10 stroke-[2.5px]" />
+            <div className="flex flex-col items-center justify-center py-8 text-center animate-slide-up">
+              <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+                <Check className="w-10 h-10" />
               </div>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter">
-                {editMode ? "Salvar Alterações?" : "Tudo pronto!"}
-              </h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-10 font-medium max-w-sm mx-auto leading-relaxed">
-                {editMode ? "Seu aplicativo será atualizado imediatamente para todos os usuários." : "Seu aplicativo está configurado e pronto para ser entregue aos seus clientes."}
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Tudo Pronto!</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs text-sm">
+                Seu aplicativo está configurado. Clique abaixo para publicar e liberar o acesso.
               </p>
+
+              <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl p-4 mb-8 text-left border border-slate-100 dark:border-slate-800">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Resumo</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Nome:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{formData.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">URL:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">/{formData.slug}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Idioma:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{formData.language}</span>
+                  </div>
+                </div>
+              </div>
+
               <Button
-                size="lg"
-                className="w-full max-w-sm h-16 text-sm font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30"
                 onClick={handlePublish}
                 isLoading={isSubmitting}
+                className="w-full py-4 text-xs font-bold uppercase tracking-widest shadow-lg shadow-brand-blue/20"
               >
-                {editMode ? "Atualizar Aplicativo" : "Publicar Meu Aplicativo"}
+                {editMode ? "Salvar Alterações" : "Publicar Agora"}
               </Button>
             </div>
           )}
         </div>
 
-        {/* Navigation Footer */}
-        <div className="p-4 md:p-6 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/10 dark:bg-slate-900/10">
-          <Button variant="ghost" onClick={prevStep} disabled={step === 1} className="gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
-            <ArrowLeft className="w-3 h-3 md:w-4 md:h-4" /> Anterior
+        {/* Footer Navigation */}
+        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-between bg-white dark:bg-slate-950">
+          <Button
+            variant="ghost"
+            onClick={prevStep}
+            disabled={step === 1}
+            className="text-xs font-bold uppercase text-slate-500"
+          >
+            Anterior
           </Button>
-          <div className="flex gap-1 md:gap-2">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${step === i ? 'bg-brand-blue w-6 md:w-10' : 'bg-slate-200 dark:bg-slate-700 w-2 md:w-4'}`} />
-            ))}
-          </div>
-          <Button onClick={nextStep} disabled={step === 4} className="gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
-            Próximo <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
+          <Button
+            onClick={nextStep}
+            disabled={step === 4}
+            className="text-xs font-bold uppercase px-6"
+          >
+            Próximo
           </Button>
         </div>
       </div>
 
-      {/* Preview Side */}
-      <div className="hidden lg:flex flex-col items-center justify-center p-12 bg-slate-100/50 dark:bg-slate-900/50 rounded-[3rem] border border-slate-200/50 dark:border-slate-800 relative overflow-hidden transition-colors duration-300">
-        <div className="absolute top-0 left-0 w-full h-full bg-grid-mesh opacity-[0.03]"></div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-10 flex items-center gap-3 relative z-10 bg-white dark:bg-slate-800 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
-          <Eye className="w-4 h-4 text-brand-blue" /> Visualização em tempo real
-        </p>
-        <div className="relative z-10 scale-90 xl:scale-100">
-          <MockupMobile
-            primaryColor={formData.primaryColor === 'brand-blue' ? '#0066FF' : formData.primaryColor}
-            appName={formData.name || 'Seu Aplicativo'}
-            logoUrl={formData.logo || 'https://picsum.photos/seed/builderlogo/200/200'}
-          />
+      {/* --- RIGHT SIDE: PREVIEW --- */}
+      <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative hidden lg:flex items-center justify-center p-12 overflow-hidden">
+        {/* Background Pattern (Dot Grid) */}
+        <div className="absolute inset-0 opacity-[0.4]"
+          style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm mb-8 flex items-center gap-2">
+            <Eye className="w-4 h-4 text-brand-blue" />
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Preview em Tempo Real</span>
+          </div>
+
+          <div className="transform scale-90 xl:scale-100 transition-all duration-500">
+            <MockupMobile
+              primaryColor={formData.primaryColor}
+              appName={formData.name || 'Seu App'}
+              logoUrl={formData.logo || undefined}
+            />
+          </div>
         </div>
       </div>
     </div>
