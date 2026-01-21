@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Check, Rocket, Zap, Crown, Building2, Clock, Shield, Gift, Info } from 'lucide-react';
+import { Check, Rocket, Zap, Crown, Building2, Clock, ShieldCheck, Gift, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const PricingSection: React.FC = () => {
@@ -39,8 +39,8 @@ const PricingSection: React.FC = () => {
         'Domínio Personalizado',
         'Acesso a Tutoriais'
       ],
-      cta: 'Começar Grátis',
-      extraInfo: 'Sem cartão para testar'
+      cta: 'Assinar Starter',
+      extraInfo: '7 Dias de Garantia'
     },
     {
       name: 'Professional',
@@ -163,17 +163,15 @@ const PricingSection: React.FC = () => {
           {plans.map((plan, index) => {
             const delay = 200 + (index * 100);
             return (
-              // 1. WRAPPER DE ANIMAÇÃO DE ENTRADA (Controla opacidade e entrada)
               <div
                 key={plan.name}
-                className="h-full" // Garante que o wrapper ocupe a altura toda do grid
+                className="h-full"
                 style={{
                   opacity: isVisible ? 1 : 0,
                   transform: isVisible ? 'translateY(0)' : 'translateY(40px)',
                   transition: `opacity 700ms ease-out ${delay}ms, transform 700ms ease-out ${delay}ms`
                 }}
               >
-                {/* 2. CARD REAL (Controla o Hover e Layout) */}
                 <div
                   className={`
                       group relative flex flex-col h-full bg-white dark:bg-slate-900 rounded-[2rem] p-6 
@@ -193,11 +191,12 @@ const PricingSection: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Badge Trial */}
+                  {/* Badge Garantia (Antigo Trial) */}
                   {plan.name === 'Starter' && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-max">
-                      <span className="px-3 py-1 bg-brand-coral text-white text-[10px] font-black rounded-full uppercase tracking-tighter shadow-lg shadow-brand-coral/20">
-                        7 dias grátis
+                      <span className="px-3 py-1 bg-green-500 text-white text-[9px] font-black rounded-full uppercase tracking-tighter shadow-lg shadow-green-500/20 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" />
+                        Garantia Total
                       </span>
                     </div>
                   )}
@@ -251,16 +250,15 @@ const PricingSection: React.FC = () => {
                       )}
                     </div>
 
-                    {/* BOTÃO CORRIGIDO: Removido 'block', mantido 'flex' */}
                     <button
                       onClick={() => navigate('/register')}
                       className={`
-                              w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 
-                              flex items-center justify-center
-                              ${plan.highlight
+                            w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 
+                            flex items-center justify-center
+                            ${plan.highlight
                           ? 'bg-brand-blue text-white hover:bg-brand-blue-dark shadow-xl shadow-brand-blue/30 hover:shadow-2xl hover:shadow-brand-blue/40'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm hover:shadow-md'} 
-                              active:scale-95
+                            active:scale-95
                           `}
                     >
                       {plan.cta}
@@ -272,17 +270,19 @@ const PricingSection: React.FC = () => {
           })}
         </div>
 
-        {/* Bônus Section (Mantida igual) */}
+        {/* Bônus Section (Garantia) */}
         <div style={{ opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(20px)', transition: 'opacity 700ms ease-out 400ms, transform 700ms ease-out 400ms' }}>
           <div className="bg-gradient-to-r from-brand-blue/5 via-emerald-500/5 to-brand-coral/5 dark:from-brand-blue/10 dark:via-emerald-500/10 dark:to-brand-coral/10 rounded-3xl p-8 md:p-12 border border-slate-200/50 dark:border-slate-700/50">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="text-center md:text-left">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-full mb-4">
-                  <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">Teste Grátis de Verdade</span>
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">Garantia Incondicional</span>
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">7 Dias Para Testar Tudo</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">Crie seu app, configure tudo, veja funcionando. Se não for para você, cancele antes dos 7 dias e não paga nada. Risco Zero.</p>
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                  Crie seu app, configure tudo e veja funcionando. Se não ficar 100% satisfeito, nós devolvemos todo o seu dinheiro. Sem perguntas, sem letras miúdas. O risco é todo nosso.
+                </p>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-2 mb-4 pb-4 border-b border-slate-50 dark:border-slate-700">
