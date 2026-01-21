@@ -1,188 +1,186 @@
 import React, { useState } from 'react';
-import {
-  CreditCard,
-  Check,
-  X,
-  Crown,
-  Rocket,
-  Building2,
-  Calendar,
-  Sparkles,
-  Zap,
-} from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Check, X, Loader2, Crown, Zap, Building2, Rocket, AlertCircle, Calendar, Sparkles, CreditCard } from 'lucide-react';
+import TribeBuildLogo from '../../components/TribeBuildLogo';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLocation, Link } from 'react-router-dom';
+import { cn } from '../../lib/utils';
 
-// --- CONFIGURAÇÃO DE TIPOS ---
+// --- CONFIGURAÇÃO DE TIPOS CORRIGIDA ---
 interface Plan {
   id: string;
   name: string;
   icon: React.ElementType;
   color: string;
-  textColor: string;
-  prices: {
-    monthly: number;
-    yearly: number;
-  };
+  monthlyPrice: number; // Agora direto na raiz, sem objeto 'prices'
+  yearlyPrice: number;  // Agora direto na raiz
   stripeUrls: {
     monthly: string;
     yearly: string;
   };
   features: { name: string; included: boolean }[];
-  limits: {
-    apps: number;
-    clients: number;
-  };
+  description: string;
   popular?: boolean;
 }
 
-// --- LISTA DE PLANOS ---
-const plans: Plan[] = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    icon: Zap,
-    color: 'bg-slate-500',
-    textColor: 'text-slate-500',
-    prices: { monthly: 67, yearly: 672 },
-    stripeUrls: {
-      monthly: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
-      yearly: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
-    },
-    features: [
-      { name: '1 Aplicativo PWA', included: true },
-      { name: 'Até 500 membros ativos', included: true },
-      { name: 'Produtos ilimitados', included: true },
-      { name: 'Comunidade + Feed', included: true },
-      { name: 'Domínio Personalizado', included: true },
-      { name: 'Suporte via E-mail', included: false },
-      { name: 'White Label', included: false },
-    ],
-    limits: { apps: 1, clients: 500 }
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    icon: Crown,
-    color: 'bg-blue-600',
-    textColor: 'text-blue-600',
-    popular: true,
-    prices: { monthly: 127, yearly: 1272 },
-    stripeUrls: {
-      monthly: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
-      yearly: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04',
-    },
-    features: [
-      { name: '3 Aplicativos PWA', included: true },
-      { name: 'Até 1.500 membros ativos', included: true },
-      { name: 'Produtos ilimitados', included: true },
-      { name: 'Comunidade + Feed', included: true },
-      { name: 'Domínio Personalizado', included: true },
-      { name: 'Suporte via E-mail (48h)', included: true },
-      { name: 'White Label', included: false },
-    ],
-    limits: { apps: 3, clients: 1500 }
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    icon: Building2,
-    color: 'bg-purple-600',
-    textColor: 'text-purple-600',
-    prices: { monthly: 247, yearly: 2472 },
-    stripeUrls: {
-      monthly: 'https://buy.stripe.com/test_9B63cv0Zu8GGdiSbC12wU02',
-      yearly: 'https://buy.stripe.com/test_14A14n23yaOOdiSaxX2wU05',
-    },
-    features: [
-      { name: '5 Aplicativos PWA', included: true },
-      { name: 'Até 2.800 membros ativos', included: true },
-      { name: 'Produtos ilimitados', included: true },
-      { name: 'Comunidade + Feed', included: true },
-      { name: 'Domínio Personalizado', included: true },
-      { name: 'Suporte via E-mail (24h)', included: true },
-      { name: 'White Label', included: false },
-    ],
-    limits: { apps: 5, clients: 2800 }
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    icon: Rocket,
-    color: 'bg-slate-900',
-    textColor: 'text-slate-900',
-    prices: { monthly: 397, yearly: 3970 },
-    stripeUrls: {
-      monthly: 'https://buy.stripe.com/test_9B68wP9w07CC3Ii49z2wU06',
-      yearly: 'https://buy.stripe.com/test_00waEX23y0aa0w6cG52wU07',
-    },
-    features: [
-      { name: '10 Aplicativos PWA', included: true },
-      { name: 'Até 6.000 membros ativos', included: true },
-      { name: 'Produtos ilimitados', included: true },
-      { name: 'Comunidade + Feed', included: true },
-      { name: 'Domínio Personalizado', included: true },
-      { name: 'Suporte Prioritário', included: true },
-      { name: 'White Label (Sem marca)', included: true },
-    ],
-    limits: { apps: 10, clients: 6000 }
-  }
-];
-
 const PlansPage: React.FC = () => {
-  const { user, profile } = useAuth();
-
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [retentionModalOpen, setRetentionModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [selectedPlanToUpgrade, setSelectedPlanToUpgrade] = useState<Plan | null>(null);
 
-  // ✅ CORREÇÃO: Normaliza o ID para minúsculo antes de buscar
-  const rawPlanId = profile?.plan || '';
-  const currentPlanId = rawPlanId.toLowerCase();
+  const { user, profile } = useAuth();
+  const location = useLocation();
+  const state = location.state as { expired?: boolean; message?: string };
 
-  // Tenta achar o plano na lista. Se não achar, usa 'free' como fallback virtual se necessário
-  const currentPlan = plans.find(p => p.id === currentPlanId);
-
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '---';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+  const getPlanColors = (color: string) => {
+    switch (color) {
+      case 'brand-blue': return { bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200' };
+      case 'brand-coral': return { bg: 'bg-orange-500/10 dark:bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200' };
+      case 'purple-500': return { bg: 'bg-purple-500/10 dark:bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200' };
+      case 'indigo-500': return { bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200' };
+      default: return { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' };
+    }
   };
+
+  const plansData: Plan[] = [
+    {
+      id: 'starter',
+      name: 'Starter',
+      monthlyPrice: 67,
+      yearlyPrice: 672,
+      icon: Zap,
+      color: 'brand-blue',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
+        yearly: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
+      },
+      features: [
+        { name: '1 Aplicativo PWA', included: true },
+        { name: 'Até 500 membros ativos', included: true },
+        { name: 'Produtos e cursos ilimitados', included: true },
+        { name: 'Comunidade + Feed', included: true },
+        { name: 'Domínio Personalizado', included: true },
+        { name: 'Suporte via E-mail', included: false },
+        { name: 'White Label', included: false },
+      ],
+      description: 'Quem está dando os primeiros passos.',
+      popular: false,
+    },
+    {
+      id: 'professional',
+      name: 'Professional',
+      monthlyPrice: 127,
+      yearlyPrice: 1272,
+      icon: Crown,
+      color: 'brand-coral',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_fZubJ1eQkf54gv4gWl2wU01',
+        yearly: 'https://buy.stripe.com/test_fZucN537C9KK2Ee7lL2wU04',
+      },
+      features: [
+        { name: '3 Aplicativos PWA', included: true },
+        { name: 'Até 1.500 membros ativos', included: true },
+        { name: 'Produtos e cursos ilimitados', included: true },
+        { name: 'Comunidade + Feed', included: true },
+        { name: 'Domínio Personalizado', included: true },
+        { name: 'Suporte via E-mail (48h)', included: true },
+        { name: 'White Label', included: false },
+      ],
+      description: 'Criadores em crescimento constante.',
+      popular: true,
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      monthlyPrice: 247,
+      yearlyPrice: 2472,
+      icon: Building2,
+      color: 'purple-500',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_9B63cv0Zu8GGdiSbC12wU02',
+        yearly: 'https://buy.stripe.com/test_14A14n23yaOOdiSaxX2wU05',
+      },
+      features: [
+        { name: '5 Aplicativos PWA', included: true },
+        { name: 'Até 2.800 membros ativos', included: true },
+        { name: 'Produtos e cursos ilimitados', included: true },
+        { name: 'Comunidade + Feed', included: true },
+        { name: 'Domínio Personalizado', included: true },
+        { name: 'Suporte via E-mail (24h)', included: true },
+        { name: 'White Label', included: false },
+      ],
+      description: 'Operações escalando sem limites.',
+      popular: false,
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      monthlyPrice: 397,
+      yearlyPrice: 3970,
+      icon: Rocket,
+      color: 'indigo-500',
+      stripeUrls: {
+        monthly: 'https://buy.stripe.com/test_9B68wP9w07CC3Ii49z2wU06',
+        yearly: 'https://buy.stripe.com/test_00waEX23y0aa0w6cG52wU07',
+      },
+      features: [
+        { name: '10 Aplicativos PWA', included: true },
+        { name: 'Até 6.000 membros ativos', included: true },
+        { name: 'Produtos e cursos ilimitados', included: true },
+        { name: 'Comunidade + Feed', included: true },
+        { name: 'Domínio Personalizado', included: true },
+        { name: 'Suporte Prioritário', included: true },
+        { name: 'White Label (Sem marca)', included: true },
+      ],
+      description: 'Máxima potência e exclusividade.',
+      popular: false,
+    },
+  ];
+
+  // --- LÓGICA DE SELEÇÃO DO PLANO ---
+  const rawPlanId = profile?.plan || 'starter';
+  let currentPlanId = rawPlanId.toLowerCase();
+
+  // Se for free/trial, visualmente tratamos como starter
+  if (currentPlanId === 'free' || currentPlanId === 'trial') {
+    currentPlanId = 'starter';
+  }
+
+  // Busca o plano na lista. Se não encontrar, usa Starter como fallback.
+  const currentPlan = plansData.find(p => p.id === currentPlanId) || plansData[0];
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
   const handleSelectPlan = (plan: Plan) => {
-    // Evita selecionar o plano que o usuário já tem
-    if (plan.id === currentPlanId) return;
-    setSelectedPlan(plan);
+    // Se for o plano atual, não faz nada
+    if (plan.id === currentPlan.id) return;
+
+    setSelectedPlanToUpgrade(plan);
     setUpgradeModalOpen(true);
   };
 
   const handleConfirmUpgrade = () => {
-    if (!selectedPlan) return;
+    if (!selectedPlanToUpgrade) return;
 
-    let checkoutUrl = billingCycle === 'monthly'
-      ? selectedPlan.stripeUrls.monthly
-      : selectedPlan.stripeUrls.yearly;
+    setLoadingPlan(selectedPlanToUpgrade.name.toLowerCase());
 
-    if (checkoutUrl) {
+    // Seleciona o link correto baseado no período
+    let checkoutUrl = billingPeriod === 'monthly'
+      ? selectedPlanToUpgrade.stripeUrls.monthly
+      : selectedPlanToUpgrade.stripeUrls.yearly;
+
+    // Adiciona client_reference_id e prefilled_email se o usuário estiver logado
+    if (user) {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
-
-      if (user) {
-        checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
-      }
-
-      window.location.href = checkoutUrl;
-    } else {
-      alert(`Erro de configuração: Link de pagamento indisponível.`);
+      checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
     }
 
-    setUpgradeModalOpen(false);
-    setSelectedPlan(null);
+    // Redireciona para o Stripe Checkout
+    window.location.href = checkoutUrl;
   };
 
   return (
@@ -195,60 +193,41 @@ const PlansPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Plano Atual Card */}
-      {currentPlan ? (
-        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <div className="p-8 md:p-10 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-800/50 dark:to-slate-800 border-b border-slate-50 dark:border-slate-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-              <div className="flex items-center gap-6">
-                <div className={cn(
-                  "w-20 h-20 rounded-[2rem] flex items-center justify-center text-white shadow-lg",
-                  currentPlan.color
-                )}>
-                  <currentPlan.icon className="w-10 h-10" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest bg-blue-100 px-2 py-0.5 rounded">Seu Plano Atual</span>
-                    {profile?.plan_status === 'trial' && (
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest bg-green-500 px-2 py-0.5 rounded">Período Grátis</span>
-                    )}
-                  </div>
-                  <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentPlan.name}</h2>
-                </div>
-              </div>
-              <div className="text-left md:text-right">
-                <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
-                  {formatCurrency(currentPlan.prices.monthly)}
-                  <span className="text-lg font-bold text-slate-400">/mês</span>
-                </p>
-                <div className="flex items-center md:justify-end gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {profile?.plan_status === 'trial' && profile.trial_ends_at
-                    ? `Teste até: ${formatDate(profile.trial_ends_at)}`
-                    : 'Renovação Mensal'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        // Fallback: Se não encontrou (ex: é Free/Trial sem ID mapeado), mostra card genérico de "Gratuito/Inicial"
-        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <div className="p-8 md:p-10 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
+      {/* Plano Atual Card - Sempre exibe o plano correto */}
+      <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <div className="p-8 md:p-10 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-800/50 dark:to-slate-800 border-b border-slate-50 dark:border-slate-700">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-[2rem] flex items-center justify-center text-slate-500 bg-slate-200 dark:bg-slate-700 shadow-lg">
-                <Zap className="w-10 h-10" />
+              <div className={cn(
+                "w-20 h-20 rounded-[2rem] flex items-center justify-center text-white shadow-lg",
+                currentPlan.id === 'starter' ? 'bg-slate-500' :
+                  currentPlan.id === 'professional' ? 'bg-blue-600' :
+                    currentPlan.id === 'business' ? 'bg-purple-600' : 'bg-slate-900'
+              )}>
+                <currentPlan.icon className="w-10 h-10" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">Plano Inicial</span>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1">Gratuito / Trial</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Faça um upgrade para ter mais recursos.</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest bg-blue-100 px-2 py-0.5 rounded">
+                    Plano Ativo
+                  </span>
+                </div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentPlan.name}</h2>
+              </div>
+            </div>
+            <div className="text-left md:text-right">
+              <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                {formatCurrency(currentPlan.monthlyPrice)}
+                <span className="text-lg font-bold text-slate-400">/mês</span>
+              </p>
+              <div className="flex items-center md:justify-end gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
+                <Calendar className="w-3.5 h-3.5" />
+                Renovação Mensal
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Toggle Mensal/Anual e Lista de Planos */}
       <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
@@ -260,10 +239,10 @@ const PlansPage: React.FC = () => {
 
           <div className="bg-slate-100 dark:bg-slate-700 p-1 rounded-full inline-flex self-center">
             <button
-              onClick={() => setBillingCycle('monthly')}
+              onClick={() => setBillingPeriod('monthly')}
               className={cn(
                 "px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all",
-                billingCycle === 'monthly'
+                billingPeriod === 'monthly'
                   ? "bg-white text-brand-blue shadow-md"
                   : "text-slate-400 hover:text-slate-600"
               )}
@@ -271,10 +250,10 @@ const PlansPage: React.FC = () => {
               Mensal
             </button>
             <button
-              onClick={() => setBillingCycle('yearly')}
+              onClick={() => setBillingPeriod('annual')}
               className={cn(
                 "px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                billingCycle === 'yearly'
+                billingPeriod === 'annual'
                   ? "bg-white text-brand-blue shadow-md"
                   : "text-slate-400 hover:text-slate-600"
               )}
@@ -286,10 +265,10 @@ const PlansPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {plans.map((plan) => {
-            const isCurrentPlan = plan.id === currentPlanId;
-            const displayPrice = billingCycle === 'monthly' ? plan.prices.monthly : plan.prices.yearly;
-            const periodLabel = billingCycle === 'monthly' ? '/mês' : '/ano';
+          {plansData.map((plan) => {
+            const isCurrentPlan = plan.id === currentPlan.id;
+            const displayPrice = billingPeriod === 'monthly' ? plan.monthlyPrice : Math.round(plan.yearlyPrice / 12);
+            const periodLabel = billingPeriod === 'monthly' ? '/mês' : '/ano';
 
             return (
               <div
@@ -313,7 +292,9 @@ const PlansPage: React.FC = () => {
                 <div className="text-center mb-6 mt-2">
                   <div className={cn(
                     "w-12 h-12 rounded-[1rem] flex items-center justify-center text-white mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-500",
-                    plan.color
+                    plan.id === 'starter' ? 'bg-slate-500' :
+                      plan.id === 'professional' ? 'bg-blue-600' :
+                        plan.id === 'business' ? 'bg-purple-600' : 'bg-slate-900'
                   )}>
                     <plan.icon className="w-6 h-6" />
                   </div>
@@ -367,7 +348,7 @@ const PlansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Histórico de Faturas */}
+      {/* Histórico e Cancelamento */}
       <div className="animate-slide-up" style={{ animationDelay: '300ms' }}>
         <div className="flex items-center gap-3 mb-8">
           <div className="w-2 h-2 rounded-full bg-blue-400"></div>
@@ -379,13 +360,13 @@ const PlansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer de Cancelamento e Modais */}
       <div className="text-center pt-8 border-t border-slate-100 mt-8 animate-slide-up">
         <button onClick={() => setRetentionModalOpen(true)} className="text-xs font-bold text-slate-400 hover:text-slate-600 underline transition-colors uppercase tracking-widest">
           Precisa cancelar sua assinatura? Clique aqui
         </button>
       </div>
 
+      {/* Modais */}
       {retentionModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setRetentionModalOpen(false)} />
@@ -412,25 +393,30 @@ const PlansPage: React.FC = () => {
         </div>
       )}
 
-      {upgradeModalOpen && selectedPlan && (
+      {/* Upgrade Modal */}
+      {upgradeModalOpen && selectedPlanToUpgrade && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setUpgradeModalOpen(false)} />
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden">
-            <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl", selectedPlan.color)}>
-              <selectedPlan.icon className="w-10 h-10" />
+            <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl",
+              selectedPlanToUpgrade.id === 'starter' ? 'bg-slate-500' :
+                selectedPlanToUpgrade.id === 'professional' ? 'bg-blue-600' :
+                  selectedPlanToUpgrade.id === 'business' ? 'bg-purple-600' : 'bg-slate-900'
+            )}>
+              <selectedPlanToUpgrade.icon className="w-10 h-10" />
             </div>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
-              Upgrade para {selectedPlan.name}?
+              Upgrade para {selectedPlanToUpgrade.name}?
             </h3>
             <p className="text-slate-500 text-center mb-8 font-medium leading-relaxed">
-              Você selecionou o ciclo <span className="text-brand-blue font-bold uppercase">{billingCycle === 'monthly' ? 'Mensal' : 'Anual'}</span>.
+              Você selecionou o ciclo <span className="text-brand-blue font-bold uppercase">{billingPeriod === 'monthly' ? 'Mensal' : 'Anual'}</span>.
             </p>
 
             <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 mb-10 border border-slate-100">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor a pagar:</span>
                 <span className="text-2xl font-black text-brand-blue tracking-tighter">
-                  {formatCurrency(billingCycle === 'monthly' ? selectedPlan.prices.monthly : selectedPlan.prices.yearly)}
+                  {formatCurrency(billingPeriod === 'monthly' ? selectedPlanToUpgrade.monthlyPrice : selectedPlanToUpgrade.yearlyPrice)}
                 </span>
               </div>
             </div>

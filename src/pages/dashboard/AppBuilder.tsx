@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom'; // ✅ Importado useSearchParams
 import { Save, Eye, Palette, Globe, Smartphone, ArrowRight, ArrowLeft, Lock, Upload, X } from 'lucide-react';
 import Button from '../../components/Button';
 import MockupMobile from '../../components/MockupMobile';
@@ -7,22 +7,25 @@ import { useApps } from '../../contexts/AppsContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AppBuilder: React.FC = () => {
-  const { addApp, apps, planLimit } = useApps();
+  const { addApp, updateApp, apps, planLimit } = useApps(); // ✅ updateApp importado (assumindo que existe no contexto, se não existir, precisaremos criar)
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // ✅ Ler URL
+
+  // Lógica de Edição
+  const editMode = searchParams.get('mode') === 'edit';
+  const appIdToEdit = searchParams.get('appId');
+
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Normaliza o plano para exibição correta
+  // Normaliza o plano
   const currentPlan = profile?.plan || 'starter';
-  // Usa o limite que vem do Contexto (já calculado corretamente)
   const maxApps = planLimit;
-  const isLimitReached = apps.length >= maxApps;
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [step]);
+  // ✅ CORREÇÃO NO LIMITE: Se for edição, o limite não importa (já tem o app)
+  const isLimitReached = !editMode && apps.length >= maxApps;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,6 +35,27 @@ const AppBuilder: React.FC = () => {
     logo: null as string | null,
     language: 'PT'
   });
+
+  // ✅ EFEITO PARA CARREGAR DADOS NA EDIÇÃO
+  useEffect(() => {
+    if (editMode && appIdToEdit) {
+      const app = apps.find(a => a.id === appIdToEdit);
+      if (app) {
+        setFormData({
+          name: app.name,
+          slug: app.slug,
+          description: app.description || '',
+          primaryColor: app.primaryColor,
+          logo: app.logo || null,
+          language: app.language || 'PT'
+        });
+      }
+    }
+  }, [editMode, appIdToEdit, apps]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
@@ -52,7 +76,8 @@ const AppBuilder: React.FC = () => {
   };
 
   const handlePublish = async () => {
-    if (isLimitReached) {
+    // Validação de limite apenas se for NOVO app
+    if (!editMode && isLimitReached) {
       alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
       navigate('/dashboard/apps');
       return;
@@ -65,58 +90,82 @@ const AppBuilder: React.FC = () => {
     }
 
     setIsSubmitting(true);
-
-    // Simula um delay para UX
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
-      await addApp({
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        logo: formData.logo,
-        primaryColor: formData.primaryColor,
-        language: formData.language,
-        customDomain: null,
-        status: 'published'
-      });
+      if (editMode && appIdToEdit) {
+        // ✅ ATUALIZAR APP EXISTENTE
+        await updateApp(appIdToEdit, {
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          logo: formData.logo,
+          primaryColor: formData.primaryColor,
+          language: formData.language
+          // customDomain e status mantemos como estão ou tratamos separadamente
+        });
+        alert('Aplicativo atualizado com sucesso!');
+      } else {
+        // ✅ CRIAR NOVO APP
+        await addApp({
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          logo: formData.logo,
+          primaryColor: formData.primaryColor,
+          language: formData.language,
+          customDomain: null,
+          status: 'published'
+        });
+        alert('Aplicativo publicado com sucesso!');
+      }
 
       setIsSubmitting(false);
-      // Feedback visual mais elegante poderia ser usado aqui, mas alert funciona
-      alert('Aplicativo publicado com sucesso!');
       navigate('/dashboard/apps');
     } catch (error) {
-      console.error("Erro ao criar app:", error);
+      console.error("Erro ao salvar app:", error);
       setIsSubmitting(false);
-      // O Contexto já pode ter lançado um erro se falhou no Supabase
     }
   };
 
+  // Salvar Rascunho (Lógica similar para update)
   const handleSaveDraft = async () => {
-    if (isLimitReached) {
-      alert(`Você atingiu o limite de ${maxApps} apps do seu plano ${currentPlan.toUpperCase()}. Faça upgrade para criar mais.`);
+    if (!editMode && isLimitReached) {
+      alert(`Limite atingido.`);
       navigate('/dashboard/apps');
       return;
     }
 
     if (!formData.name) {
-      alert('Dê um nome ao seu rascunho pelo menos.');
+      alert('Dê um nome ao seu rascunho.');
       return;
     }
 
     try {
-      await addApp({
-        name: formData.name,
-        slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
-        description: formData.description,
-        logo: formData.logo,
-        primaryColor: formData.primaryColor,
-        language: formData.language,
-        customDomain: null,
-        status: 'draft'
-      });
-
-      alert('Rascunho salvo com sucesso!');
+      if (editMode && appIdToEdit) {
+        await updateApp(appIdToEdit, {
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          logo: formData.logo,
+          primaryColor: formData.primaryColor,
+          language: formData.language,
+          status: 'draft' // Opcional mudar status ao salvar rascunho na edição
+        });
+        alert('Rascunho atualizado!');
+      } else {
+        await addApp({
+          name: formData.name,
+          slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+          description: formData.description,
+          logo: formData.logo,
+          primaryColor: formData.primaryColor,
+          language: formData.language,
+          customDomain: null,
+          status: 'draft'
+        });
+        alert('Rascunho salvo!');
+      }
       navigate('/dashboard/apps');
     } catch (error) {
       console.error("Erro ao salvar rascunho:", error);
@@ -130,7 +179,7 @@ const AppBuilder: React.FC = () => {
       {/* Editor Side */}
       <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden relative transition-colors duration-300">
 
-        {/* Bloqueio Inteligente: Mostra o plano e limite reais */}
+        {/* Bloqueio Inteligente: Só bloqueia se for NOVO e atingiu limite */}
         {isLimitReached && (
           <div className="absolute inset-0 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-8">
             <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 p-10 max-w-md text-center animate-slide-up">
@@ -167,10 +216,12 @@ const AppBuilder: React.FC = () => {
               {step}
             </div>
             <h2 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-              {step === 1 && "Info. Básicas"}
-              {step === 2 && "Estilo & Cores"}
-              {step === 3 && "Idioma"}
-              {step === 4 && "Revisão"}
+              {/* Mostra título dinâmico dependendo se é Edição ou Criação */}
+              {editMode ? "Editar App" : "Novo App"} - {
+                step === 1 ? "Info. Básicas" :
+                  step === 2 ? "Estilo & Cores" :
+                    step === 3 ? "Idioma" : "Revisão"
+              }
             </h2>
           </div>
           <div className="flex gap-2">
@@ -297,8 +348,8 @@ const AppBuilder: React.FC = () => {
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Selecione o Idioma Padrão</label>
               {['Português (Brasil)', 'English', 'Español', 'Français'].map(lang => (
                 <label key={lang} className={`flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all ${formData.language === lang.substring(0, 2).toUpperCase()
-                    ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
-                    : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600'
+                  ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
+                  : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-600'
                   }`}>
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-xl ${formData.language === lang.substring(0, 2).toUpperCase() ? 'bg-brand-blue text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
@@ -323,15 +374,19 @@ const AppBuilder: React.FC = () => {
               <div className="w-24 h-24 bg-green-50 dark:bg-green-500/10 text-green-500 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
                 <Save className="w-10 h-10 stroke-[2.5px]" />
               </div>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter">Tudo pronto!</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-10 font-medium max-w-sm mx-auto leading-relaxed">Seu aplicativo está configurado e pronto para ser entregue aos seus clientes.</p>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter">
+                {editMode ? "Salvar Alterações?" : "Tudo pronto!"}
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-10 font-medium max-w-sm mx-auto leading-relaxed">
+                {editMode ? "Seu aplicativo será atualizado imediatamente para todos os usuários." : "Seu aplicativo está configurado e pronto para ser entregue aos seus clientes."}
+              </p>
               <Button
                 size="lg"
                 className="w-full max-w-sm h-16 text-sm font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30"
                 onClick={handlePublish}
                 isLoading={isSubmitting}
               >
-                Publicar Meu Aplicativo
+                {editMode ? "Atualizar Aplicativo" : "Publicar Meu Aplicativo"}
               </Button>
             </div>
           )}

@@ -8,8 +8,13 @@ const DashboardHome: React.FC = () => {
   const { apps } = useApps();
   const { profile } = useAuth();
 
-  // Define o plano atual
-  const currentPlan = profile?.plan || 'free';
+  // --- LÓGICA DE EXIBIÇÃO DO PLANO ---
+  // Pega o plano real do banco
+  const rawPlan = profile?.plan?.toLowerCase() || 'starter';
+
+  // Se for 'free' ou 'trial', visualmente chamamos de 'starter'
+  // Se for outro (professional, business, enterprise), mantém o nome real
+  const currentPlanDisplay = (rawPlan === 'free' || rawPlan === 'trial') ? 'starter' : rawPlan;
 
   // --- CONFIGURAÇÃO OFICIAL DOS LIMITES ---
   const getPlanLimits = (plan: string) => {
@@ -18,12 +23,14 @@ const DashboardHome: React.FC = () => {
       case 'professional': return 3;
       case 'business': return 5;
       case 'enterprise': return 10;
+      // Fallback para free/trial cai na regra do starter (1 app)
       case 'free': return 1;
+      case 'trial': return 1;
       default: return 1;
     }
   };
 
-  const maxApps = getPlanLimits(currentPlan);
+  const maxApps = getPlanLimits(rawPlan); // Usa o rawPlan para calcular limite real do banco
   const safeApps = apps || []; // Proteção contra crash
   const isLimitReached = safeApps.length >= maxApps;
 
@@ -39,8 +46,8 @@ const DashboardHome: React.FC = () => {
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium text-lg flex items-center gap-2">
           Você está no plano
-          <span className="text-brand-blue font-bold uppercase">
-            {currentPlan}
+          <span className="text-brand-blue font-bold uppercase bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800 text-sm tracking-widest">
+            {currentPlanDisplay}
           </span>
         </p>
       </div>
@@ -80,11 +87,6 @@ const DashboardHome: React.FC = () => {
               )}
 
               <div className="mt-5 flex flex-wrap items-center gap-4">
-                {/* Badge do Plano */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-800">
-                  {currentPlan}
-                </span>
-
                 <span className={`text-xs font-bold uppercase tracking-widest ${isLimitReached ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
                   APPS: <span className={isLimitReached ? 'text-red-600' : 'text-slate-900 dark:text-white'}>{safeApps.length}/{maxApps}</span>
                 </span>
