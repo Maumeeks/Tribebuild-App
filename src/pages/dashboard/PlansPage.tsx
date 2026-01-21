@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { Check, X, Loader2, Crown, Zap, Building2, Rocket, AlertCircle, Calendar, Sparkles, CreditCard } from 'lucide-react';
-import TribeBuildLogo from '../../components/TribeBuildLogo';
+import { Check, X, Crown, Zap, Building2, Rocket, Calendar, Sparkles, CreditCard, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
-// --- CONFIGURAÇÃO DE TIPOS CORRIGIDA ---
+// --- CONFIGURAÇÃO DE TIPOS ---
 interface Plan {
   id: string;
   name: string;
   icon: React.ElementType;
   color: string;
-  monthlyPrice: number; // Agora direto na raiz, sem objeto 'prices'
-  yearlyPrice: number;  // Agora direto na raiz
+  monthlyPrice: number;
+  yearlyPrice: number;
   stripeUrls: {
     monthly: string;
     yearly: string;
@@ -31,18 +30,6 @@ const PlansPage: React.FC = () => {
   const [selectedPlanToUpgrade, setSelectedPlanToUpgrade] = useState<Plan | null>(null);
 
   const { user, profile } = useAuth();
-  const location = useLocation();
-  const state = location.state as { expired?: boolean; message?: string };
-
-  const getPlanColors = (color: string) => {
-    switch (color) {
-      case 'brand-blue': return { bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200' };
-      case 'brand-coral': return { bg: 'bg-orange-500/10 dark:bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200' };
-      case 'purple-500': return { bg: 'bg-purple-500/10 dark:bg-purple-500/20', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200' };
-      case 'indigo-500': return { bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200' };
-      default: return { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' };
-    }
-  };
 
   const plansData: Plan[] = [
     {
@@ -143,12 +130,11 @@ const PlansPage: React.FC = () => {
   const rawPlanId = profile?.plan || 'starter';
   let currentPlanId = rawPlanId.toLowerCase();
 
-  // Se for free/trial, visualmente tratamos como starter
+  // Tratamento visual para free/trial aparecerem como starter
   if (currentPlanId === 'free' || currentPlanId === 'trial') {
     currentPlanId = 'starter';
   }
 
-  // Busca o plano na lista. Se não encontrar, usa Starter como fallback.
   const currentPlan = plansData.find(p => p.id === currentPlanId) || plansData[0];
 
   const formatCurrency = (value: number) => {
@@ -156,9 +142,7 @@ const PlansPage: React.FC = () => {
   };
 
   const handleSelectPlan = (plan: Plan) => {
-    // Se for o plano atual, não faz nada
     if (plan.id === currentPlan.id) return;
-
     setSelectedPlanToUpgrade(plan);
     setUpgradeModalOpen(true);
   };
@@ -168,18 +152,15 @@ const PlansPage: React.FC = () => {
 
     setLoadingPlan(selectedPlanToUpgrade.name.toLowerCase());
 
-    // Seleciona o link correto baseado no período
     let checkoutUrl = billingPeriod === 'monthly'
       ? selectedPlanToUpgrade.stripeUrls.monthly
       : selectedPlanToUpgrade.stripeUrls.yearly;
 
-    // Adiciona client_reference_id e prefilled_email se o usuário estiver logado
     if (user) {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
       checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
     }
 
-    // Redireciona para o Stripe Checkout
     window.location.href = checkoutUrl;
   };
 
@@ -189,11 +170,11 @@ const PlansPage: React.FC = () => {
       <div className="space-y-3 animate-slide-up">
         <h1 className="text-3xl font-black text-brand-blue tracking-tighter leading-tight">Meu Plano</h1>
         <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
-          Gerencie sua assinatura e faça upgrade para desbloquear mais poder.
+          Escale sua operação com risco zero. Todos os planos possuem garantia de 7 dias.
         </p>
       </div>
 
-      {/* Plano Atual Card - Sempre exibe o plano correto */}
+      {/* Plano Atual Card */}
       <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
         <div className="p-8 md:p-10 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-800/50 dark:to-slate-800 border-b border-slate-50 dark:border-slate-700">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -229,12 +210,12 @@ const PlansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Toggle Mensal/Anual e Lista de Planos */}
+      {/* Toggle Mensal/Anual */}
       <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Comparativo de Planos</h2>
+            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Escolha seu Upgrade</h2>
           </div>
 
           <div className="bg-slate-100 dark:bg-slate-700 p-1 rounded-full inline-flex self-center">
@@ -264,6 +245,7 @@ const PlansPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Lista de Planos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plansData.map((plan) => {
             const isCurrentPlan = plan.id === currentPlan.id;
@@ -284,7 +266,7 @@ const PlansPage: React.FC = () => {
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-full text-center px-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-blue text-white text-[9px] font-black rounded-full shadow-lg shadow-blue-500/30 uppercase tracking-widest">
                       <Sparkles className="w-3 h-3" />
-                      Popular
+                      Recomendado
                     </span>
                   </div>
                 )}
@@ -340,8 +322,16 @@ const PlansPage: React.FC = () => {
                       : "bg-brand-blue text-white hover:bg-brand-blue-dark shadow-lg shadow-blue-500/20"
                   )}
                 >
-                  {isCurrentPlan ? 'Ativo' : 'Escolher'}
+                  {isCurrentPlan ? 'Plano Atual' : 'Assinar Agora'}
                 </button>
+
+                {/* SELO DE GARANTIA ADICIONADO AQUI */}
+                {!isCurrentPlan && (
+                  <div className="flex items-center justify-center gap-1.5 mt-3 opacity-60">
+                    <ShieldCheck className="w-3 h-3 text-slate-400" />
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">7 Dias de Garantia</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -362,17 +352,17 @@ const PlansPage: React.FC = () => {
 
       <div className="text-center pt-8 border-t border-slate-100 mt-8 animate-slide-up">
         <button onClick={() => setRetentionModalOpen(true)} className="text-xs font-bold text-slate-400 hover:text-slate-600 underline transition-colors uppercase tracking-widest">
-          Precisa cancelar sua assinatura? Clique aqui
+          Gerenciar Assinatura ou Cancelar
         </button>
       </div>
 
-      {/* Modais */}
+      {/* Modais (Mantidos iguais, apenas ajustando visual se necessário) */}
       {retentionModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setRetentionModalOpen(false)} />
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
             <h3 className="text-2xl font-black text-slate-900 mb-2">Poxa, vai embora? 😢</h3>
-            <p className="text-slate-500 mb-6">Seus apps serão desativados.</p>
+            <p className="text-slate-500 mb-6">Seus apps serão desativados imediatamente.</p>
             <div className="flex flex-col gap-3">
               <button onClick={() => setRetentionModalOpen(false)} className="w-full py-4 bg-brand-blue text-white rounded-2xl font-black text-xs uppercase">Vou ficar!</button>
               <button onClick={() => { setRetentionModalOpen(false); setCancelModalOpen(true); }} className="text-slate-400 text-xs font-bold uppercase">Continuar Cancelamento</button>
@@ -387,7 +377,7 @@ const PlansPage: React.FC = () => {
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
             <h3 className="text-2xl font-black text-red-500 mb-2">Tem certeza?</h3>
             <p className="text-slate-500 mb-6">Essa ação não pode ser desfeita.</p>
-            <button onClick={() => alert('Para cancelar, entre em contato com o suporte ou gerencie via Stripe.')} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase mb-3">Sim, Cancelar</button>
+            <button onClick={() => alert('Para cancelar, use o Portal do Cliente Stripe.')} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase mb-3">Sim, Cancelar</button>
             <button onClick={() => setCancelModalOpen(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase">Voltar</button>
           </div>
         </div>
@@ -406,10 +396,10 @@ const PlansPage: React.FC = () => {
               <selectedPlanToUpgrade.icon className="w-10 h-10" />
             </div>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
-              Upgrade para {selectedPlanToUpgrade.name}?
+              Upgrade para {selectedPlanToUpgrade.name}
             </h3>
-            <p className="text-slate-500 text-center mb-8 font-medium leading-relaxed">
-              Você selecionou o ciclo <span className="text-brand-blue font-bold uppercase">{billingPeriod === 'monthly' ? 'Mensal' : 'Anual'}</span>.
+            <p className="text-slate-500 text-center mb-6 font-medium leading-relaxed">
+              Pagamento 100% seguro com <br /> <strong>Garantia de 7 Dias Incondicional</strong>.
             </p>
 
             <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 mb-10 border border-slate-100">

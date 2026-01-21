@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Loader2, Crown, Zap, Building2, Rocket, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Crown, Zap, Building2, Rocket, AlertCircle, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import TribeBuildLogo from '../components/TribeBuildLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, Link } from 'react-router-dom';
@@ -7,6 +7,10 @@ import { useLocation, Link } from 'react-router-dom';
 const PlansPage: React.FC = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  // Estado para controlar o FAQ
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
   const { user } = useAuth();
   const location = useLocation();
   const state = location.state as { expired?: boolean; message?: string };
@@ -21,7 +25,34 @@ const PlansPage: React.FC = () => {
     }
   };
 
-  // ✅ PLANOS COM LINKS CORRETOS DO STRIPE
+  // Dados do FAQ
+  const faqData = [
+    {
+      question: "Como funciona os 7 dias grátis?",
+      answer: "Você tem acesso total a todas as funcionalidades do plano escolhido por 7 dias. Se você cancelar dentro desse período, não será cobrado nenhum centavo. É risco zero para você testar."
+    },
+    {
+      question: "Posso cancelar a qualquer momento?",
+      answer: "Sim! Não há contratos de fidelidade ou multas. Você pode cancelar sua assinatura diretamente pelo painel do usuário a qualquer momento, e o acesso será encerrado ao final do ciclo de cobrança atual."
+    },
+    {
+      question: "Preciso saber programar para criar meu app?",
+      answer: "Não. O TribeBuild foi desenvolvido para ser No-Code. Você consegue personalizar sua identidade visual, criar produtos e gerenciar sua comunidade usando nossa interface visual intuitiva."
+    },
+    {
+      question: "Posso fazer upgrade ou downgrade do plano depois?",
+      answer: "Com certeza. Conforme sua comunidade cresce, você pode mudar de plano instantaneamente através do painel de configurações da sua conta."
+    },
+    {
+      question: "Como funciona o Domínio Personalizado?",
+      answer: "Em todos os planos, você pode conectar seu próprio domínio (ex: app.suamarca.com.br) para que seus alunos acessem seu aplicativo com a sua marca, sem menção ao TribeBuild na URL."
+    }
+  ];
+
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
+
   const plansData = [
     {
       name: 'Starter',
@@ -29,7 +60,6 @@ const PlansPage: React.FC = () => {
       yearlyPrice: 672,
       icon: Zap,
       color: 'brand-blue',
-      // ✅ LINKS DIRETOS DO STRIPE (Payment Links)
       stripeUrls: {
         monthly: 'https://buy.stripe.com/test_9B68wP0Zu4qq1Aa6hH2wU00',
         yearly: 'https://buy.stripe.com/test_28E14n8rWbSS5Qq7lL2wU03',
@@ -122,18 +152,15 @@ const PlansPage: React.FC = () => {
   const handleSelectPlan = (plan: typeof plansData[0]) => {
     setLoadingPlan(plan.name.toLowerCase());
 
-    // Seleciona o link correto baseado no período
-    let checkoutUrl = billingPeriod === 'monthly' 
-      ? plan.stripeUrls.monthly 
+    let checkoutUrl = billingPeriod === 'monthly'
+      ? plan.stripeUrls.monthly
       : plan.stripeUrls.yearly;
 
-    // Adiciona client_reference_id e prefilled_email se o usuário estiver logado
     if (user) {
       const separator = checkoutUrl.includes('?') ? '&' : '?';
       checkoutUrl = `${checkoutUrl}${separator}client_reference_id=${user.id}&prefilled_email=${encodeURIComponent(user.email || '')}`;
     }
 
-    // Redireciona para o Stripe Checkout
     window.location.href = checkoutUrl;
   };
 
@@ -173,21 +200,19 @@ const PlansPage: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 inline-flex">
             <button
               onClick={() => setBillingPeriod('monthly')}
-              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
-                billingPeriod === 'monthly'
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${billingPeriod === 'monthly'
                   ? 'bg-brand-blue text-white shadow-lg'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               Mensal
             </button>
             <button
               onClick={() => setBillingPeriod('annual')}
-              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-                billingPeriod === 'annual'
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${billingPeriod === 'annual'
                   ? 'bg-brand-blue text-white shadow-lg'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               Anual
               <span className="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -217,7 +242,7 @@ const PlansPage: React.FC = () => {
         )}
 
         {/* Plans Grid */}
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
           {plansData.map((plan) => {
             const Icon = plan.icon;
             const isPopular = plan.popular;
@@ -227,11 +252,10 @@ const PlansPage: React.FC = () => {
             return (
               <div
                 key={plan.name}
-                className={`relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl border-2 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ${
-                  isPopular
+                className={`relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl border-2 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ${isPopular
                     ? 'border-brand-coral dark:border-brand-coral z-10 lg:scale-105 shadow-brand-coral/10'
                     : 'border-slate-100 dark:border-slate-700 hover:border-brand-blue/30 dark:hover:border-brand-blue/30'
-                }`}
+                  }`}
               >
                 {isPopular && (
                   <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 w-max">
@@ -242,7 +266,6 @@ const PlansPage: React.FC = () => {
                 )}
 
                 <div className="p-6 flex flex-col h-full">
-                  {/* Plan Header */}
                   <div className="flex items-center gap-4 mb-6">
                     <div className={`w-12 h-12 rounded-2xl ${colors.bg} flex items-center justify-center flex-shrink-0`}>
                       <Icon className={`w-6 h-6 ${colors.text}`} />
@@ -257,7 +280,6 @@ const PlansPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Price */}
                   <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
                     <div className="flex items-center justify-center gap-1 text-slate-900 dark:text-white">
                       <span className="text-xs font-bold text-slate-400">R$</span>
@@ -277,7 +299,6 @@ const PlansPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Features */}
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3 group">
@@ -291,15 +312,13 @@ const PlansPage: React.FC = () => {
                     ))}
                   </ul>
 
-                  {/* CTA Button */}
                   <button
                     onClick={() => handleSelectPlan(plan)}
                     disabled={loadingPlan !== null}
-                    className={`w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-auto transform hover:-translate-y-1 active:scale-95 ${
-                      isPopular
+                    className={`w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-auto transform hover:-translate-y-1 active:scale-95 ${isPopular
                         ? 'bg-brand-coral hover:bg-orange-600 text-white shadow-xl shadow-orange-500/30'
                         : 'bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white shadow-lg'
-                    }`}
+                      }`}
                   >
                     {loadingPlan === plan.name.toLowerCase() ? (
                       <span className="flex items-center justify-center gap-2">
@@ -316,8 +335,51 @@ const PlansPage: React.FC = () => {
           })}
         </div>
 
+        {/* --- NOVA SEÇÃO DE FAQ (Q&A) --- */}
+        <div className="max-w-3xl mx-auto mb-20">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center justify-center gap-2">
+              <HelpCircle className="w-6 h-6 text-brand-blue" />
+              Perguntas Frequentes
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-2">
+              Tire suas dúvidas antes de começar
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqData.map((item, index) => (
+              <div
+                key={index}
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm transition-all hover:border-brand-blue/30"
+              >
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
+                >
+                  <span className="font-bold text-slate-900 dark:text-white text-sm md:text-base">
+                    {item.question}
+                  </span>
+                  {openFaqIndex === index ? (
+                    <ChevronUp className="w-5 h-5 text-brand-blue flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                  )}
+                </button>
+
+                <div
+                  className={`px-6 text-slate-600 dark:text-slate-400 text-sm leading-relaxed transition-all duration-300 ease-in-out overflow-hidden ${openFaqIndex === index ? 'max-h-40 pb-6 opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                >
+                  {item.answer}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Footer Info */}
-        <div className="max-w-4xl mx-auto mt-16 text-center pb-8">
+        <div className="max-w-4xl mx-auto mt-16 text-center pb-8 border-t border-slate-200 dark:border-slate-800 pt-10">
           <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
             <span className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-800">
               <Check className="w-3 h-3 text-green-500" />
@@ -332,7 +394,7 @@ const PlansPage: React.FC = () => {
               Cancele quando quiser
             </span>
           </div>
-          
+
           <p className="mt-8 text-sm text-slate-400">
             Já tem uma conta?{' '}
             <Link to="/login" className="text-brand-blue font-bold hover:underline">
