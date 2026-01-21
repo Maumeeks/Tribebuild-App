@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users,
   Search,
-  MoreVertical,
-  Calendar,
+  MoreHorizontal, // Mais discreto que Vertical
+  Filter,
   Shield,
   ShieldOff,
   Trash2,
@@ -11,12 +10,12 @@ import {
   X,
   UserPlus,
   Download,
-  AlertCircle,
+  Loader2,
+  Calendar,
   CheckCircle2,
-  Loader2
+  Smartphone
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Button from '../../components/Button';
 import { useApps } from '../../contexts/AppsContext';
 import { supabase } from '../../lib/supabase';
 
@@ -25,7 +24,7 @@ interface Client {
   id: string;
   email: string;
   name: string | null;
-  app_id: string; // No banco geralmente é snake_case
+  app_id: string;
   status: 'active' | 'blocked';
   created_at: string;
   last_access: string | null;
@@ -33,7 +32,7 @@ interface Client {
 }
 
 const ClientsPage: React.FC = () => {
-  const { apps } = useApps(); // ✅ Pegando os apps reais do usuário
+  const { apps } = useApps();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,12 +53,10 @@ const ClientsPage: React.FC = () => {
     appId: ''
   });
 
-  // --- BUSCAR CLIENTES REAIS DO SUPABASE ---
+  // --- BUSCA DADOS ---
   const fetchClients = async () => {
     try {
       setIsLoading(true);
-      // Busca clientes que pertencem aos apps deste usuário
-      // Precisamos dos IDs dos apps para filtrar
       const appIds = apps.map(app => app.id);
 
       if (appIds.length === 0) {
@@ -77,7 +74,6 @@ const ClientsPage: React.FC = () => {
       setClients(data || []);
     } catch (error) {
       console.error('Erro ao buscar clientes:', error);
-      // Não trava a tela, apenas loga o erro (pode ser que a tabela não exista ainda)
     } finally {
       setIsLoading(false);
     }
@@ -91,26 +87,21 @@ const ClientsPage: React.FC = () => {
     }
   }, [apps]);
 
-  // --- LÓGICA DE FILTRO ---
+  // --- FILTROS ---
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    // Mapeando app_id do banco
     const matchesApp = filterApp === 'all' || client.app_id === filterApp;
     const matchesStatus = filterStatus === 'all' || client.status === filterStatus;
-
     return matchesSearch && matchesApp && matchesStatus;
   });
 
-  // --- HELPER PARA PEGAR NOME DO APP ---
   const getAppName = (appId: string) => {
     const app = apps.find(a => a.id === appId);
     return app ? app.name : 'App Desconhecido';
   };
 
   // --- AÇÕES ---
-
   const handleAddClient = async () => {
     if (!newClient.email || !newClient.appId) {
       alert('Preencha o email e selecione o app');
@@ -138,11 +129,10 @@ const ClientsPage: React.FC = () => {
         setClients([data, ...clients]);
         setNewClient({ email: '', name: '', appId: '' });
         setIsAddModalOpen(false);
-        alert('Cliente adicionado com sucesso!');
       }
     } catch (error) {
-      console.error('Erro ao adicionar cliente:', error);
-      alert('Erro ao adicionar cliente. Verifique se o e-mail já existe neste app.');
+      console.error('Erro ao adicionar:', error);
+      alert('Erro ao adicionar. Verifique se o e-mail já existe.');
     } finally {
       setIsSubmitting(false);
     }
@@ -150,131 +140,87 @@ const ClientsPage: React.FC = () => {
 
   const handleToggleStatus = async (client: Client) => {
     const newStatus = client.status === 'active' ? 'blocked' : 'active';
-
     try {
-      const { error } = await supabase
-        .from('clients')
-        .update({ status: newStatus })
-        .eq('id', client.id);
-
-      if (error) throw error;
-
-      // Atualiza UI Otimista
-      setClients(clients.map(c =>
-        c.id === client.id ? { ...c, status: newStatus } : c
-      ));
-
-      // Se estiver no modal de detalhes, atualiza ele também
-      if (selectedClient && selectedClient.id === client.id) {
-        setSelectedClient({ ...selectedClient, status: newStatus });
-      }
-
+      await supabase.from('clients').update({ status: newStatus }).eq('id', client.id);
+      setClients(clients.map(c => c.id === client.id ? { ...c, status: newStatus } : c));
+      if (selectedClient?.id === client.id) setSelectedClient({ ...selectedClient, status: newStatus });
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-      alert('Não foi possível atualizar o status.');
+      console.error('Erro status:', error);
     }
     setActionMenuOpen(null);
   };
 
   const handleRemoveClient = async (clientId: string) => {
-    if (!confirm('Tem certeza que deseja remover o acesso deste cliente? O histórico dele será perdido.')) return;
-
+    if (!confirm('Remover cliente permanentemente?')) return;
     try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', clientId);
-
-      if (error) throw error;
-
+      await supabase.from('clients').delete().eq('id', clientId);
       setClients(clients.filter(c => c.id !== clientId));
     } catch (error) {
-      console.error('Erro ao remover cliente:', error);
-      alert('Erro ao remover cliente.');
+      console.error('Erro delete:', error);
     }
-    setActionMenuOpen(null);
-  };
-
-  const handleViewDetails = (client: Client) => {
-    setSelectedClient(client);
-    setIsDetailModalOpen(true);
     setActionMenuOpen(null);
   };
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
-
-  const getSourceLabel = (source: string) => {
-    switch (source) {
-      case 'webhook': return 'Automático (Webhook)';
-      case 'manual': return 'Manual';
-      case 'import': return 'Importado';
-      default: return source;
-    }
+    return new Date(dateString).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' });
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
-        <div className="space-y-3">
-          <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Gestão de Clientes</h1>
-          <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
-            Monitore quem tem acesso aos seus aplicativos, gerencie bloqueios e adicione novos usuários manualmente quando necessário.
+    <div className="space-y-8 font-['Inter'] pb-20 animate-fade-in">
+
+      {/* Header Compacto */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Clientes</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Gerencie o acesso dos usuários aos seus aplicativos.
           </p>
         </div>
-        <Button
+        <button
           onClick={() => setIsAddModalOpen(true)}
-          className="h-14 px-8 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20"
-          leftIcon={UserPlus}
           disabled={apps.length === 0}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-800 dark:hover:bg-slate-100 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
+          <UserPlus className="w-4 h-4" />
           Adicionar Cliente
-        </Button>
+        </button>
       </div>
 
-      {/* Filtros e Busca */}
-      <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-8 shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-end">
-          <div className="lg:col-span-2">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Buscar Usuário</label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300">
-                <Search className="w-5 h-5 group-focus-within:text-brand-blue transition-colors" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Email ou nome do cliente..."
-                className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
-              />
-            </div>
-          </div>
+      {/* Barra de Ferramentas (Busca e Filtros) */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-blue transition-colors" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nome ou email..."
+            className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue transition-all shadow-sm"
+          />
+        </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Filtrar por App</label>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          <div className="relative min-w-[160px]">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <select
               value={filterApp}
               onChange={(e) => setFilterApp(e.target.value)}
-              className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
+              className="w-full pl-9 pr-8 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 focus:outline-none appearance-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm uppercase tracking-wide"
             >
-              <option value="all">Todos os Aplicativos</option>
+              <option value="all">Todos os Apps</option>
               {apps.map(app => (
                 <option key={app.id} value={app.id}>{app.name}</option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Status de Acesso</label>
+          <div className="relative min-w-[160px]">
+            <div className={`absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${filterStatus === 'active' ? 'bg-green-500' : filterStatus === 'blocked' ? 'bg-red-500' : 'bg-slate-300'}`} />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
+              className="w-full pl-8 pr-8 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 focus:outline-none appearance-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-sm uppercase tracking-wide"
             >
               <option value="all">Todos os Status</option>
               <option value="active">Ativos</option>
@@ -282,136 +228,113 @@ const ClientsPage: React.FC = () => {
             </select>
           </div>
         </div>
-
-        <div className="mt-8 pt-8 border-t border-slate-50 dark:border-slate-700 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Total: <span className="text-slate-900 dark:text-white">{filteredClients.length}</span> clientes encontrados
-            </p>
-          </div>
-          <button className="text-[10px] font-black text-brand-blue uppercase tracking-widest hover:underline flex items-center gap-2">
-            <Download className="w-3 h-3" />
-            Exportar CSV
-          </button>
-        </div>
       </div>
 
-      {/* Tabela de Clientes */}
-      <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm animate-slide-up" style={{ animationDelay: '200ms' }}>
-        <div className="overflow-x-auto scrollbar-hide">
+      {/* Tabela Clean */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Aplicativo</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cadastrado em</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
+              <tr className="bg-slate-50/80 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800">
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">App</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center">
-                    <Loader2 className="w-10 h-10 text-brand-blue mx-auto animate-spin" />
-                    <p className="text-slate-400 font-bold mt-4">Carregando clientes...</p>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <Loader2 className="w-6 h-6 text-brand-blue mx-auto animate-spin" />
                   </td>
                 </tr>
               ) : filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center">
-                    <Users className="w-16 h-16 text-slate-100 dark:text-slate-700 mx-auto mb-4" />
-                    <p className="text-slate-400 font-bold">Nenhum cliente encontrado.</p>
-                    {apps.length === 0 && <p className="text-xs text-slate-400 mt-2">Crie um aplicativo primeiro para adicionar clientes.</p>}
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-3 text-slate-300">
+                      <Search className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Nenhum cliente encontrado</p>
+                    <p className="text-xs text-slate-500 mt-1">Tente ajustar os filtros ou adicione um novo.</p>
                   </td>
                 </tr>
               ) : (
                 filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-blue-50/20 dark:hover:bg-slate-700/30 transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-black text-brand-blue group-hover:bg-white dark:group-hover:bg-slate-600 shadow-sm transition-colors">
+                  <tr key={client.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           {client.email[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 dark:text-white tracking-tight leading-tight">{client.email}</p>
-                          {client.name && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{client.name}</p>}
+                          <p className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">
+                            {client.name || 'Sem nome'}
+                          </p>
+                          <p className="text-xs text-slate-500 font-medium">{client.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <span className="inline-flex items-center px-3 py-1 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-600">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+                        <Smartphone className="w-3.5 h-3.5 text-slate-400" />
                         {getAppName(client.app_id)}
-                      </span>
+                      </div>
                     </td>
-                    <td className="px-8 py-6 text-center">
+                    <td className="px-6 py-4">
                       {client.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-100">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                          Ativo
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wide">
+                          <CheckCircle2 className="w-3 h-3" /> Ativo
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-red-100">
-                          <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                          Bloqueado
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-700 dark:text-red-400 text-[10px] font-bold uppercase tracking-wide">
+                          <ShieldOff className="w-3 h-3" /> Bloqueado
                         </span>
                       )}
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs">
-                        <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                        {formatDate(client.created_at)}
-                      </div>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-500">
+                      {formatDate(client.created_at)}
                     </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="relative inline-block">
-                        <button
-                          onClick={() => setActionMenuOpen(actionMenuOpen === client.id ? null : client.id)}
-                          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
+                    <td className="px-6 py-4 text-right relative">
+                      <button
+                        onClick={() => setActionMenuOpen(actionMenuOpen === client.id ? null : client.id)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
 
-                        {actionMenuOpen === client.id && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setActionMenuOpen(null)} />
-                            <div className="absolute right-0 top-10 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 z-20 animate-slide-up origin-top-right">
-                              <button
-                                onClick={() => handleViewDetails(client)}
-                                className="flex items-center gap-3 w-full px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 hover:text-brand-blue hover:bg-blue-50 transition-all"
-                              >
-                                <Eye className="w-4 h-4" />
-                                Ver detalhes
-                              </button>
-                              <button
-                                onClick={() => handleToggleStatus(client)}
-                                className="flex items-center gap-3 w-full px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 hover:text-orange-500 hover:bg-orange-50 transition-all"
-                              >
-                                {client.status === 'active' ? (
-                                  <>
-                                    <ShieldOff className="w-4 h-4" />
-                                    Bloquear
-                                  </>
-                                ) : (
-                                  <>
-                                    <Shield className="w-4 h-4" />
-                                    Desbloquear
-                                  </>
-                                )}
-                              </button>
-                              <div className="h-px bg-slate-50 my-2 mx-5" />
-                              <button
-                                onClick={() => handleRemoveClient(client.id)}
-                                className="flex items-center gap-3 w-full px-5 py-2.5 text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Remover
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      {/* Dropdown Menu */}
+                      {actionMenuOpen === client.id && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setActionMenuOpen(null)} />
+                          <div className="absolute right-8 top-8 w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 py-1.5 z-20 overflow-hidden animate-slide-up origin-top-right">
+                            <button
+                              onClick={() => { setSelectedClient(client); setIsDetailModalOpen(true); setActionMenuOpen(null); }}
+                              className="w-full text-left px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Detalhes
+                            </button>
+                            <button
+                              onClick={() => handleToggleStatus(client)}
+                              className="w-full text-left px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                            >
+                              {client.status === 'active' ? (
+                                <><ShieldOff className="w-3.5 h-3.5" /> Bloquear</>
+                              ) : (
+                                <><Shield className="w-3.5 h-3.5" /> Desbloquear</>
+                              )}
+                            </button>
+                            <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                            <button
+                              onClick={() => handleRemoveClient(client.id)}
+                              className="w-full text-left px-4 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Remover
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -419,159 +342,111 @@ const ClientsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Footer da Tabela */}
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
+          <p className="text-xs text-slate-500 font-medium">
+            Mostrando {filteredClients.length} registro(s)
+          </p>
+          <button className="text-xs font-bold text-brand-blue hover:text-blue-700 flex items-center gap-1.5 transition-colors">
+            <Download className="w-3.5 h-3.5" />
+            Exportar CSV
+          </button>
+        </div>
       </div>
 
-      {/* Modal: Adicionar Cliente */}
+      {/* MODAL ADICIONAR (Clean) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsAddModalOpen(false)} />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden animate-slide-up">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Novo Cliente</h3>
-                <p className="text-sm text-slate-400 font-medium">Liberação manual de acesso</p>
-              </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
-              </button>
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-slide-up">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h3 className="font-bold text-slate-900 dark:text-white">Novo Cliente</h3>
+              <button onClick={() => setIsAddModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
-
-            <div className="p-8 space-y-6">
+            <div className="p-6 space-y-4">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Email do Cliente <span className="text-red-400">*</span></label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Email</label>
                 <input
+                  autoFocus
                   type="email"
                   value={newClient.email}
                   onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                  placeholder="cliente@email.com"
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-brand-blue outline-none"
+                  placeholder="exemplo@email.com"
                 />
               </div>
-
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Nome Completo (Opcional)</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Nome (Opcional)</label>
                 <input
                   type="text"
                   value={newClient.name}
                   onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                  placeholder="Ex: João das Neves"
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-brand-blue outline-none"
+                  placeholder="Nome do cliente"
                 />
               </div>
-
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Vincular ao App <span className="text-red-400">*</span></label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">App</label>
                 <select
                   value={newClient.appId}
                   onChange={(e) => setNewClient({ ...newClient, appId: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-700 rounded-2xl focus:border-brand-blue focus:outline-none font-bold transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-brand-blue outline-none"
                 >
-                  <option value="">Selecione o aplicativo</option>
-                  {apps.map(app => (
-                    <option key={app.id} value={app.id}>{app.name}</option>
-                  ))}
+                  <option value="">Selecione...</option>
+                  {apps.map(app => <option key={app.id} value={app.id}>{app.name}</option>)}
                 </select>
               </div>
-
-              <div className="p-5 rounded-[1.5rem] bg-blue-50 border border-blue-100 flex items-start gap-4">
-                <div className="p-2 bg-white rounded-xl shadow-sm text-brand-blue">
-                  <AlertCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Importante</p>
-                  <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
-                    Ao adicionar o cliente, ele terá acesso imediato. O envio de e-mail automático será configurado nas Integrações.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => setIsAddModalOpen(false)}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px]"
-              >
-                Cancelar
-              </Button>
-              <Button
+              <button
                 onClick={handleAddClient}
-                isLoading={isSubmitting}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-500/20"
-                leftIcon={CheckCircle2}
+                disabled={isSubmitting}
+                className="w-full py-3 bg-brand-blue hover:bg-blue-600 text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all active:scale-95 mt-2"
               >
-                Confirmar Liberação
-              </Button>
+                {isSubmitting ? 'Salvando...' : 'Adicionar Acesso'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal: Detalhes do Cliente */}
+      {/* MODAL DETALHES (Clean) */}
       {isDetailModalOpen && selectedClient && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsDetailModalOpen(false)} />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
-            <div className="p-10 text-center bg-slate-900 text-white relative">
-              <div className="absolute top-4 right-4">
-                <button onClick={() => setIsDetailModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                  <X className="w-5 h-5 text-white/60" />
-                </button>
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-slide-up">
+            <div className="bg-slate-900 p-8 text-center relative">
+              <button onClick={() => setIsDetailModalOpen(false)} className="absolute top-4 right-4 text-white/50 hover:text-white"><X className="w-5 h-5" /></button>
+              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-black text-white">
+                {selectedClient.email[0].toUpperCase()}
               </div>
-              <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                <span className="text-3xl font-black">{selectedClient.email[0].toUpperCase()}</span>
-              </div>
-              <h3 className="text-xl font-black tracking-tight">{selectedClient.name || 'Sem nome cadastrado'}</h3>
-              <p className="text-white/60 text-sm font-medium mt-1">{selectedClient.email}</p>
-
-              <div className="mt-6 flex justify-center">
-                <span className={cn(
-                  "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                  selectedClient.status === 'active' ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                )}>
-                  {selectedClient.status === 'active' ? '● Usuário Ativo' : '○ Usuário Bloqueado'}
-                </span>
-              </div>
+              <h3 className="text-lg font-bold text-white mb-1">{selectedClient.name || 'Sem nome'}</h3>
+              <p className="text-white/60 text-xs font-mono">{selectedClient.email}</p>
             </div>
-
-            <div className="p-8 space-y-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aplicativo</span>
-                  <span className="text-sm font-black text-slate-900 dark:text-white">{getAppName(selectedClient.app_id)}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cadastrado em</span>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatDate(selectedClient.created_at)}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Último Acesso</span>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selectedClient.last_access ? formatDate(selectedClient.last_access) : 'Nunca acessou'}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-slate-700">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem da Liberação</span>
-                  <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest px-2 py-1 bg-blue-50 rounded-lg">{getSourceLabel(selectedClient.source)}</span>
-                </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                <span className="text-xs text-slate-500 font-bold uppercase">Status</span>
+                <span className={`text-xs font-bold uppercase ${selectedClient.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>{selectedClient.status === 'active' ? 'Ativo' : 'Bloqueado'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                <span className="text-xs text-slate-500 font-bold uppercase">App</span>
+                <span className="text-xs font-medium text-slate-900 dark:text-white">{getAppName(selectedClient.app_id)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
+                <span className="text-xs text-slate-500 font-bold uppercase">Origem</span>
+                <span className="text-xs font-medium text-slate-900 dark:text-white px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded capitalize">{selectedClient.source}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-xs text-slate-500 font-bold uppercase">Criado em</span>
+                <span className="text-xs font-medium text-slate-900 dark:text-white">{formatDate(selectedClient.created_at)}</span>
               </div>
 
-              <div className="flex gap-4 mt-8">
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsDetailModalOpen(false)}
-                  className="flex-1 font-black text-[10px] uppercase tracking-widest py-4"
+              <div className="pt-4 flex gap-3">
+                <button
+                  onClick={() => handleToggleStatus(selectedClient)}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase border ${selectedClient.status === 'active' ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-green-200 text-green-600 hover:bg-green-50'}`}
                 >
-                  Fechar
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    handleToggleStatus(selectedClient);
-                    // Não fecha o modal, apenas atualiza o status visualmente
-                  }}
-                  className="flex-1 font-black text-[10px] uppercase tracking-widest py-4"
-                >
-                  {selectedClient.status === 'active' ? 'Bloquear Acesso' : 'Desbloquear'}
-                </Button>
+                  {selectedClient.status === 'active' ? 'Bloquear' : 'Desbloquear'}
+                </button>
               </div>
             </div>
           </div>
