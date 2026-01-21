@@ -9,25 +9,25 @@ import {
   CheckCircle2,
   Settings,
   Trash2,
-  HelpCircle
+  Zap,
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Button from '../../components/Button';
-import { useAuth } from '../../contexts/AuthContext'; // <--- Adicionado para pegar o ID real
+import { useAuth } from '../../contexts/AuthContext';
 
 // Tipos
 interface Platform {
   id: string;
   name: string;
-  logo: string;
-  color: string;
+  logo: string; // Emoji ou URL de icone
+  color: string; // Cor da marca (para o icone)
   connected: boolean;
   connectedAt?: string;
   description: string;
   webhookEvents: string[];
 }
 
-// Dados ricos das plataformas
 const initialPlatforms: Platform[] = [
   {
     id: 'hotmart',
@@ -35,8 +35,8 @@ const initialPlatforms: Platform[] = [
     logo: '🔥',
     color: 'bg-orange-500',
     connected: false,
-    description: 'A maior plataforma de produtos digitais da América Latina.',
-    webhookEvents: ['Compra aprovada', 'Compra cancelada', 'Reembolso', 'Assinatura cancelada']
+    description: 'Maior plataforma de produtos digitais da América Latina.',
+    webhookEvents: ['Compra aprovada', 'Cancelamento', 'Reembolso']
   },
   {
     id: 'kiwify',
@@ -44,8 +44,8 @@ const initialPlatforms: Platform[] = [
     logo: '🥝',
     color: 'bg-green-500',
     connected: false,
-    description: 'Plataforma completa para vender produtos digitais.',
-    webhookEvents: ['Compra aprovada', 'Compra cancelada', 'Reembolso']
+    description: 'Checkout de alta conversão para produtos digitais.',
+    webhookEvents: ['Order Approved', 'Order Refunded']
   },
   {
     id: 'eduzz',
@@ -54,16 +54,16 @@ const initialPlatforms: Platform[] = [
     color: 'bg-blue-600',
     connected: false,
     description: 'Ecossistema completo para infoprodutores.',
-    webhookEvents: ['Compra aprovada', 'Compra cancelada', 'Reembolso', 'Carrinho abandonado']
+    webhookEvents: ['Fatura Paga', 'Fatura Cancelada']
   },
   {
     id: 'monetizze',
     name: 'Monetizze',
     logo: '💰',
-    color: 'bg-green-600',
+    color: 'bg-emerald-600',
     connected: false,
-    description: 'Plataforma de vendas e afiliados.',
-    webhookEvents: ['Compra aprovada', 'Compra cancelada', 'Reembolso']
+    description: 'Vendas de produtos físicos e digitais.',
+    webhookEvents: ['Venda Finalizada', 'Reembolso']
   },
   {
     id: 'braip',
@@ -71,22 +71,22 @@ const initialPlatforms: Platform[] = [
     logo: '🚀',
     color: 'bg-purple-600',
     connected: false,
-    description: 'Plataforma de checkout e gestão de vendas.',
-    webhookEvents: ['Compra aprovada', 'Reembolso', 'Chargeback']
+    description: 'Focada em produtos físicos e encapsulados.',
+    webhookEvents: ['Venda Aprovada', 'Chargeback']
   },
   {
     id: 'perfectpay',
     name: 'PerfectPay',
-    logo: '✨',
+    logo: '💎',
     color: 'bg-indigo-600',
     connected: false,
-    description: 'Checkout de alta conversão.',
-    webhookEvents: ['Compra aprovada', 'Compra cancelada', 'Reembolso']
+    description: 'Plataforma robusta para alta escala.',
+    webhookEvents: ['Venda Aprovada', 'Cancelamento']
   }
 ];
 
 const IntegrationsPage: React.FC = () => {
-  const { user } = useAuth(); // <--- Pegando usuário real
+  const { user } = useAuth();
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -96,9 +96,9 @@ const IntegrationsPage: React.FC = () => {
     platformId: null
   });
 
-  // URL Dinâmica baseada no ID do usuário
-  const userWebhookUrl = user?.id 
-    ? `https://api.tribebuild.com/webhook/${user.id}`
+  // URL do Webhook
+  const userWebhookUrl = user?.id
+    ? `https://api.tribebuild.pro/webhook/${user.id}`
     : 'Carregando URL...';
 
   const handleCopyWebhook = async () => {
@@ -118,177 +118,143 @@ const IntegrationsPage: React.FC = () => {
 
   const handleConnect = () => {
     if (!selectedPlatform) return;
-
     setPlatforms(platforms.map(p =>
       p.id === selectedPlatform.id
         ? { ...p, connected: true, connectedAt: new Date().toISOString().split('T')[0] }
         : p
     ));
-
     setIsModalOpen(false);
     setSelectedPlatform(null);
   };
 
   const handleDisconnect = () => {
     if (!disconnectModal.platformId) return;
-
     setPlatforms(platforms.map(p =>
       p.id === disconnectModal.platformId
         ? { ...p, connected: false, connectedAt: undefined }
         : p
     ));
-
     setDisconnectModal({ open: false, platformId: null });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
-
   return (
-    <div className="space-y-10 font-['Inter'] pb-20">
-      {/* Header */}
-      <div className="space-y-3 animate-slide-up">
-        <h1 className="text-3xl font-black text-brand-blue tracking-tighter leading-tight">Integrações</h1>
-        <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
-          Conecte seu app com plataformas de vendas para liberar acesso automático aos compradores.
-        </p>
+    <div className="space-y-8 font-['Inter'] pb-20 animate-fade-in">
+
+      {/* Header Compacto e Profissional */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Integrações</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            Automatize a liberação de acesso conectando suas plataformas de venda.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full w-fit">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-500 uppercase tracking-wider">
+            Webhooks Seguros
+          </span>
+        </div>
       </div>
 
-      {/* Webhook URL Card */}
-      <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-8 md:p-10 shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-8 mb-8">
-          <div className="flex items-start gap-6">
-            <div className="w-16 h-16 bg-brand-blue/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Link2 className="w-8 h-8 text-brand-blue" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Seu Webhook URL</h2>
-              <p className="text-slate-500 text-sm mt-1 font-medium">Use esta URL para configurar o webhook na sua plataforma de vendas.</p>
-            </div>
+      {/* Webhook Card - Estilo "Code Snippet" */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-10 h-10 bg-brand-blue/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Zap className="w-5 h-5 text-brand-blue" />
           </div>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            <div className="flex-1 md:w-80 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-2xl p-4 font-mono text-sm text-slate-600 truncate">
-              {userWebhookUrl}
-            </div>
-            <Button
-              onClick={handleCopyWebhook}
-              className={cn(
-                "h-14 px-8 font-black uppercase tracking-widest text-xs transition-all whitespace-nowrap",
-                copied ? "bg-green-500 hover:bg-green-600 shadow-green-500/20" : "shadow-blue-500/20"
-              )}
-              leftIcon={copied ? Check : Copy}
-            >
-              {copied ? 'Copiado!' : 'Copiar URL'}
-            </Button>
-          </div>
-        </div>
-
-        <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100 flex items-start gap-4">
-          <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-brand-blue">
-            <HelpCircle className="w-5 h-5" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-black text-brand-blue uppercase tracking-tight">Como funciona?</p>
-            <p className="text-sm text-blue-800 font-medium leading-relaxed">
-              Configure este webhook na sua plataforma de vendas. Quando uma compra for aprovada, o acesso será liberado automaticamente no seu app.
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Seu Link de Integração (Webhook)</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              Copie este endereço e cole nas configurações de "Webhook" ou "Postback" da sua plataforma de vendas.
+              Assim que uma venda for aprovada, nós liberamos o app instantaneamente.
             </p>
           </div>
         </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-3 font-mono text-xs md:text-sm text-slate-600 dark:text-slate-300 truncate flex items-center">
+            {userWebhookUrl}
+          </div>
+          <button
+            onClick={handleCopyWebhook}
+            className={cn(
+              "flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-sm border",
+              copied
+                ? "bg-green-500 text-white border-green-500 hover:bg-green-600"
+                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-blue hover:text-brand-blue"
+            )}
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied ? 'Copiado!' : 'Copiar URL'}
+          </button>
+        </div>
       </div>
 
-      {/* Plataformas Grid */}
-      <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center gap-3 mb-8">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Plataformas Disponíveis</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Grid de Plataformas */}
+      <div>
+        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6">
+          Plataformas Disponíveis
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {platforms.map((platform) => (
             <div
               key={platform.id}
               className={cn(
-                "bg-white dark:bg-slate-800 rounded-[2.5rem] border-2 p-8 transition-all duration-300 relative group overflow-hidden",
+                "group bg-white dark:bg-slate-900 rounded-xl border p-6 transition-all duration-300 flex flex-col",
                 platform.connected
-                  ? "border-green-200 bg-green-50/20 shadow-sm"
-                  : "border-slate-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-500/5"
+                  ? "border-green-200 dark:border-green-900/50 bg-green-50/10"
+                  : "border-slate-200 dark:border-slate-800 hover:border-brand-blue/30 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50"
               )}
             >
-              {/* Connected Badge Overlay */}
-              {platform.connected && (
-                <div className="absolute top-0 right-0 p-4">
-                  <div className="bg-green-500 text-white p-1 rounded-full shadow-lg">
-                    <Check className="w-3 h-3 stroke-[4px]" />
-                  </div>
-                </div>
-              )}
-
-              {/* Logo e Info */}
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex justify-between items-start mb-4">
                 <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110",
-                  platform.color
+                  "w-12 h-12 rounded-lg flex items-center justify-center text-2xl shadow-sm",
+                  platform.color + "/10" // Fundo suave com a cor da marca
                 )}>
-                  {platform.logo}
+                  <span className="drop-shadow-sm">{platform.logo}</span>
                 </div>
-                <div>
-                  <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg">{platform.name}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {platform.connected ? (
-                      <div className="flex items-center gap-1 text-green-600 text-[10px] font-black uppercase tracking-widest">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Conectado
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                        <div className="w-2 h-2 bg-slate-300 rounded-full" />
-                        Não conectado
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {platform.connected ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold uppercase tracking-wide">
+                    <CheckCircle2 className="w-3 h-3" /> Conectado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-wide group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400" /> Offline
+                  </span>
+                )}
               </div>
 
-              <p className="text-slate-500 text-sm font-medium leading-relaxed mb-8 min-h-[48px]">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{platform.name}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6 flex-grow">
                 {platform.description}
               </p>
 
-              {platform.connected && platform.connectedAt && (
-                <div className="mb-8 pt-6 border-t border-green-100 flex items-center gap-2">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conectado em {formatDate(platform.connectedAt)}</span>
-                </div>
-              )}
-
-              {/* Botões de Ação */}
-              <div className="flex gap-3 mt-auto">
+              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50 flex gap-2">
                 {platform.connected ? (
                   <>
                     <button
                       onClick={() => openConfigModal(platform)}
-                      className="flex-1 h-12 flex items-center justify-center gap-2 bg-white hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 text-slate-600 border border-slate-200 rounded-2xl font-bold transition-all text-xs uppercase tracking-widest shadow-sm"
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
                     >
-                      <Settings className="w-4 h-4" />
-                      Configurar
+                      <Settings className="w-3.5 h-3.5" /> Configurar
                     </button>
                     <button
                       onClick={() => setDisconnectModal({ open: true, platformId: platform.id })}
-                      className="w-12 h-12 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl transition-all shadow-sm border border-red-100"
+                      className="w-10 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-transparent hover:border-red-100"
                       title="Desconectar"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </>
                 ) : (
-                  <Button
+                  <button
                     onClick={() => openConfigModal(platform)}
-                    className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/10"
-                    leftIcon={Link2}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-white bg-slate-900 dark:bg-slate-700 hover:bg-brand-blue dark:hover:bg-brand-blue rounded-lg transition-all shadow-sm"
                   >
+                    <Link2 className="w-3.5 h-3.5" />
                     Conectar
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
@@ -296,145 +262,118 @@ const IntegrationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal de Configuração / Conexão */}
+      {/* Modal de Configuração (Clean Style) */}
       {isModalOpen && selectedPlatform && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
-              <div className="flex items-center gap-4">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm", selectedPlatform.color)}>
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up border border-slate-200 dark:border-slate-700">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-sm bg-white dark:bg-slate-800")}>
                   {selectedPlatform.logo}
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                    {selectedPlatform.connected ? 'Configurar' : 'Conectar'} {selectedPlatform.name}
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    {selectedPlatform.connected ? 'Configurações' : 'Nova Conexão'}
                   </h3>
-                  <p className="text-sm text-slate-400 font-medium">Siga os passos abaixo</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Integração com {selectedPlatform.name}</p>
                 </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-700 rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="p-8 space-y-8">
-              {/* Instruções Detalhadas */}
+            <div className="p-6 space-y-6">
+              {/* Passo a Passo */}
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                   Como configurar:
-                </h4>
-                <div className="space-y-4">
-                  {[
-                    `Acesse sua conta no ${selectedPlatform.name}`,
-                    "Vá em Configurações → Webhooks (ou Integrações)",
-                    "Cole a URL do webhook abaixo",
-                    "Selecione os eventos desejados e salve"
-                  ].map((step, idx) => (
-                    <div key={idx} className="flex gap-4 group">
-                      <span className="w-6 h-6 bg-brand-blue text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 shadow-sm">
-                        {idx + 1}
-                      </span>
-                      <span className="text-slate-600 text-sm font-medium leading-relaxed group-hover:text-slate-900 dark:text-white transition-colors">{step}</span>
+                <div className="flex gap-4 items-start">
+                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Acesse sua conta no <strong>{selectedPlatform.name}</strong> e vá para as configurações de <strong>Webhook / Postback</strong>.
+                  </p>
+                </div>
+                <div className="flex gap-4 items-start">
+                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Cole a URL abaixo no campo de endereço:
+                    </p>
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                      <code className="flex-1 text-xs text-slate-600 dark:text-slate-400 font-mono truncate">{userWebhookUrl}</code>
+                      <button onClick={handleCopyWebhook} className="text-brand-blue hover:text-blue-600" title="Copiar">
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
                     </div>
-                  ))}
+                  </div>
+                </div>
+                <div className="flex gap-4 items-start">
+                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
+                      Selecione os eventos de venda aprovada:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedPlatform.webhookEvents.map((evt, i) => (
+                        <span key={i} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500 uppercase">
+                          {evt}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Webhook URL Cópia Rápida */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Webhook URL</label>
-                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-2xl p-4">
-                  <code className="flex-1 text-xs text-slate-700 font-mono break-all font-bold">
-                    {userWebhookUrl}
-                  </code>
-                  <button
-                    onClick={handleCopyWebhook}
-                    className="p-2.5 bg-white text-slate-400 hover:text-brand-blue rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all"
-                    title="Copiar URL"
-                  >
-                    {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Eventos Necessários */}
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-700">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Eventos suportados</label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedPlatform.webhookEvents.map((event, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1.5 bg-white text-slate-600 border border-slate-200 text-[10px] font-black uppercase tracking-tight rounded-xl shadow-sm"
-                    >
-                      {event}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Botão Externo */}
-              <a
-                href={`https://${selectedPlatform.name.toLowerCase()}.com`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20"
-              >
-                Acessar painel do {selectedPlatform.name}
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-
-            <div className="p-8 border-t border-slate-100 bg-slate-50/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
-              <Button
-                variant="ghost"
-                onClick={() => setIsModalOpen(false)}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px]"
-              >
-                Cancelar
-              </Button>
-              {!selectedPlatform.connected && (
-                <Button
-                  onClick={handleConnect}
-                  className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-500/20"
-                  leftIcon={CheckCircle2}
+              {/* Botão Ação Principal */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-50 transition-colors"
                 >
-                  Marcar como Conectado
-                </Button>
-              )}
+                  Fechar
+                </button>
+                {!selectedPlatform.connected && (
+                  <button
+                    onClick={handleConnect}
+                    className="flex-1 py-3 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+                  >
+                    Confirmar Conexão
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal de Desconectar */}
+      {/* Modal de Desconectar (Clean Style) */}
       {disconnectModal.open && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDisconnectModal({ open: false, platformId: null })} />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <AlertCircle className="w-10 h-10 text-red-500" />
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white text-center mb-4 tracking-tight">
-              Desconectar integração?
-            </h3>
-            <p className="text-slate-500 text-center mb-10 font-medium leading-relaxed">
-              Os novos compradores não terão acesso liberado automaticamente até que você reconecte.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleDisconnect}
-                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20 transition-all active:scale-95"
-              >
-                Sim, desconectar
-              </button>
-              <button
-                onClick={() => setDisconnectModal({ open: false, platformId: null })}
-                className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
-              >
-                Cancelar
-              </button>
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slide-up border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center mb-4 text-red-500">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Desconectar?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                A integração será pausada e novos alunos não receberão acesso automático.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setDisconnectModal({ open: false, platformId: null })}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold uppercase"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold uppercase shadow-lg shadow-red-500/20"
+                >
+                  Sim, Desconectar
+                </button>
+              </div>
             </div>
           </div>
         </div>
