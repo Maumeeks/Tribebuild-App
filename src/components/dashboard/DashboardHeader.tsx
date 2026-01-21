@@ -13,15 +13,16 @@ import {
   ChevronDown,
   Settings,
   Sun,
-  Moon
+  Moon,
+  Laptop
 } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import TribeBuildLogo from '../TribeBuildLogo';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { cn } from '../../lib/utils';
 
 interface DashboardHeaderProps {
-  // ✅ ATUALIZADO: Aceita Promise para aguardar o logout do Supabase
   onLogout: () => Promise<void> | void;
 }
 
@@ -31,18 +32,16 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  // ✅ CORREÇÃO: Forçamos a leitura correta do tema (Blindagem TypeScript)
   const themeContext = useTheme() as any;
   const toggleTheme = themeContext.toggleTheme;
   const isDark = themeContext.isDark !== undefined ? themeContext.isDark : themeContext.theme === 'dark';
 
   const { user: authUser } = useAuth();
 
-  // Dados do usuário (Puxando do Supabase com fallback seguro)
   const user = {
-    name: authUser?.user_metadata?.full_name || 'Usuário TribeBuild',
-    email: authUser?.email || 'usuario@tribebuild.com',
-    initials: (authUser?.user_metadata?.full_name || 'U').charAt(0).toUpperCase()
+    name: authUser?.user_metadata?.full_name || 'Criador',
+    email: authUser?.email || '',
+    initials: (authUser?.user_metadata?.full_name || 'C').charAt(0).toUpperCase()
   };
 
   const navItems = [
@@ -59,7 +58,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
   };
 
-  // ✅ CORREÇÃO: Logout Assíncrono para garantir limpeza do cache
   const handleLogout = async () => {
     try {
       await onLogout();
@@ -70,128 +68,140 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogout }) => {
 
   return (
     <>
-      <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-40 transition-colors duration-300">
+      <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 font-['Inter']">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-16">
 
-            {/* Logo */}
-            <Link to="/dashboard" className="flex items-center gap-3 group">
-              <TribeBuildLogo size="md" showText={true} />
-            </Link>
-
-            {/* Navegação Desktop */}
-            <nav className="hidden lg:flex items-center gap-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight transition-all flex items-center gap-2 ${isActive(item.href)
-                      ? 'bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.name}
-                </Link>
-              ))}
-
-              {/* Bônus - Destaque especial */}
-              <Link
-                to={bonusItem.href}
-                className={`ml-2 px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight transition-all flex items-center gap-2 ${isActive(bonusItem.href)
-                    ? 'bg-gradient-to-r from-brand-coral to-orange-500 text-white shadow-lg shadow-brand-coral/30'
-                    : 'bg-brand-coral/10 dark:bg-brand-coral/20 text-brand-coral hover:bg-brand-coral/20 dark:hover:bg-brand-coral/30 border border-brand-coral/20'
-                  }`}
-              >
-                <Gift className="w-4 h-4" />
-                {bonusItem.name}
+            {/* Lado Esquerdo: Logo e Nav */}
+            <div className="flex items-center gap-8">
+              <Link to="/dashboard" className="flex-shrink-0 hover:opacity-80 transition-opacity">
+                <TribeBuildLogo size="sm" showText={true} />
               </Link>
-            </nav>
 
-            {/* Lado Direito */}
-            <div className="flex items-center gap-4">
+              {/* Navegação Desktop Clean */}
+              <nav className="hidden lg:flex items-center gap-1">
+                {navItems.map((item) => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all",
+                        active
+                          ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      )}
+                    >
+                      <Icon className={cn("w-4 h-4", active ? "text-brand-blue" : "text-slate-400")} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
 
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-                aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              >
-                {isDark ? (
-                  <Sun className="w-5 h-5 text-amber-500" />
-                ) : (
-                  <Moon className="w-5 h-5" />
-                )}
-              </button>
+                {/* Separador */}
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-2"></div>
 
-              {/* Academia - Desktop */}
+                {/* Bônus */}
+                <Link
+                  to={bonusItem.href}
+                  className={cn(
+                    "px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all",
+                    isActive(bonusItem.href)
+                      ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400"
+                      : "text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/10"
+                  )}
+                >
+                  <Gift className="w-4 h-4" />
+                  {bonusItem.name}
+                </Link>
+              </nav>
+            </div>
+
+            {/* Lado Direito: Ações */}
+            <div className="flex items-center gap-3">
+
+              {/* Botão Academia */}
               <a
                 href="#/academia"
-                className="hidden xl:flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-brand-blue transition-colors px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="hidden xl:flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                title="Acessar Academia"
               >
-                <GraduationCap className="w-5 h-5" />
-                <span>Academia</span>
+                <GraduationCap className="w-4 h-4" />
+                <span className="hidden 2xl:inline">Academia</span>
               </a>
 
-              {/* Menu do Usuário - Desktop */}
+              {/* Theme Toggle Compacto */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+
+              {/* Separador */}
+              <div className="hidden lg:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
+              {/* User Menu Desktop */}
               <div className="relative hidden lg:block">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all group"
+                  className="flex items-center gap-3 pl-1 pr-2 py-1 rounded-full border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-brand-blue flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-brand-blue/20 group-hover:scale-105 transition-transform uppercase">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-blue to-blue-600 flex items-center justify-center text-white text-xs font-black uppercase shadow-sm">
                     {user.initials}
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[100px] truncate">
+                    {user.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown className={cn("w-3 h-3 text-slate-400 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
                 </button>
 
-                {/* Dropdown do Usuário */}
                 {isUserMenuOpen && (
                   <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 py-3 z-20 animate-slide-up origin-top-right">
-                      <div className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 mb-2">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{user.name}</p>
-                        <p className="text-xs text-slate-400 font-medium truncate">{user.email}</p>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsUserMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-950 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 z-20 animate-slide-up origin-top-right">
+                      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.name}</p>
+                        <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
                       </div>
-                      <Link
-                        to="/dashboard/settings"
-                        className="flex items-center gap-3 px-5 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-brand-blue/5 dark:hover:bg-slate-800 hover:text-brand-blue transition-all"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <Settings className="w-4 h-4" />
-                        Configurações
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 px-5 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 w-full text-left transition-all"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sair da Conta
-                      </button>
+
+                      <div className="py-1">
+                        <Link
+                          to="/dashboard/settings"
+                          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-brand-blue transition-colors"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                          Configurações
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 w-full text-left transition-colors"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          Sair
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Menu Hamburger - Mobile */}
+              {/* Mobile Hamburger */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden p-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-all active:scale-95"
-                aria-label="Abrir menu"
+                className="lg:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 <Menu className="w-6 h-6" />
               </button>
-
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
