@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Globe,
@@ -11,15 +10,12 @@ import {
   AlertCircle,
   RefreshCw,
   Trash2,
-  ExternalLink,
   HelpCircle,
   Clock,
   CheckCircle2,
   AlertTriangle,
   Loader2,
-  ArrowLeft,
-  ChevronRight,
-  Info
+  Server
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -38,13 +34,13 @@ interface Domain {
   errorMessage?: string;
 }
 
-// Mock do domínio padrão (baseado no app)
+// Mock do domínio padrão
 const defaultDomain = {
   subdomain: 'meuapp',
   fullDomain: 'meuapp.tribebuild.app'
 };
 
-// Mock de domínios personalizados
+// Mock de domínios
 const initialDomains: Domain[] = [
   {
     id: '1',
@@ -68,17 +64,17 @@ const initialDomains: Domain[] = [
   }
 ];
 
-// Configurações DNS para mostrar no modal
+// Configurações DNS
 const dnsConfig = {
   cname: {
     type: 'CNAME',
-    name: 'app (ou seu subdomínio)',
+    name: 'app',
     value: 'proxy.tribebuild.app',
     ttl: '3600'
   },
   aRecord: {
     type: 'A',
-    name: '@ (ou deixe vazio)',
+    name: '@',
     value: '76.76.21.21',
     ttl: '3600'
   }
@@ -111,18 +107,9 @@ const DomainsPage: React.FC = () => {
   };
 
   const handleAddDomain = () => {
-    if (!newDomain.trim()) {
-      alert('Digite um domínio');
-      return;
-    }
-    if (!isValidDomain(newDomain)) {
-      alert('Formato de domínio inválido. Ex: app.seusite.com.br');
-      return;
-    }
-    if (domains.some(d => d.domain === newDomain)) {
-      alert('Este domínio já foi adicionado');
-      return;
-    }
+    if (!newDomain.trim()) return alert('Digite um domínio');
+    if (!isValidDomain(newDomain)) return alert('Formato inválido. Ex: app.site.com');
+    if (domains.some(d => d.domain === newDomain)) return alert('Domínio já existe');
 
     const domain: Domain = {
       id: Math.random().toString(36).substr(2, 9),
@@ -153,7 +140,7 @@ const DomainsPage: React.FC = () => {
             status: success ? 'active' : 'error',
             sslActive: success,
             lastChecked: new Date().toISOString(),
-            errorMessage: success ? undefined : 'DNS não configurado corretamente'
+            errorMessage: success ? undefined : 'DNS não propagado'
           };
         }
         return d;
@@ -169,198 +156,176 @@ const DomainsPage: React.FC = () => {
     setSelectedDomain(null);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const renderStatusBadge = (status: Domain['status']) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-100">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Ativo
-          </span>
-        );
-      case 'pending':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-100">
-            <Clock className="w-3.5 h-3.5" />
-            Pendente DNS
-          </span>
-        );
-      case 'verifying':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            Verificando
-          </span>
-        );
-      case 'error':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-red-100">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Erro
-          </span>
-        );
-    }
+    const styles = {
+      active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+      pending: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+      verifying: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+      error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+    };
+
+    const icons = {
+      active: CheckCircle2,
+      pending: Clock,
+      verifying: Loader2,
+      error: AlertTriangle
+    };
+
+    const labels = {
+      active: 'Ativo',
+      pending: 'Pendente DNS',
+      verifying: 'Verificando',
+      error: 'Erro DNS'
+    };
+
+    const Icon = icons[status];
+
+    return (
+      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border", styles[status])}>
+        <Icon className={cn("w-3.5 h-3.5", status === 'verifying' && "animate-spin")} />
+        {labels[status]}
+      </span>
+    );
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
-        <div className="space-y-3">
-          <h1 className="text-3xl font-black text-brand-blue tracking-tighter leading-tight">Domínios Personalizados</h1>
-          <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
-            Remova a marca TribeBuild da URL e conecte seu próprio endereço exclusivo para fortalecer sua identidade visual e profissionalismo.
+    <div className="space-y-8 font-['Inter'] pb-20 animate-fade-in">
+
+      {/* Header Clean */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Domínios</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Gerencie os endereços de acesso dos seus aplicativos.
           </p>
         </div>
-        <Button
+        <button
           onClick={() => setShowAddModal(true)}
-          className="h-14 px-8 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20"
-          leftIcon={Plus}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-800 dark:hover:bg-slate-100 transition-all shadow-sm active:scale-95"
         >
+          <Plus className="w-4 h-4" />
           Adicionar Domínio
-        </Button>
+        </button>
       </div>
 
-      {/* Domínio Padrão */}
-      <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-8 md:p-10 shadow-sm animate-slide-up" style={{ animationDelay: '100ms' }}>
-        <div className="flex items-center gap-3 mb-8">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Domínio Padrão (Gratuito)</h2>
-        </div>
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 p-8 bg-slate-50/50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 group transition-all hover:bg-white dark:hover:bg-slate-700 hover:shadow-xl hover:shadow-blue-500/5">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-brand-blue/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <Globe className="w-8 h-8 text-brand-blue" />
+      {/* Domínio Padrão - Estilo Card Técnico */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
+              <Globe className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xl font-black text-slate-900 dark:text-white dark:text-white tracking-tight">{defaultDomain.fullDomain}</p>
-              <p className="text-sm text-slate-400 font-medium mt-1">Este é o endereço principal fixo do seu aplicativo</p>
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Domínio Padrão (Gratuito)</h3>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-bold text-slate-900 dark:text-white font-mono">{defaultDomain.fullDomain}</p>
+                <div className="w-2 h-2 rounded-full bg-green-500" title="Online"></div>
+              </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="px-4 py-1.5 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-100 shadow-sm">
-              Ativo
-            </span>
-            <span className="px-4 py-1.5 bg-white dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-slate-100 shadow-sm">
-              Gratuito
-            </span>
-            <button
-              onClick={() => copyToClipboard(`https://${defaultDomain.fullDomain}`, 'default')}
-              className={cn(
-                "p-4 rounded-2xl transition-all shadow-sm flex items-center gap-3 font-black text-[10px] uppercase tracking-widest",
-                copied === 'default'
-                  ? "bg-green-500 text-white shadow-green-500/20"
-                  : "bg-white dark:bg-slate-800 text-slate-400 hover:text-brand-blue border border-slate-100"
-              )}
-            >
-              {copied === 'default' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied === 'default' ? 'Link Copiado' : 'Copiar Link'}
-            </button>
-          </div>
+
+          <button
+            onClick={() => copyToClipboard(`https://${defaultDomain.fullDomain}`, 'default')}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2",
+              copied === 'default'
+                ? "bg-green-50 border-green-200 text-green-700"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            )}
+          >
+            {copied === 'default' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied === 'default' ? 'Copiado' : 'Copiar Link'}
+          </button>
         </div>
       </div>
 
       {/* Lista de Domínios Personalizados */}
-      <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center gap-3 mb-8">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em]">Domínios Personalizados</h2>
-        </div>
-        
+      <div>
+        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
+          Domínios Personalizados
+        </h3>
+
         {domains.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-20 text-center shadow-sm">
-            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Globe className="w-10 h-10 text-slate-200" />
+          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
+            <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100 dark:border-slate-700">
+              <Server className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Nenhum domínio próprio</h3>
-            <p className="text-slate-500 mb-10 max-w-md mx-auto font-medium leading-relaxed">
-              Adicione um domínio personalizado para reforçar sua autoridade e facilitar o acesso dos seus alunos.
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Nenhum domínio configurado</h3>
+            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+              Conecte seu próprio domínio (ex: app.suaempresa.com) para remover a marca TribeBuild.
             </p>
-            <Button
+            <button
               onClick={() => setShowAddModal(true)}
-              className="h-14 px-10 font-black uppercase tracking-widest text-xs"
-              leftIcon={Plus}
+              className="mt-6 text-brand-blue font-bold text-sm hover:underline"
             >
-              Configurar Primeiro Domínio
-            </Button>
+              Configurar agora
+            </button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="grid gap-4">
             {domains.map((domain) => (
-              <div key={domain.id} className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 p-6 md:p-8 shadow-sm group hover:shadow-xl hover:shadow-blue-500/5 transition-all">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                  <div className="flex items-center gap-6">
+              <div
+                key={domain.id}
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 transition-all hover:border-slate-300 dark:hover:border-slate-600 group"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="flex items-start gap-4">
                     <div className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110",
-                      domain.status === 'active' ? 'bg-green-50' : domain.status === 'error' ? 'bg-red-50' : 'bg-amber-50'
+                      "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1",
+                      domain.status === 'active' ? "bg-green-100 dark:bg-green-900/20 text-green-600" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                     )}>
-                      {domain.sslActive ? (
-                        <ShieldCheck className="w-8 h-8 text-green-600" />
-                      ) : domain.status === 'error' ? (
-                        <AlertCircle className="w-8 h-8 text-red-600" />
-                      ) : (
-                        <Shield className="w-8 h-8 text-amber-600" />
-                      )}
+                      {domain.status === 'active' ? <ShieldCheck className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
                     </div>
                     <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <p className="text-xl font-black text-slate-900 dark:text-white dark:text-white tracking-tight leading-none">{domain.domain}</p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {/* CORREÇÃO AQUI: Removido o dark:text-white duplicado */}
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white font-mono">{domain.domain}</h4>
                         {renderStatusBadge(domain.status)}
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                        <span>Criado em {new Date(domain.createdAt).toLocaleDateString('pt-BR')}</span>
                         {domain.sslActive && (
-                          <span className="px-3 py-1 bg-green-500 text-white text-[9px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-green-500/20 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" /> SSL Protegido
-                          </span>
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <ShieldCheck className="w-3 h-3" /> SSL Ativo
+                            </span>
+                          </>
+                        )}
+                        {domain.status === 'error' && (
+                          <>
+                            <span>•</span>
+                            <span className="text-red-500 font-bold">{domain.errorMessage}</span>
+                          </>
                         )}
                       </div>
-                      <p className={cn(
-                        "text-xs font-bold mt-2",
-                        domain.status === 'error' ? "text-red-500 uppercase tracking-widest" : "text-slate-400"
-                      )}>
-                        {domain.status === 'error' && domain.errorMessage
-                          ? domain.errorMessage
-                          : domain.lastChecked
-                          ? `Última verificação: ${formatDate(domain.lastChecked)}`
-                          : 'Aguardando configuração de DNS'}
-                      </p>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-wrap items-center gap-3 border-t lg:border-t-0 pt-6 lg:pt-0">
+
+                  <div className="flex items-center gap-3 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => { setSelectedDomain(domain); setShowDnsModal(true); }}
-                      className="px-6 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all border border-slate-100"
+                      className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                      Instruções DNS
+                      Configurar DNS
                     </button>
+
                     <button
                       onClick={() => handleVerify(domain)}
                       disabled={verifying === domain.id}
-                      className="px-6 py-3.5 text-[10px] font-black uppercase tracking-widest text-brand-blue bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all border border-blue-100 disabled:opacity-50 flex items-center gap-2"
+                      className="px-4 py-2 text-xs font-bold text-brand-blue bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
-                      {verifying === domain.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                      Verificar Agora
+                      {verifying === domain.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Verificar
                     </button>
+
                     <button
                       onClick={() => { setSelectedDomain(domain); setShowDeleteModal(true); }}
-                      className="p-3.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      title="Remover domínio"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -370,259 +335,214 @@ const DomainsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Card Informativo Tribe Style */}
-      <div className="bg-slate-900 rounded-[2.5rem] p-10 md:p-12 text-white overflow-hidden relative group animate-slide-up" style={{ animationDelay: '300ms' }}>
-         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-         <div className="relative z-10 flex flex-col md:flex-row items-start gap-10">
-            <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center flex-shrink-0 backdrop-blur-sm border border-white/10">
-                <HelpCircle className="w-10 h-10 text-white" />
+      {/* Info Card - Estilo Banner Sutil */}
+      <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-6 md:p-8">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          <div className="p-3 bg-brand-blue/10 rounded-lg text-brand-blue">
+            <HelpCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Por que conectar um domínio?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-6 max-w-2xl">
+              Usar um domínio próprio (ex: app.suamarca.com) aumenta a confiança dos seus alunos e fortalece sua marca. Além disso, incluímos certificado SSL gratuito para todos os domínios conectados.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                Certificado SSL (HTTPS) Automático
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                CDN Global Ultra-rápida
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                Proteção DDoS Integrada
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                SEO Otimizado
+              </div>
             </div>
-            <div>
-                <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-6">Por que usar um domínio próprio?</h3>
-                <div className="grid md:grid-cols-2 gap-x-12 gap-y-6">
-                    {[
-                        { title: 'Autoridade de Marca', desc: 'Fortalece o branding e aumenta a confiança do comprador.' },
-                        { title: 'Profissionalismo', desc: 'Sua plataforma deixa de ser um "link genérico" para ser seu site.' },
-                        { title: 'SEO Otimizado', desc: 'Ajuda no ranqueamento orgânico da sua página em buscadores.' },
-                        { title: 'SSL Incluso', desc: 'Certificado de segurança gratuito renovado automaticamente.' }
-                    ].map((benefit, i) => (
-                        <div key={i} className="flex gap-4">
-                            <div className="w-6 h-6 bg-primary/30 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                            </div>
-                            <div>
-                                <h4 className="font-black text-sm uppercase tracking-tight text-white/90">{benefit.title}</h4>
-                                <p className="text-white/50 text-xs font-medium leading-relaxed mt-1">{benefit.desc}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-         </div>
+          </div>
+        </div>
       </div>
 
-      {/* Modal: Adicionar Domínio */}
+      {/* Modal: Adicionar Domínio (Clean) */}
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddModal(false)} />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden animate-slide-up">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Novo Domínio</h3>
-                <p className="text-sm text-slate-400 font-medium">Configure seu endereço exclusivo</p>
-              </div>
-              <button onClick={() => setShowAddModal(false)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
-              </button>
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h3 className="font-bold text-slate-900 dark:text-white">Novo Domínio</h3>
+              <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-6 space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Nome do Domínio</label>
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-300">
-                        <Globe className="w-5 h-5 group-focus-within:text-primary transition-colors" />
-                    </div>
-                    <input
-                        type="text"
-                        value={newDomain}
-                        onChange={(e) => setNewDomain(e.target.value)}
-                        placeholder="Ex: app.seusite.com.br"
-                        className="w-full pl-14 pr-5 py-4 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl focus:border-brand-blue focus:ring-4 focus:ring-blue-500/5 focus:outline-none font-bold placeholder:font-medium transition-all"
-                    />
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Domínio ou Subdomínio</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                    placeholder="Ex: app.suamarca.com"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-brand-blue outline-none"
+                  />
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3 flex items-center gap-2">
-                  <Info className="w-3.5 h-3.5" /> Dica: Use subdomínios como "app" ou "membros".
+                <p className="text-[10px] text-slate-400 mt-2">Recomendamos usar subdomínios como <b>app</b>, <b>membros</b> ou <b>curso</b>.</p>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-4 rounded-lg flex gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                  Você precisará ter acesso ao painel de DNS do seu domínio (Cloudflare, GoDaddy, Registro.br, etc) para concluir a configuração.
                 </p>
               </div>
 
-              <div className="p-6 rounded-[1.5rem] bg-amber-50 border border-amber-100 flex items-start gap-4">
-                <div className="p-2 bg-white rounded-xl shadow-sm text-amber-600">
-                    <AlertCircle className="w-5 h-5" />
-                </div>
-                <div>
-                    <p className="text-xs font-black text-amber-900 uppercase tracking-tight">Requer Configuração DNS</p>
-                    <p className="text-[10px] text-amber-700 font-medium mt-1 leading-relaxed">
-                        Após adicionar, você receberá os registros CNAME ou A para apontar em seu provedor (Cloudflare, GoDaddy, Hostgator, etc).
-                    </p>
-                </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddDomain}
+                  className="flex-1 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-xs font-bold uppercase hover:bg-slate-800 transition-colors"
+                >
+                  Continuar
+                </button>
               </div>
-            </div>
-
-            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => setShowAddModal(false)}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px]"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleAddDomain}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-500/20"
-              >
-                Continuar para DNS
-              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal: Configuração DNS */}
+      {/* Modal: DNS (Técnico e Clean) */}
       {showDnsModal && selectedDomain && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowDnsModal(false)} />
-          <div className="relative bg-white dark:bg-slate-800 rounded-[3rem] shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10">
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Apontamento DNS</h3>
-                <p className="text-sm text-slate-400 font-black uppercase tracking-widest mt-1">{selectedDomain.domain}</p>
+                <h3 className="font-bold text-slate-900 dark:text-white">Configuração DNS</h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">{selectedDomain.domain}</p>
               </div>
-              <button onClick={() => setShowDnsModal(false)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
-              </button>
+              <button onClick={() => setShowDnsModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
 
-            <div className="p-8 space-y-10">
-              <p className="text-slate-500 font-medium leading-relaxed">
-                Acesse o painel do seu provedor de domínio e adicione um dos registros abaixo para ativar seu domínio personalizado:
+            <div className="p-6 space-y-6">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Adicione <strong>um</strong> dos registros abaixo no seu provedor de domínio:
               </p>
 
-              {/* Registro CNAME */}
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 overflow-hidden shadow-inner">
-                <div className="bg-blue-600 px-6 py-3 flex items-center justify-between">
-                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Opção Recomendada (CNAME)</h4>
-                    <span className="text-[8px] font-black text-blue-200 uppercase tracking-widest">Melhor para subdomínios</span>
+              {/* CNAME Card */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-2 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Opção 1: CNAME (Recomendado)</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">Subdomínios</span>
                 </div>
-                <div className="p-6 space-y-5">
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tipo</span>
-                        <span className="font-mono text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-700 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm">CNAME</span>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-4 text-xs font-mono">
+                    <div className="text-slate-400">Type</div>
+                    <div className="col-span-2 font-bold text-slate-900 dark:text-white">CNAME</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-xs font-mono items-center">
+                    <div className="text-slate-400">Name</div>
+                    <div className="col-span-2 flex items-center justify-between bg-slate-100 dark:bg-slate-900 p-2 rounded">
+                      <span className="font-bold text-slate-900 dark:text-white">{dnsConfig.cname.name}</span>
+                      <button onClick={() => copyToClipboard(dnsConfig.cname.name, 'c-name')} className="text-brand-blue hover:text-blue-700">
+                        {copied === 'c-name' ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
                     </div>
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nome (Host)</span>
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{dnsConfig.cname.name}</span>
-                            <button onClick={() => copyToClipboard(dnsConfig.cname.name, 'c-name')} className="p-1.5 text-slate-400 hover:text-primary transition-colors">
-                                {copied === 'c-name' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
-                        </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-xs font-mono items-center">
+                    <div className="text-slate-400">Value</div>
+                    <div className="col-span-2 flex items-center justify-between bg-slate-100 dark:bg-slate-900 p-2 rounded">
+                      <span className="font-bold text-slate-900 dark:text-white truncate pr-2">{dnsConfig.cname.value}</span>
+                      <button onClick={() => copyToClipboard(dnsConfig.cname.value, 'c-val')} className="text-brand-blue hover:text-blue-700">
+                        {copied === 'c-val' ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Valor (Destino)</span>
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{dnsConfig.cname.value}</span>
-                            <button onClick={() => copyToClipboard(dnsConfig.cname.value, 'c-val')} className="p-1.5 text-slate-400 hover:text-primary transition-colors">
-                                {copied === 'c-val' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-              </div>
-
-              {/* Registro A */}
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 overflow-hidden shadow-inner">
-                <div className="bg-slate-800 px-6 py-3 flex items-center justify-between">
-                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Opção para Domínio Raiz (A Record)</h4>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Ex: seusite.com</span>
-                </div>
-                <div className="p-6 space-y-5">
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tipo</span>
-                        <span className="font-mono text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-700 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm">A</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nome (Host)</span>
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">@</span>
-                            <button onClick={() => copyToClipboard('@', 'a-name')} className="p-1.5 text-slate-400 hover:text-primary transition-colors">
-                                {copied === 'a-name' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Valor (IP)</span>
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{dnsConfig.aRecord.value}</span>
-                            <button onClick={() => copyToClipboard(dnsConfig.aRecord.value, 'a-val')} className="p-1.5 text-slate-400 hover:text-primary transition-colors">
-                                {copied === 'a-val' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
-                        </div>
-                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
-                <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600">
-                    <Clock className="w-5 h-5" />
+              {/* A Record Card */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-2 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Opção 2: A Record</span>
+                  <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-bold">Domínio Raiz</span>
                 </div>
-                <div>
-                    <p className="text-xs font-black text-blue-900 uppercase tracking-tight">Tempo de Propagação</p>
-                    <p className="text-[10px] text-blue-700 font-medium mt-1 leading-relaxed">
-                        Alterações de DNS podem levar de 30 minutos a 48 horas para serem propagadas mundialmente.
-                    </p>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-4 text-xs font-mono">
+                    <div className="text-slate-400">Type</div>
+                    <div className="col-span-2 font-bold text-slate-900 dark:text-white">A</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-xs font-mono items-center">
+                    <div className="text-slate-400">Name</div>
+                    <div className="col-span-2 flex items-center justify-between bg-slate-100 dark:bg-slate-900 p-2 rounded">
+                      <span className="font-bold text-slate-900 dark:text-white">{dnsConfig.aRecord.value}</span>
+                      <button onClick={() => copyToClipboard(dnsConfig.aRecord.value, 'a-val')} className="text-brand-blue hover:text-blue-700">
+                        {copied === 'a-val' ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <a href="#" className="flex items-center justify-center gap-3 w-full py-4 text-primary font-black uppercase tracking-widest text-[10px] hover:bg-blue-50 rounded-2xl transition-all border-2 border-dashed border-blue-200">
-                <HelpCircle className="w-4 h-4" />
-                Não sabe configurar? Ver tutorial completo
-              </a>
-            </div>
+              <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg flex gap-3 text-xs text-blue-700 dark:text-blue-300">
+                <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <p>A propagação do DNS pode levar de 1 hora até 24 horas.</p>
+              </div>
 
-            <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row gap-4 sticky bottom-0">
-              <Button
-                variant="ghost"
-                onClick={() => setShowDnsModal(false)}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px]"
-              >
-                Configurar Depois
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowDnsModal(false);
-                  handleVerify(selectedDomain);
-                }}
-                className="flex-1 py-4 h-auto font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-500/20"
-                leftIcon={RefreshCw}
-              >
-                Verificar Conexão
-              </Button>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowDnsModal(false)}
+                  className="flex-1 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors"
+                >
+                  Configurar Depois
+                </button>
+                <button
+                  onClick={() => { setShowDnsModal(false); handleVerify(selectedDomain); }}
+                  className="flex-1 py-3 bg-brand-blue hover:bg-blue-600 text-white rounded-xl text-xs font-bold uppercase shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+                >
+                  Verificar Conexão
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal: Confirmar Exclusão */}
+      {/* Modal: Delete (Clean) */}
       {showDeleteModal && selectedDomain && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowDeleteModal(false)} />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up overflow-hidden text-center">
-            <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <Trash2 className="w-10 h-10 text-red-500" />
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slide-up text-center">
+            <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-red-500">
+              <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">
-              Remover domínio?
-            </h3>
-            <p className="text-slate-900 font-bold font-mono text-sm mb-4 bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 inline-block">
-              {selectedDomain.domain}
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Remover domínio?</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              O endereço <strong>{selectedDomain.domain}</strong> deixará de funcionar imediatamente.
             </p>
-            <p className="text-slate-500 mb-10 font-medium leading-relaxed">
-              Seu aplicativo deixará de funcionar neste endereço instantaneamente. O domínio padrão <span className="text-slate-900 font-bold">{defaultDomain.fullDomain}</span> continuará ativo.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleDeleteDomain}
-                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20 transition-all active:scale-95"
-              >
-                Sim, remover agora
-              </button>
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold uppercase"
               >
-                Cancelar e Manter
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteDomain}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold uppercase shadow-lg shadow-red-500/20"
+              >
+                Sim, Remover
               </button>
             </div>
           </div>
