@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, LogOut, GraduationCap, Settings, Gift, LucideIcon } from 'lucide-react';
+import { X, LogOut, GraduationCap, Settings, Gift, LucideIcon, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import TribeBuildLogo from '../TribeBuildLogo';
 import { cn } from '../../lib/utils';
 
 interface NavItem {
@@ -42,51 +41,44 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay */}
+          {/* Overlay (Clica fora para fechar) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] lg:hidden"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] lg:hidden mt-[64px]" // mt-16 para começar abaixo do header
             onClick={onClose}
           />
 
-          {/* Menu */}
+          {/* Menu Dropdown (Descendo do Topo) */}
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-full max-w-xs bg-white dark:bg-slate-950 shadow-2xl z-[101] lg:hidden flex flex-col border-l border-slate-200 dark:border-slate-800"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-[64px] left-0 right-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-2xl z-[100] lg:hidden flex flex-col max-h-[calc(100vh-64px)] overflow-y-auto"
           >
-            {/* Header do Menu */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-              <TribeBuildLogo size="sm" showText={true} />
-              <button
-                onClick={onClose}
-                className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
-                aria-label="Fechar menu"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
             {/* Info do Usuário */}
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-blue to-blue-600 flex items-center justify-center text-white text-sm font-black shadow-sm uppercase">
-                  {user.initials}
+            <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-blue to-blue-600 flex items-center justify-center text-white text-sm font-black shadow-sm uppercase">
+                    {user.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{user.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{user.email}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{user.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{user.email}</p>
-                </div>
+                <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
             {/* Navegação */}
-            <nav className="flex-1 overflow-y-auto p-5 space-y-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">Menu Principal</p>
+            <nav className="p-4 space-y-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">Menu Principal</p>
 
               {navItems.map((item) => {
                 const active = isActive(item.href);
@@ -96,26 +88,29 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     to={item.href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                      "flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all",
                       active
                         ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
                         : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
                     )}
                   >
-                    <item.icon className={cn("w-4 h-4", active ? "text-brand-blue" : "text-slate-400")} />
-                    {item.name}
+                    <div className="flex items-center gap-3">
+                      <item.icon className={cn("w-4 h-4", active ? "text-brand-blue" : "text-slate-400")} />
+                      {item.name}
+                    </div>
+                    {active && <ChevronRight className="w-4 h-4 text-slate-400" />}
                   </Link>
                 );
               })}
 
-              <div className="my-6 border-t border-slate-100 dark:border-slate-800" />
+              <div className="my-4 border-t border-slate-100 dark:border-slate-800" />
 
               {/* Bônus Especial */}
               <Link
                 to="/dashboard/bonus"
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-4",
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all mb-4",
                   isActive('/dashboard/bonus')
                     ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
                     : "text-slate-500 dark:text-slate-400 hover:bg-purple-50/50 hover:text-purple-600"
@@ -125,27 +120,29 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 Seus Bônus
               </Link>
 
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">Ajuda & Configurações</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 mt-4">Outros</p>
 
-              <a
-                href="#/academia"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all"
-              >
-                <GraduationCap className="w-4 h-4" />
-                Academia TribeBuild
-              </a>
-              <Link
-                to="/dashboard/settings"
-                onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all"
-              >
-                <Settings className="w-4 h-4" />
-                Configurações
-              </Link>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href="#/academia"
+                  className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-brand-blue/30 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-brand-blue transition-all"
+                >
+                  <GraduationCap className="w-5 h-5" />
+                  <span className="text-xs font-bold">Academia</span>
+                </a>
+                <Link
+                  to="/dashboard/settings"
+                  onClick={onClose}
+                  className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-brand-blue/30 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-brand-blue transition-all"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="text-xs font-bold">Ajustes</span>
+                </Link>
+              </div>
             </nav>
 
             {/* Footer */}
-            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30">
               <button
                 onClick={() => {
                   onClose();
