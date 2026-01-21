@@ -8,30 +8,33 @@ const DashboardHome: React.FC = () => {
   const { apps } = useApps();
   const { profile } = useAuth();
 
-  // --- LÓGICA DE EXIBIÇÃO DO PLANO ---
-  // Pega o plano real do banco
-  const rawPlan = profile?.plan?.toLowerCase() || 'starter';
+  // --- LÓGICA UNIFICADA E BLINDADA (Igual AppsPage) ---
+  // 1. Pega o plano, remove espaços e põe em minúsculo
+  const rawPlan = profile?.plan?.toLowerCase().trim() || 'free';
 
-  // Se for 'free' ou 'trial', visualmente chamamos de 'starter'
-  // Se for outro (professional, business, enterprise), mantém o nome real
-  const currentPlanDisplay = (rawPlan === 'free' || rawPlan === 'trial') ? 'starter' : rawPlan;
-
-  // --- CONFIGURAÇÃO OFICIAL DOS LIMITES ---
+  // 2. Define o limite baseado no nome exato
   const getPlanLimits = (plan: string) => {
     switch (plan) {
-      case 'starter': return 1;
-      case 'professional': return 3;
-      case 'business': return 5;
       case 'enterprise': return 10;
-      // Fallback para free/trial cai na regra do starter (1 app)
+      case 'business': return 5;
+      case 'professional': return 3;
+      case 'starter': return 1;
       case 'free': return 1;
       case 'trial': return 1;
-      default: return 1;
+      default: return 1; // Segurança
     }
   };
 
-  const maxApps = getPlanLimits(rawPlan); // Usa o rawPlan para calcular limite real do banco
-  const safeApps = apps || []; // Proteção contra crash
+  // 3. Define o nome para exibição (Máscara visual para Free/Trial virar Starter)
+  const getDisplayPlanName = (plan: string) => {
+    if (plan === 'free' || plan === 'trial') return 'starter';
+    return plan;
+  };
+
+  const maxApps = getPlanLimits(rawPlan);
+  const currentPlanDisplay = getDisplayPlanName(rawPlan);
+
+  const safeApps = apps || [];
   const isLimitReached = safeApps.length >= maxApps;
 
   // Pega o primeiro app (se existir) para destaque

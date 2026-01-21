@@ -29,43 +29,37 @@ const AppsPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [appToDelete, setAppToDelete] = useState<string | null>(null);
 
-  // --- LÓGICA CIRÚRGICA DE LIMITES (ATUALIZADA) ---
-  const getPlanDetails = (planName: string | undefined) => {
-    // Normaliza para minúsculo
-    const plan = planName?.toLowerCase() || 'starter';
+  // --- LÓGICA SIMPLIFICADA (Igual à DashboardHome) ---
+  // Pega exatamente o que está no banco. Se não tiver nada, assume free.
+  const currentPlanName = profile?.plan || 'free';
 
-    switch (plan) {
-      case 'enterprise':
-        return {
-          label: 'Enterprise',
-          maxApps: 10,
-          style: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
-        };
-      case 'business':
-        return {
-          label: 'Business',
-          maxApps: 5,
-          style: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800'
-        };
-      case 'professional':
-        return {
-          label: 'Professional',
-          maxApps: 3,
-          style: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800'
-        };
-      case 'starter':
-      case 'free': // ✅ TRUQUE: Free agora visualmente é Starter
-      default:     // ✅ Fallback: Se der erro, assume Starter
-        return {
-          label: 'Starter', // Nome oficial
-          maxApps: 1,       // Limite de 1 app (igual ao antigo free)
-          style: 'bg-blue-50 text-brand-blue border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
-        };
+  // Calcula limites baseado no nome do plano
+  const getPlanLimits = (plan: string) => {
+    // Normaliza para comparar com segurança
+    const normalizedPlan = plan?.toLowerCase().trim();
+
+    switch (normalizedPlan) {
+      case 'enterprise': return 10;
+      case 'business': return 5;
+      case 'professional': return 3;
+      case 'starter': return 1;
+      case 'free': return 1;
+      case 'trial': return 1;
+      default: return 1; // Fallback de segurança, mas agora menos agressivo visualmente
     }
   };
 
-  const currentPlan = getPlanDetails(profile?.plan);
-  const isLimitReached = apps.length >= currentPlan.maxApps;
+  const maxApps = getPlanLimits(currentPlanName);
+  const isLimitReached = apps.length >= maxApps;
+
+  // Função auxiliar para pegar a cor do badge baseado no plano
+  const getPlanBadgeStyle = (plan: string) => {
+    const p = plan?.toLowerCase().trim();
+    if (p === 'enterprise') return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
+    if (p === 'business') return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
+    if (p === 'professional') return 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800';
+    return 'bg-blue-50 text-brand-blue border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'; // Starter/Default
+  };
 
   const handleCopyLink = async (appId: string, link: string) => {
     try {
@@ -114,13 +108,13 @@ const AppsPage: React.FC = () => {
           </p>
 
           <div className="flex items-center gap-3 mt-4">
-            {/* Badge do Plano Atual */}
+            {/* Badge do Plano Atual - Exibe o NOME REAL do plano */}
             <div className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border",
-              currentPlan.style
+              getPlanBadgeStyle(currentPlanName)
             )}>
               <Crown className="w-3 h-3" />
-              Plano: {currentPlan.label}
+              Plano: {currentPlanName}
             </div>
 
             {/* Contador de Apps */}
@@ -128,7 +122,7 @@ const AppsPage: React.FC = () => {
               "text-xs font-bold uppercase tracking-widest ml-2",
               isLimitReached ? "text-brand-coral" : "text-slate-400 dark:text-slate-500"
             )}>
-              Apps Criados: <span className={isLimitReached ? 'text-brand-coral' : 'text-slate-900 dark:text-white'}>{apps.length}</span> / {currentPlan.maxApps}
+              Apps Criados: <span className={isLimitReached ? 'text-brand-coral' : 'text-slate-900 dark:text-white'}>{apps.length}</span> / {maxApps}
             </span>
           </div>
         </div>
@@ -148,7 +142,6 @@ const AppsPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          // ✅ CORREÇÃO: Mantendo o botão de Novo App correto
           <Link
             to="/dashboard/builder"
             className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 whitespace-nowrap w-full sm:w-auto"
@@ -159,7 +152,7 @@ const AppsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Alerta de Limite */}
+      {/* Alerta de Limite - Só aparece se REALMENTE atingiu */}
       {isLimitReached && (
         <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 rounded-[2rem] p-6 flex flex-col md:flex-row items-center justify-between gap-6 animate-slide-up shadow-sm">
           <div className="flex items-center gap-4">
@@ -169,7 +162,7 @@ const AppsPage: React.FC = () => {
             <div>
               <h4 className="text-orange-900 dark:text-orange-100 font-black tracking-tight text-lg">Limite do plano atingido!</h4>
               <p className="text-orange-800/80 dark:text-orange-200/70 text-sm font-medium mt-1">
-                Você atingiu o limite de <strong>{currentPlan.maxApps} apps</strong> do plano {currentPlan.label}. Faça upgrade para continuar criando.
+                Você atingiu o limite de <strong>{maxApps} apps</strong> do plano {currentPlanName}. Faça upgrade para continuar criando.
               </p>
             </div>
           </div>
@@ -277,7 +270,6 @@ const AppsPage: React.FC = () => {
 
               {/* Ações */}
               <div className="px-6 md:px-8 pb-8 space-y-3">
-                {/* ✅ CORREÇÃO MANTIDA: Edição com ID */}
                 <Link
                   to={`/dashboard/builder?mode=edit&appId=${app.id}`}
                   className="flex items-center justify-center gap-3 w-full py-3.5 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300 hover:text-brand-blue rounded-2xl font-bold transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-800 text-sm"
