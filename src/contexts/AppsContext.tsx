@@ -17,7 +17,7 @@ export interface App {
 
 interface AppsContextType {
   apps: App[];
-  addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => Promise<string>; // Alterado para Promise para permitir await
+  addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>) => Promise<string>;
   updateApp: (id: string, data: Partial<App>) => void;
   deleteApp: (id: string) => void;
   getApp: (id: string) => App | undefined;
@@ -26,7 +26,7 @@ interface AppsContextType {
 
 // REGRAS DE NEGÓCIO (LIMITES EXATOS DA OFERTA)
 const PLAN_LIMITS: Record<string, number> = {
-  free: 1,          // Degustação / Erro
+  free: 1,          // Fallback
   starter: 1,       // Oferta: 1 App
   professional: 3,  // Oferta: 3 Apps
   business: 5,      // Oferta: 5 Apps
@@ -37,9 +37,9 @@ const AppsContext = createContext<AppsContextType | undefined>(undefined);
 
 export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [apps, setApps] = useState<App[]>([]);
-  const { profile } = useAuth();
+  const { profile } = useAuth(); // Pegamos o loading se necessário, mas a lógica abaixo resolve
 
-  // Carrega apps do localStorage (Persistência Local para MVP)
+  // --- 💾 PERSISTÊNCIA DE APPS (MVP) ---
   useEffect(() => {
     const savedApps = localStorage.getItem('tribebuild_apps');
     if (savedApps) {
@@ -51,21 +51,40 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  // Salva no localStorage sempre que mudar
   useEffect(() => {
     localStorage.setItem('tribebuild_apps', JSON.stringify(apps));
   }, [apps]);
 
-  const generateId = () => Math.random().toString(36).substr(2, 9);
+  // --- 🛡️ CORREÇÃO DO BUG "PISCA-STARTER" ---
 
-  // --- A MÁGICA DA CORREÇÃO ---
-  // 1. Pega o plano ou assume 'free'
-  // 2. Transforma em minúsculo (.toLowerCase()) para garantir que "Professional" vire "professional"
-  const rawPlan = profile?.plan || 'free';
-  const currentPlan = rawPlan.toLowerCase();
+  // 1. Estado para guardar o último plano conhecido (Cache Local)
+  const [cachedPlan, setCachedPlan] = useState(() => {
+    // Tenta recuperar do localStorage ao iniciar
+    return localStorage.getItem('tribebuild_cached_plan');
+  });
 
-  // 3. Busca o limite correto na tabela. Se não achar, garante 1 (fallback seguro).
+  // 2. Atualiza o cache sempre que o profile real do Supabase chegar
+  useEffect(() => {
+    if (profile?.plan) {
+      const plan = profile.plan;
+      setCachedPlan(plan);
+      localStorage.setItem('tribebuild_cached_plan', plan);
+    }
+  }, [profile]);
+
+  // 3. CÁLCULO INTELIGENTE DO PLANO:
+  // - Prioridade A: Perfil Real (Se já carregou)
+  // - Prioridade B: Cache Local (Se está carregando, usa o último conhecido)
+  // - Prioridade C: 'starter' (Se é usuário novo e nunca logou)
+  const effectivePlan = profile?.plan || cachedPlan || 'starter';
+
+  // 4. Normalização
+  const currentPlan = effectivePlan.toLowerCase().trim();
+
+  // 5. Definição do Limite
   const planLimit = PLAN_LIMITS[currentPlan] || 1;
+
+  const generateId = () => Math.random().toString(36).substr(2, 9);
 
   const addApp = async (appData: Omit<App, 'id' | 'createdAt' | 'accessLink'>): Promise<string> => {
     // --- A BLINDAGEM ---
