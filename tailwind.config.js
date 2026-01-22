@@ -4,19 +4,22 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // ✅ ESSENCIAL: Isso ativa o botão de troca de tema
   darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        // Agora o projeto inteiro usa Outfit por padrão
-        sans: ['Outfit', 'system-ui', 'sans-serif'],
+        // ✅ VOLTAMOS PARA A INTER: Padrão, segura e profissional
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // ✅ As cores da sua marca (Mantidas)
         brand: {
-          blue: '#2563EB',
-          'blue-dark': '#1E40AF',
-          coral: '#FF6B6B',
+          blue: '#2563EB',  // O azul vibrante dos botões
+          'blue-dark': '#1E40AF', // Para o hover
+          coral: '#FF6B6B', // O gradiente coral
         },
+        // ✅ Mapeamento das variáveis de tema (Light/Dark mode)
         bg: {
           primary: 'var(--color-bg-primary)',
           secondary: 'var(--color-bg-secondary)',
@@ -32,6 +35,7 @@ export default {
           hover: 'var(--color-border-hover)',
         }
       },
+      // ✅ Animações (aquelas bolhas e slides suaves)
       animation: {
         'blob': 'blob 7s infinite',
         'scroll-left': 'scroll-left 45s linear infinite',

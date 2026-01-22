@@ -32,15 +32,14 @@
 
   body {
     @apply antialiased overflow-x-hidden transition-colors duration-300;
-    /* ✅ UNIFICAÇÃO: Outfit agora é a fonte global para evitar que o corpo fique 'fino' */
-    font-family: 'Outfit', system-ui, sans-serif;
+    /* ✅ VOLTAMOS PARA INTER: A fonte padrão, limpa e segura */
+    font-family: 'Inter', system-ui, sans-serif;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
-    /* ✅ Peso base ligeiramente mais firme para melhor leitura */
     font-weight: 400;
   }
 
-  /* ✅ GARANTIA: Aplica Outfit em todos os elementos de interação e títulos */
+  /* ✅ GARANTIA: Aplica Inter em todos os elementos de interação e títulos */
   h1,
   h2,
   h3,
@@ -51,8 +50,10 @@
   nav,
   span,
   a,
+  input,
+  select,
   .font-display {
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   /* Custom Scrollbar */
@@ -132,7 +133,6 @@ input:-webkit-autofill:active {
   }
 
   .text-gradient {
-    /* ✅ Usa Outfit Black para o gradiente de texto */
     @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-blue to-brand-coral font-black;
   }
 

@@ -28,7 +28,7 @@ const DashboardHome: React.FC = () => {
   const mainApp = safeApps.length > 0 ? safeApps[0] : null;
 
   return (
-    <div className="space-y-8 pb-20 animate-fade-in font-['Outfit']">
+    <div className="space-y-8 pb-20 animate-fade-in font-['inter']">
 
       {/* Header Clean */}
       <div className="animate-slide-up flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">

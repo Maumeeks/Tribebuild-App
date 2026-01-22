@@ -142,7 +142,7 @@ const BonusPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Outfit']">
+    <div className="space-y-10 font-['inter']">
       {/* Header */}
       <div className="animate-slide-up">
         <div className="flex items-center gap-3 mb-4">

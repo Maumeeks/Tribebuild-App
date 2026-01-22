@@ -111,7 +111,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden font-['Outfit'] selection:bg-brand-blue/30 selection:text-white">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden font-['inter'] selection:bg-brand-blue/30 selection:text-white">
 
       {/* Background Técnico */}
       <div className="absolute inset-0 pointer-events-none">

@@ -8,7 +8,7 @@ const SubscriptionCancelPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-['Outfit'] relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-['inter'] relative overflow-hidden">
       {/* Background Decorativo */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-red-100/20 rounded-full blur-[120px] animate-blob"></div>
