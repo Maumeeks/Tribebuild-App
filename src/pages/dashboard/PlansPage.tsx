@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Check, X, Crown, Zap, Building2, Rocket, Calendar, Sparkles, CreditCard, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
+import { ExternalLink, Loader2 } from 'lucide-react';
+import Button from '../../components/Button';
 
 // --- CONFIGURAÇÃO DE TIPOS ---
 interface Plan {

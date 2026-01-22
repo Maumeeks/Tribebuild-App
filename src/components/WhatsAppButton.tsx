@@ -5,8 +5,8 @@ interface WhatsAppButtonProps {
   phoneNumber?: string;
 }
 
-const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ 
-  phoneNumber = "5561982199922" 
+const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
+  phoneNumber = ""
 }) => {
   const whatsappUrl = `https://wa.me/${phoneNumber}`;
 
@@ -20,7 +20,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
     >
       {/* Pulse Effect */}
       <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-25 group-hover:animate-none"></span>
-      
+
       <div className="relative bg-[#25D366] w-16 h-16 rounded-full flex items-center justify-center shadow-xl shadow-green-500/30 hover:shadow-green-500/50 hover:scale-110 transition-all duration-300">
         <svg
           width="32"
@@ -35,7 +35,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
           />
         </svg>
       </div>
-      
+
       {/* Tooltip */}
       <span className="absolute right-20 top-1/2 -translate-y-1/2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
         Dúvidas? Fale conosco!

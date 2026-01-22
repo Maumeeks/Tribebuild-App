@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Search, Bell, User, Menu, Signal, Wifi, Battery } from 'lucide-react';
+import { cn } from '../lib/utils'; // Remova um nível de ../
 
 interface MockupMobileProps {
   primaryColor?: string;

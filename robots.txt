@@ -1,0 +1,8 @@
+User-agent: *
+# Bloqueia a indexação das áreas privadas
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /app/*/dashboard
+
+# Permite o restante (Landing Pages, Login, etc)
+Allow: /
