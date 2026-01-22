@@ -70,7 +70,7 @@ const Navbar: React.FC = () => {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleLinkClick(e, item.href)}
-                className="text-[11px] font-light text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all uppercase tracking-widest"
+                className="text-[13px] font-bold text-slate-700 dark:text-slate-200 hover:text-brand-blue px-4 py-2 transition-all uppercase tracking-wide"
               >
                 {item.label}
               </a>
