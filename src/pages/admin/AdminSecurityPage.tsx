@@ -138,7 +138,7 @@ const AdminSecurityPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter']">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Outfit']">
 
       {/* Header Compacto */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6 mb-8">

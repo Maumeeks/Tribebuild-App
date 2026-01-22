@@ -110,7 +110,7 @@ const AppsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 font-['Inter'] pb-20">
+    <div className="space-y-8 font-['Outfit'] pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-slide-up">
         <div>

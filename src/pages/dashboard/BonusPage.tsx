@@ -93,7 +93,7 @@ mockUserRegistrationDate.setDate(mockUserRegistrationDate.getDate() - 2); // Sim
 const BonusPage: React.FC = () => {
   const [timeUntilUnlock, setTimeUntilUnlock] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isUnlocked, setIsUnlocked] = useState(false);
-  
+
   // Calcular tempo restante para desbloquear
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -101,14 +101,14 @@ const BonusPage: React.FC = () => {
       const registrationDate = mockUserRegistrationDate;
       const unlockDate = new Date(registrationDate);
       unlockDate.setDate(unlockDate.getDate() + 7);
-      
+
       const difference = unlockDate.getTime() - now.getTime();
-      
+
       if (difference <= 0) {
         setIsUnlocked(true);
         return { days: 0, hours: 0, minutes: 0, seconds: 0 };
       }
-      
+
       return {
         days: Math.floor(difference / (1000 * 60 * 60 * 24)),
         hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
@@ -116,13 +116,13 @@ const BonusPage: React.FC = () => {
         seconds: Math.floor((difference % (1000 * 60)) / 1000)
       };
     };
-    
+
     setTimeUntilUnlock(calculateTimeLeft());
-    
+
     const timer = setInterval(() => {
       setTimeUntilUnlock(calculateTimeLeft());
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, []);
 
@@ -142,7 +142,7 @@ const BonusPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 font-['Inter']">
+    <div className="space-y-10 font-['Outfit']">
       {/* Header */}
       <div className="animate-slide-up">
         <div className="flex items-center gap-3 mb-4">
@@ -163,7 +163,7 @@ const BonusPage: React.FC = () => {
         {/* Decorações */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-coral/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-blue/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
-        
+
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div>
@@ -178,7 +178,7 @@ const BonusPage: React.FC = () => {
                 Materiais criados para garantir que você tenha sucesso com o TribeBuild desde o primeiro dia.
               </p>
             </div>
-            
+
             {/* Status de Desbloqueio */}
             <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 border border-white/10 min-w-[280px]">
               {isUnlocked ? (
@@ -238,7 +238,7 @@ const BonusPage: React.FC = () => {
         {bonusList.map((bonus, index) => {
           const unlocked = isBonusUnlocked(bonus);
           const Icon = bonus.icon;
-          
+
           return (
             <div
               key={bonus.id}
@@ -269,13 +269,13 @@ const BonusPage: React.FC = () => {
               <div className="flex items-start gap-6">
                 <div className={cn(
                   "w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-500",
-                  unlocked 
-                    ? `${bonus.bgColor} text-white shadow-lg group-hover:scale-110` 
+                  unlocked
+                    ? `${bonus.bgColor} text-white shadow-lg group-hover:scale-110`
                     : "bg-slate-100 dark:bg-slate-700 text-slate-400"
                 )}>
                   <Icon className="w-8 h-8" />
                 </div>
-                
+
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className={cn(
@@ -285,26 +285,26 @@ const BonusPage: React.FC = () => {
                       {bonus.title}
                     </h3>
                   </div>
-                  
+
                   <p className={cn(
                     "text-sm mb-4 leading-relaxed",
                     unlocked ? "text-slate-600 dark:text-slate-400" : "text-slate-400 dark:text-slate-600"
                   )}>
                     {bonus.description}
                   </p>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={cn(
                         "text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full",
-                        unlocked 
+                        unlocked
                           ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           : "bg-slate-100 dark:bg-slate-700 text-slate-400"
                       )}>
                         Valor: R${bonus.value}
                       </span>
                     </div>
-                    
+
                     {unlocked ? (
                       <button
                         onClick={() => handleDownload(bonus)}
@@ -352,8 +352,8 @@ const BonusPage: React.FC = () => {
               Por que esperar 7 dias?
             </h3>
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-              Queremos ter certeza de que você está comprometido com seu sucesso. Em 7 dias, você terá tempo de explorar a plataforma, 
-              criar seu primeiro app e entender como o TribeBuild funciona. Assim, quando os bônus forem liberados, você saberá 
+              Queremos ter certeza de que você está comprometido com seu sucesso. Em 7 dias, você terá tempo de explorar a plataforma,
+              criar seu primeiro app e entender como o TribeBuild funciona. Assim, quando os bônus forem liberados, você saberá
               exatamente como aproveitá-los ao máximo! 🚀
             </p>
           </div>

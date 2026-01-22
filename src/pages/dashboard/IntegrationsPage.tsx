@@ -138,7 +138,7 @@ const IntegrationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 font-['Inter'] pb-20 animate-fade-in">
+    <div className="space-y-8 font-['Outfit'] pb-20 animate-fade-in">
 
       {/* Header Compacto */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">

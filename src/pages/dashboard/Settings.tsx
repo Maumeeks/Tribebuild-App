@@ -60,7 +60,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl space-y-8 pb-20 font-['Inter'] animate-fade-in">
+    <div className="max-w-4xl space-y-8 pb-20 font-['Outfit'] animate-fade-in">
 
       {/* Header */}
       <div>

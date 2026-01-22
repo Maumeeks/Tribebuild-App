@@ -130,7 +130,7 @@ const AppBuilder: React.FC = () => {
   const inputStyle = "w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-brand-blue/10 focus:border-brand-blue outline-none transition-all";
 
   return (
-    <div className="flex h-[calc(100vh-100px)] overflow-hidden bg-white dark:bg-slate-950 font-['Inter'] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in">
+    <div className="flex h-[calc(100vh-100px)] overflow-hidden bg-white dark:bg-slate-950 font-['Outfit'] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in">
 
       {/* --- LEFT SIDE: EDITOR --- */}
       <div className="w-full lg:w-[500px] xl:w-[600px] flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 relative z-10">

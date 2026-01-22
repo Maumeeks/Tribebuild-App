@@ -83,7 +83,7 @@ export default function DevToolsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter'] p-6 md:p-12 transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Outfit'] p-6 md:p-12 transition-colors">
       <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
 
         {/* Header Profissional */}

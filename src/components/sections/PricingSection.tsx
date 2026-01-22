@@ -103,7 +103,7 @@ const PricingSection: React.FC = () => {
   ];
 
   return (
-    <section id="precos" ref={sectionRef} className="py-20 relative overflow-hidden transition-colors font-['Inter']">
+    <section id="precos" ref={sectionRef} className="py-20 relative overflow-hidden transition-colors font-['Outfit']">
       <div className="absolute inset-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur-[2px]"></div>
       <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-blue/8 via-transparent to-transparent dark:from-brand-blue/15 pointer-events-none"></div>
 

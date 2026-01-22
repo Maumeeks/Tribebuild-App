@@ -35,7 +35,7 @@ const MetricCard = ({ label, value, trend, icon: Icon }: MetricCardProps) => (
 
 const Analytics: React.FC = () => {
   return (
-    <div className="space-y-8 font-['Inter'] animate-fade-in pb-20">
+    <div className="space-y-8 font-['Outfit'] animate-fade-in pb-20">
 
       {/* Header Compacto */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">

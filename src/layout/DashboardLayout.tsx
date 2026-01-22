@@ -15,7 +15,7 @@ const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative font-['Inter'] selection:bg-brand-blue/20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative font-['Outfit'] selection:bg-brand-blue/20">
       {/* Background Sutil (Estilo Profissional) */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Gradiente de topo muito suave */}
