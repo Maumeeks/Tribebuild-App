@@ -49,7 +49,7 @@ const Navbar: React.FC = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 font-['Inter']",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300", // Removido font-['Inter'] para usar Outfit
         isScrolled
           ? "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-3 shadow-sm"
           : "bg-transparent border-b border-transparent py-5"
@@ -58,33 +58,33 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between">
 
-          {/* Logo TribeBuild */}
+          {/* Logo TribeBuild - Usando Outfit por herança */}
           <Link to="/" className="group flex-shrink-0">
             <TribeBuildLogo size="md" showText={true} />
           </Link>
 
-          {/* Desktop Menu */}
+          {/* Desktop Menu - Usando font-light para contraste elegante */}
           <nav className="hidden lg:flex items-center gap-1">
             {menuItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleLinkClick(e, item.href)}
-                className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all uppercase tracking-wide"
+                className="text-[11px] font-light text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all uppercase tracking-widest"
               >
                 {item.label}
               </a>
             ))}
           </nav>
 
-          {/* Desktop Buttons */}
+          {/* Desktop Buttons - Usando font-black (900) para impacto */}
           <div className="hidden lg:flex items-center gap-3">
             <ThemeToggle />
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
             <Link to="/login">
               <Button
                 variant="ghost"
-                className="font-bold text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                className="font-black text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               >
                 Login
               </Button>
@@ -93,14 +93,14 @@ const Navbar: React.FC = () => {
               <Button
                 variant="primary"
                 rightIcon={ArrowRight}
-                className="font-black text-xs uppercase tracking-widest px-6 py-2.5 rounded-xl shadow-lg shadow-brand-blue/20"
+                className="font-black text-[11px] uppercase tracking-widest px-6 py-2.5 rounded-xl shadow-lg shadow-brand-blue/20"
               >
                 Comece Agora
               </Button>
             </Link>
           </div>
 
-          {/* Mobile: Theme Toggle + Hamburger */}
+          {/* Mobile UI */}
           <div className="lg:hidden flex items-center gap-3">
             <ThemeToggle />
             <button
@@ -128,7 +128,7 @@ const Navbar: React.FC = () => {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleLinkClick(e, item.href)}
-                className="block text-lg font-bold text-slate-600 dark:text-slate-300 hover:text-brand-blue dark:hover:text-white py-3 border-b border-slate-50 dark:border-slate-800/50"
+                className="block text-xl font-black text-slate-900 dark:text-white py-3 border-b border-slate-50 dark:border-slate-800/50 uppercase tracking-tighter"
               >
                 {item.label}
               </a>
