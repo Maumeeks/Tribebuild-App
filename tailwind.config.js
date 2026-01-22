@@ -4,24 +4,19 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  // ✅ ESSENCIAL: Isso ativa o botão de troca de tema
   darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        // As fontes que vi no seu CSS global
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        // Agora o projeto inteiro usa Outfit por padrão
+        sans: ['Outfit', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // ✅ As cores da sua marca (Resgate do design original)
         brand: {
-          blue: '#2563EB',  // O azul vibrante dos botões
-          'blue-dark': '#1E40AF', // Para o hover
-          coral: '#FF6B6B', // O gradiente coral
+          blue: '#2563EB',
+          'blue-dark': '#1E40AF',
+          coral: '#FF6B6B',
         },
-        // ✅ Mapeamento das variáveis de tema (Isso conserta o Light/Dark mode)
-        // Quando você usar 'bg-primary', ele vai pegar a cor certa do tema atual
         bg: {
           primary: 'var(--color-bg-primary)',
           secondary: 'var(--color-bg-secondary)',
@@ -37,7 +32,6 @@ export default {
           hover: 'var(--color-border-hover)',
         }
       },
-      // ✅ Animações (aquelas bolhas e slides suaves)
       animation: {
         'blob': 'blob 7s infinite',
         'scroll-left': 'scroll-left 45s linear infinite',
