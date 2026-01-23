@@ -1,54 +1,49 @@
 import { PixelCrop } from 'react-image-crop';
 
 export async function getCroppedImg(
-    imageSrc: string,
-    pixelCrop: PixelCrop,
-    outputSize = 400 // Padrão 400x400, pode mudar para 512 se quiser mais qualidade
+    image: HTMLImageElement, // Mudamos para receber o Elemento de Imagem direto
+    crop: PixelCrop,
+    fileName = 'cropped.jpg'
 ): Promise<File | null> {
-    const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
 
-    if (!ctx) {
-        return null;
-    }
-
-    // Configura o canvas para o tamanho quadrado desejado
+    // Define o tamanho final fixo (400x400 como no Husky)
+    const outputSize = 400;
     canvas.width = outputSize;
     canvas.height = outputSize;
 
-    // Desenha a imagem cortada no canvas redimensionado
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Configurações de qualidade para imagem suave
+    ctx.imageSmoothingQuality = 'high';
+
     ctx.drawImage(
         image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
+        crop.x * scaleX,        // Ajusta X para escala real
+        crop.y * scaleY,        // Ajusta Y para escala real
+        crop.width * scaleX,    // Ajusta Largura para escala real
+        crop.height * scaleY,   // Ajusta Altura para escala real
         0,
         0,
-        outputSize,
-        outputSize
+        outputSize,             // Desenha no tamanho fixo 400
+        outputSize              // Desenha no tamanho fixo 400
     );
 
-    // Transforma o canvas em um arquivo (Blob)
-    return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-            if (!blob) {
-                reject(new Error('Canvas is empty'));
-                return;
-            }
-            // Cria um objeto File a partir do Blob para facilitar o upload
-            const file = new File([blob], 'product-thumbnail.jpg', { type: 'image/jpeg' });
-            resolve(file);
-        }, 'image/jpeg', 0.95); // Qualidade JPG 95%
+    return new Promise((resolve) => {
+        canvas.toBlob(
+            (blob) => {
+                if (!blob) {
+                    console.error('Canvas is empty');
+                    return;
+                }
+                const file = new File([blob], fileName, { type: 'image/jpeg' });
+                resolve(file);
+            },
+            'image/jpeg',
+            0.95 // Qualidade 95%
+        );
     });
 }
-
-const createImage = (url: string): Promise<HTMLImageElement> =>
-    new Promise((resolve, reject) => {
-        const image = new Image();
-        image.addEventListener('load', () => resolve(image));
-        image.addEventListener('error', (error) => reject(error));
-        image.setAttribute('crossOrigin', 'anonymous');
-        image.src = url;
-    });
