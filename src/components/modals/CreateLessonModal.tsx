@@ -1,4 +1,5 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
+import ReactDOM from 'react-dom'; // 1. IMPORTANTE: Importar o ReactDOM
 import { X, Upload, Video, FileText, Link as LinkIcon, Code, HelpCircle, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Button from '../Button';
@@ -10,7 +11,6 @@ interface CreateLessonModalProps {
     moduleId: string | null;
 }
 
-// Lista de tipos igual ao seu print
 const contentTypes = [
     { id: 'video_youtube', label: 'YouTube', icon: Video, field: 'url', placeholder: 'https://youtube.com/watch?v=...' },
     { id: 'video_vimeo', label: 'Vimeo', icon: Video, field: 'url', placeholder: 'https://vimeo.com/...' },
@@ -23,8 +23,8 @@ const contentTypes = [
 
 const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, onSuccess, moduleId }) => {
     const [loading, setLoading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null); // Capa
-    const attachmentInputRef = useRef<HTMLInputElement>(null); // Anexo
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const attachmentInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -60,7 +60,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
         try {
             setLoading(true);
 
-            // Upload Capa
             let finalCoverUrl = null;
             if (coverImage) {
                 const fileName = `covers/${Date.now()}_${coverImage.name}`;
@@ -71,7 +70,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                 }
             }
 
-            // Prepara Payload
             const payload: any = {
                 module_id: moduleId,
                 name: formData.name,
@@ -92,7 +90,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
 
             onSuccess();
             onClose();
-            // Reset
             setFormData({ name: '', type: 'video_youtube', url: '', embedCode: '', description: '' });
             setCoverImage(null); setCoverPreview(null); setAttachmentName(null);
 
@@ -105,25 +102,27 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
 
     const currentType = contentTypes.find(t => t.id === formData.type) || contentTypes[0];
 
-    return (
-        // ✅ CORREÇÃO AQUI: z-[9999] garante que fique ACIMA da navbar
+    // 2. A MÁGICA: Usar ReactDOM.createPortal para jogar o modal no document.body
+    return ReactDOM.createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Overlay Escuro */}
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-            {/* ✅ CORREÇÃO AQUI: max-h-[85vh] garante o respiro visual nas bordas */}
+            {/* Modal */}
             <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] animate-scale-in border border-slate-200 dark:border-slate-800">
 
                 {/* Header */}
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl shrink-0">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white">Novo Conteúdo</h3>
-                        <p className="text-sm text-slate-500">Preencha as informações do conteúdo</p>
+                        <p className="text-sm text-slate-500">Preencha as informações do novo conteúdo</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                         <X size={24} />
                     </button>
                 </div>
 
+                {/* Corpo Scrollável */}
                 <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/50">
 
                     {/* Capa */}
@@ -179,7 +178,7 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                         </div>
                     </div>
 
-                    {/* URL ou Embed */}
+                    {/* Campo Dinâmico */}
                     <div className="animate-fade-in">
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
                             {currentType.field === 'embed' ? 'Código de Incorporação (Embed)*' : 'Link / URL*'}
@@ -189,7 +188,7 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                             <textarea
                                 value={formData.embedCode}
                                 onChange={(e) => setFormData({ ...formData, embedCode: e.target.value })}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono h-24 resize-none"
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none h-24 resize-none font-mono"
                                 placeholder={currentType.placeholder}
                             />
                         ) : currentType.id === 'pdf' ? (
@@ -225,7 +224,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                                 placeholder="Insira a descrição do conteúdo aqui..."
                             />
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1">Texto adicional que será exibido junto com o conteúdo principal.</p>
                     </div>
 
                     {/* Anexos */}
@@ -265,7 +263,8 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                     </Button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body // 3. Alvo do Portal: O body do documento
     );
 };
 
