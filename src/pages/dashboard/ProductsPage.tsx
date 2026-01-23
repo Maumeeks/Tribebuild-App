@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, GripVertical, Edit3, Trash2, ChevronDown,
-  ChevronUp, Video, Loader2
+  ChevronUp, Video, Loader2, FileText, Link as LinkIcon, Code
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Button from '../../components/Button';
@@ -20,6 +20,14 @@ const offerTypeConfig: Record<string, { label: string, colorClasses: string }> =
   upsell: { label: 'Upsell / Downsell', colorClasses: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
 };
 
+// Mapa de ícones por tipo de conteúdo
+const getIconForType = (type: string) => {
+  if (['pdf', 'file'].includes(type)) return <FileText size={16} />;
+  if (['link', 'website'].includes(type)) return <LinkIcon size={16} />;
+  if (['html', 'text'].includes(type)) return <Code size={16} />;
+  return <Video size={16} />; // Default (video, youtube, vimeo, panda)
+};
+
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams();
@@ -28,7 +36,6 @@ const ProductsPage: React.FC = () => {
   // 1. Lógica para pegar o ID ou Slug da URL de forma segura
   const getAppIdentifier = () => {
     if (params.appSlug) return params.appSlug;
-    // Fallback: tenta pegar da URL se o params falhar
     const pathParts = location.pathname.split('/');
     const appsIndex = pathParts.indexOf('apps');
     if (appsIndex !== -1 && pathParts[appsIndex + 1]) return pathParts[appsIndex + 1];
@@ -50,7 +57,6 @@ const ProductsPage: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
-  // Helper UUID
   const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
   const fetchProducts = async () => {
@@ -62,14 +68,10 @@ const ProductsPage: React.FC = () => {
 
       if (!cleanSlug) throw new Error("App não identificado.");
 
-      // Busca Robusta do App (Igual ao Modal)
+      // Busca Robusta do App
       let query = supabase.from('apps').select('id');
-
-      if (isUUID(cleanSlug)) {
-        query = query.eq('id', cleanSlug);
-      } else {
-        query = query.eq('slug', cleanSlug);
-      }
+      if (isUUID(cleanSlug)) query = query.eq('id', cleanSlug);
+      else query = query.eq('slug', cleanSlug);
 
       const { data: appData, error: appError } = await query.single();
 
@@ -91,7 +93,7 @@ const ProductsPage: React.FC = () => {
 
       if (error) throw error;
 
-      // Ordena módulos e aulas localmente (opcional, mas bom para UX)
+      // Ordenação local para garantir consistência
       const sortedData = data?.map(product => ({
         ...product,
         modules: product.modules?.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -204,7 +206,9 @@ const ProductsPage: React.FC = () => {
                               {module.lessons && module.lessons.length > 0 ? (
                                 module.lessons.map((lesson: any) => (
                                   <div key={lesson.id} className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors group/lesson px-4">
-                                    <Video size={16} className="text-brand-blue" />
+                                    <div className="text-brand-blue dark:text-blue-400">
+                                      {getIconForType(lesson.content_type)} {/* Ícone Dinâmico */}
+                                    </div>
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1 truncate">{lesson.name}</span>
                                   </div>
                                 ))
@@ -231,20 +235,19 @@ const ProductsPage: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ MODAIS CONECTADOS COM PROPS CORRETAS */}
       <CreateProductModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} onSuccess={() => { fetchProducts(); setIsProductModalOpen(false); }} />
 
       <CreateModuleModal
         isOpen={isModuleModalOpen}
         onClose={() => setIsModuleModalOpen(false)}
-        productId={selectedProductId} // ✅ AQUI ESTÁ A CORREÇÃO
+        productId={selectedProductId}
         onSuccess={() => { fetchProducts(); setIsModuleModalOpen(false); }}
       />
 
       <CreateLessonModal
         isOpen={isLessonModalOpen}
         onClose={() => setIsLessonModalOpen(false)}
-        moduleId={selectedModuleId} // ✅ AQUI TAMBÉM
+        moduleId={selectedModuleId}
         onSuccess={() => { fetchProducts(); setIsLessonModalOpen(false); }}
       />
     </div>
