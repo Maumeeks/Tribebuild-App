@@ -60,7 +60,16 @@ export type Product = {
   name: string;
   description: string | null;
   thumbnail_url: string | null;
-  checkout_url: string | null; // ✅ ADICIONADO: Essencial para o botão do Cadeado
+
+  // ✅ NOVOS CAMPOS (Padrão Husky)
+  offer_type: 'main' | 'bonus' | 'order_bump' | 'upsell';
+  release_type: 'immediate' | 'days_after' | 'exact_date';
+  release_days: number | null;
+  release_date: string | null;
+  platform_ids: string[]; // Array de IDs externos
+  sales_page_url: string | null;
+
+  checkout_url: string | null; // Mantido para compatibilidade legado
   price: number;
   is_active: boolean;
   order_index: number;
