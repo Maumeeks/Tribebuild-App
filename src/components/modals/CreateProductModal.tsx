@@ -14,7 +14,7 @@ interface CreateProductModalProps {
     onSuccess: () => void;
 }
 
-// Função auxiliar para centralizar o crop inicial
+// Centraliza o crop inicial
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
     return centerCrop(
         makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
@@ -24,7 +24,10 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
 }
 
 const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose, onSuccess }) => {
-    const { appSlug } = useParams<{ appSlug: string }>();
+    // Tenta pegar params da URL. Se falhar, usa window.location como fallback de segurança
+    const params = useParams();
+    const appSlug = params.appSlug || window.location.pathname.split('/')[3];
+
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +43,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     });
     const [currentIdInput, setCurrentIdInput] = useState('');
 
-    // Estados do Cropper de Imagem
+    // Estados do Cropper
     const [imgSrc, setImgSrc] = useState('');
     const [crop, setCrop] = useState<Crop>();
     const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
@@ -50,9 +53,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const imgRef = useRef<HTMLImageElement>(null);
 
     if (!isOpen) return null;
-
-    // --- Helpers ---
-    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
     // --- Lógica de Imagem ---
     const onSelectFile = (e: ChangeEvent<HTMLInputElement>) => {
@@ -73,8 +73,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const handleConfirmCrop = async () => {
         if (imgRef.current && completedCrop) {
             try {
-                // Passamos o elemento HTMLImageElement para o canvasUtils atualizado
-                const file = await getCroppedImg(imgRef.current, completedCrop);
+                const file = await getCroppedImg(imgRef.current, completedCrop); // Usa o elemento HTMLImageElement
                 if (file) {
                     setFinalImageFile(file);
                     setPreviewUrl(URL.createObjectURL(file));
@@ -86,7 +85,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         }
     };
 
-    // --- ✅ Lógica de IDs da Plataforma (Restaurada) ---
+    // --- Lógica de IDs ---
     const handleAddPlatformId = () => {
         if (currentIdInput.trim() && !formData.platformIds.includes(currentIdInput.trim())) {
             setFormData(prev => ({ ...prev, platformIds: [...prev.platformIds, currentIdInput.trim()] }));
@@ -112,27 +111,26 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         try {
             setLoading(true);
 
-            // 1. Busca Inteligente do App (ID ou Slug)
-            let query = supabase.from('apps').select('id');
+            // 1. Busca Robusta do App (ID ou Slug)
+            let appId = null;
 
-            if (isUUID(appSlug || '')) {
-                query = query.eq('id', appSlug);
+            // Tenta achar por ID
+            const { data: appById } = await supabase.from('apps').select('id').eq('id', appSlug).maybeSingle();
+            if (appById) {
+                appId = appById.id;
             } else {
-                query = query.eq('slug', appSlug);
+                // Se falhar, tenta achar por Slug
+                const { data: appBySlug } = await supabase.from('apps').select('id').eq('slug', appSlug).maybeSingle();
+                if (appBySlug) appId = appBySlug.id;
             }
 
-            const { data: appData, error: appError } = await query.single();
-
-            if (appError || !appData) {
-                console.error('Erro de busca:', appError);
-                throw new Error("App não encontrado. Verifique a URL.");
-            }
+            if (!appId) throw new Error(`App não encontrado para o código: ${appSlug}`);
 
             // 2. Upload da Imagem
             let thumbnailUrl = null;
             if (finalImageFile) {
                 const fileExt = finalImageFile.name.split('.').pop();
-                const fileName = `${appData.id}/${Date.now()}.${fileExt}`;
+                const fileName = `${appId}/${Date.now()}.${fileExt}`;
                 const { error: uploadError } = await supabase.storage
                     .from('product-thumbnails')
                     .upload(fileName, finalImageFile);
@@ -145,10 +143,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 }
             }
 
-            // 3. Insert
+            // 3. Criar Produto
             const { error } = await supabase.from('products').insert([
                 {
-                    app_id: appData.id,
+                    app_id: appId,
                     name: formData.name,
                     offer_type: formData.offerType,
                     release_type: formData.releaseType,
@@ -164,7 +162,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             if (error) throw error;
             onSuccess();
             onClose();
-            // Reset
             setFormData({ name: '', offerType: 'main', releaseType: 'immediate', releaseDays: '', releaseDate: '', platformIds: [], salesPageUrl: '' });
             setPreviewUrl(null); setFinalImageFile(null); setImgSrc('');
 
@@ -179,19 +176,14 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
 
-            {/* Modal Principal */}
             <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md flex flex-col animate-scale-in border border-slate-200 dark:border-slate-800 max-h-[90vh]">
 
-                {/* Header */}
                 <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                     <h3 className="font-bold text-slate-900 dark:text-white">Novo Produto</h3>
                     <button onClick={onClose}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
                 </div>
 
-                {/* Corpo com Scroll */}
                 <div className="p-5 overflow-y-auto custom-scrollbar space-y-5">
-
-                    {/* Upload e Nome */}
                     <div className="flex gap-4">
                         <div className="shrink-0">
                             {previewUrl ? (
@@ -222,7 +214,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    {/* Grid de Opções */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo de Oferta</label>
@@ -251,7 +242,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    {/* Campos Condicionais */}
                     {formData.releaseType === 'days_after' && (
                         <div>
                             <input type="number" value={formData.releaseDays} onChange={(e) => setFormData({ ...formData, releaseDays: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm animate-fade-in" placeholder="Dias após compra" />
@@ -263,7 +253,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     )}
 
-                    {/* IDs da Plataforma (Tags) */}
                     <div>
                         <div className="flex justify-between items-center mb-1.5">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">IDs Externos</label>
@@ -287,7 +276,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    {/* Link Opcional */}
                     {formData.offerType !== 'bonus' && (
                         <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Link Checkout (Opcional)</label>
@@ -296,14 +284,12 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-xl shrink-0">
                     <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg border border-transparent hover:border-slate-200 transition-all">Cancelar</button>
                     <Button onClick={handleSubmit} isLoading={loading} size="sm" className="px-5 text-xs font-bold shadow-md">Criar Produto</Button>
                 </div>
             </div>
 
-            {/* --- Modal Cropper --- */}
             {showCropper && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
                     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
@@ -311,7 +297,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                             <h3 className="font-bold text-slate-900 dark:text-white">Ajustar Imagem</h3>
                             <button onClick={() => { setShowCropper(false); setImgSrc(''); }}><X size={18} className="text-slate-400" /></button>
                         </div>
-
                         <div className="p-6 bg-slate-900 flex-1 overflow-hidden flex items-center justify-center relative">
                             {!!imgSrc && (
                                 <ReactCrop
@@ -331,7 +316,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                                 </ReactCrop>
                             )}
                         </div>
-
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900 shrink-0">
                             <button onClick={() => { setShowCropper(false); setImgSrc(''); }} className="px-4 py-2 border rounded-lg text-xs font-bold uppercase">Cancelar</button>
                             <Button onClick={handleConfirmCrop} size="sm">Confirmar Recorte</Button>
