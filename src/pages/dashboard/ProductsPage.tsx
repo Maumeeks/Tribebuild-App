@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, GripVertical, Edit3, Trash2, ChevronDown,
-  ChevronUp, Video, Loader2, FileText, Link as LinkIcon, Code
+  ChevronUp, Video, Loader2, FileText, Link as LinkIcon, Code, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Button from '../../components/Button';
 import { cn } from '../../lib/utils';
 
-// Importação dos 3 Modais
+// Importação dos Modais
 import CreateProductModal from '../../components/modals/CreateProductModal';
 import CreateModuleModal from '../../components/modals/CreateModuleModal';
 import CreateLessonModal from '../../components/modals/CreateLessonModal';
@@ -20,12 +20,11 @@ const offerTypeConfig: Record<string, { label: string, colorClasses: string }> =
   upsell: { label: 'Upsell / Downsell', colorClasses: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
 };
 
-// Mapa de ícones por tipo de conteúdo
 const getIconForType = (type: string) => {
   if (['pdf', 'file'].includes(type)) return <FileText size={16} />;
   if (['link', 'website'].includes(type)) return <LinkIcon size={16} />;
   if (['html', 'text'].includes(type)) return <Code size={16} />;
-  return <Video size={16} />; // Default (video, youtube, vimeo, panda)
+  return <Video size={16} />;
 };
 
 const ProductsPage: React.FC = () => {
@@ -33,7 +32,7 @@ const ProductsPage: React.FC = () => {
   const params = useParams();
   const location = useLocation();
 
-  // 1. Lógica para pegar o ID ou Slug da URL de forma segura
+  // Lógica de Identificação do App
   const getAppIdentifier = () => {
     if (params.appSlug) return params.appSlug;
     const pathParts = location.pathname.split('/');
@@ -53,53 +52,45 @@ const ProductsPage: React.FC = () => {
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
 
-  // Seleções para passar para os modais filhos
+  // Estados de Seleção e Edição
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+
+  // (Futuro) Aqui guardaremos o item sendo editado para passar pro modal
+  const [itemToEdit, setItemToEdit] = useState<any>(null);
 
   const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-
       let appId = null;
       const cleanSlug = appSlug?.trim();
 
       if (!cleanSlug) throw new Error("App não identificado.");
 
-      // Busca Robusta do App
       let query = supabase.from('apps').select('id');
       if (isUUID(cleanSlug)) query = query.eq('id', cleanSlug);
       else query = query.eq('slug', cleanSlug);
 
       const { data: appData, error: appError } = await query.single();
-
       if (appError || !appData) throw new Error("App não encontrado.");
       appId = appData.id;
 
-      // Busca Produtos + Módulos + Aulas
       const { data, error } = await supabase
         .from('products')
-        .select(`
-          *,
-          modules (
-            *,
-            lessons (*)
-          )
-        `)
+        .select(`*, modules (*, lessons (*))`)
         .eq('app_id', appId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Ordenação local para garantir consistência
       const sortedData = data?.map(product => ({
         ...product,
-        modules: product.modules?.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        modules: product.modules?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
           .map((module: any) => ({
             ...module,
-            lessons: module.lessons?.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            lessons: module.lessons?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
           }))
       }));
 
@@ -115,14 +106,46 @@ const ProductsPage: React.FC = () => {
     if (appSlug) fetchProducts();
   }, [appSlug]);
 
-  const handleOpenModuleModal = (productId: string) => {
+  // --- Ações de Modais ---
+  const handleCreateModule = (productId: string) => {
     setSelectedProductId(productId);
+    setItemToEdit(null); // Modo criação
     setIsModuleModalOpen(true);
   };
 
-  const handleOpenLessonModal = (moduleId: string) => {
+  const handleCreateLesson = (moduleId: string) => {
     setSelectedModuleId(moduleId);
+    setItemToEdit(null); // Modo criação
     setIsLessonModalOpen(true);
+  };
+
+  // --- Ações de Edição (Placeholder para próxima etapa) ---
+  const handleEditProduct = (product: any) => {
+    // Futuro: Passar product para o modal
+    alert(`Editar produto: ${product.name} (Funcionalidade vindo no próximo passo)`);
+  };
+
+  const handleEditModule = (module: any) => {
+    // Futuro: Passar module para o modal
+    alert(`Editar módulo: ${module.name} (Funcionalidade vindo no próximo passo)`);
+  };
+
+  const handleEditLesson = (lesson: any) => {
+    // Futuro: Passar lesson para o modal
+    alert(`Editar aula: ${lesson.name} (Funcionalidade vindo no próximo passo)`);
+  };
+
+  // --- Ações de Exclusão (Funcional) ---
+  const handleDelete = async (type: 'products' | 'modules' | 'lessons', id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este item? Essa ação não pode ser desfeita.')) return;
+
+    try {
+      const { error } = await supabase.from(type).delete().eq('id', id);
+      if (error) throw error;
+      await fetchProducts(); // Recarrega a lista
+    } catch (error: any) {
+      alert('Erro ao excluir: ' + error.message);
+    }
   };
 
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-brand-blue" /></div>;
@@ -159,11 +182,14 @@ const ProductsPage: React.FC = () => {
             return (
               <div key={product.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all group">
                 <div className="p-6 flex items-center gap-5">
+                  {/* Drag Handle */}
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden">
                       {product.thumbnail_url ? <img src={product.thumbnail_url} alt={product.name} className="w-full h-full object-cover" /> : <Package className="w-8 h-8 text-slate-400" />}
                     </div>
                   </div>
+
+                  {/* Info Produto */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{product.name}</h3>
@@ -173,7 +199,15 @@ const ProductsPage: React.FC = () => {
                       {product.modules?.length === 0 ? 'Nenhum conteúdo' : `${product.modules?.length} módulos · ${product.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0)} aulas`}
                     </p>
                   </div>
+
+                  {/* Ações Produto */}
                   <div className="flex items-center gap-2">
+                    <button onClick={() => handleEditProduct(product)} className="p-2.5 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hidden sm:block">
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => handleDelete('products', product.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all hidden sm:block">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                     <button onClick={() => setExpandedProducts(prev => isExpanded ? prev.filter(id => id !== product.id) : [...prev, product.id])} className={cn("p-2.5 rounded-xl transition-all ml-2", isExpanded ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800")}>
                       {isExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
                     </button>
@@ -184,7 +218,7 @@ const ProductsPage: React.FC = () => {
                   <div className="bg-slate-50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 p-8 animate-slide-up">
                     <div className="flex justify-between items-center mb-6">
                       <h4 className="text-sm font-bold text-slate-900 dark:text-white">Conteúdo</h4>
-                      <Button onClick={() => handleOpenModuleModal(product.id)} size="sm" leftIcon={Plus} className="font-bold text-xs px-4 py-2.5 shadow-sm">
+                      <Button onClick={() => handleCreateModule(product.id)} size="sm" leftIcon={Plus} className="font-bold text-xs px-4 py-2.5 shadow-sm">
                         Novo Módulo
                       </Button>
                     </div>
@@ -192,24 +226,41 @@ const ProductsPage: React.FC = () => {
                     <div className="space-y-4">
                       {product.modules && product.modules.length > 0 ? (
                         product.modules.map((module: any) => (
-                          <div key={module.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                          <div key={module.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden group/module">
+                            {/* Header Módulo */}
                             <div className="p-4 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                               <div className="flex items-center gap-3">
                                 <GripVertical className="w-4 h-4 text-slate-300 cursor-grab" />
                                 <h5 className="text-sm font-bold text-slate-900 dark:text-white">{module.name}</h5>
                               </div>
-                              <button onClick={() => handleOpenLessonModal(module.id)} className="text-[11px] font-bold text-brand-blue uppercase hover:underline flex items-center gap-1">
-                                <Plus size={14} /> Aula
-                              </button>
+
+                              <div className="flex items-center gap-2">
+                                {/* Botões de Ação do Módulo (Novos) */}
+                                <div className="flex items-center gap-1 mr-2 opacity-0 group-hover/module:opacity-100 transition-opacity">
+                                  <button onClick={() => handleEditModule(module)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"><Edit3 size={14} /></button>
+                                  <button onClick={() => handleDelete('modules', module.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={14} /></button>
+                                </div>
+                                <button onClick={() => handleCreateLesson(module.id)} className="text-[11px] font-bold text-brand-blue uppercase hover:underline flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg border border-blue-100 dark:border-blue-900">
+                                  <Plus size={12} /> Aula
+                                </button>
+                              </div>
                             </div>
+
+                            {/* Lista de Aulas */}
                             <div className="p-2 space-y-1">
                               {module.lessons && module.lessons.length > 0 ? (
                                 module.lessons.map((lesson: any) => (
                                   <div key={lesson.id} className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors group/lesson px-4">
                                     <div className="text-brand-blue dark:text-blue-400">
-                                      {getIconForType(lesson.content_type)} {/* Ícone Dinâmico */}
+                                      {getIconForType(lesson.content_type)}
                                     </div>
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1 truncate">{lesson.name}</span>
+
+                                    {/* Ações da Aula */}
+                                    <div className="flex items-center gap-2 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
+                                      <button onClick={() => handleEditLesson(lesson)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm"><Edit3 size={14} /></button>
+                                      <button onClick={() => handleDelete('lessons', lesson.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm"><Trash2 size={14} /></button>
+                                    </div>
                                   </div>
                                 ))
                               ) : (
@@ -221,7 +272,7 @@ const ProductsPage: React.FC = () => {
                       ) : (
                         <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900">
                           <p className="text-sm text-slate-500 font-medium mb-3">Nenhum módulo criado</p>
-                          <Button onClick={() => handleOpenModuleModal(product.id)} size="sm" variant="outline" leftIcon={Plus} className="font-bold text-xs">
+                          <Button onClick={() => handleCreateModule(product.id)} size="sm" variant="outline" leftIcon={Plus} className="font-bold text-xs">
                             Criar Primeiro Módulo
                           </Button>
                         </div>
