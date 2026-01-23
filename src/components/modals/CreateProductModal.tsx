@@ -1,7 +1,7 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
-import { X, Upload, Plus, HelpCircle, Trash2 } from 'lucide-react';
+import { X, Upload, Plus, HelpCircle, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom'; // Adicionado useLocation
 import Button from '../Button';
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -14,6 +14,7 @@ interface CreateProductModalProps {
     onSuccess: () => void;
 }
 
+// Helper para centralizar o crop
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
     return centerCrop(
         makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
@@ -23,10 +24,29 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
 }
 
 const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose, onSuccess }) => {
-    const { appSlug } = useParams<{ appSlug: string }>();
+    const params = useParams();
+    const location = useLocation();
+
+    // 🛡️ Lógica Blindada para pegar o ID ou Slug da URL
+    // Tenta pelo Router (params) ou "força bruta" pegando da URL (location)
+    const getAppIdentifier = () => {
+        if (params.appSlug) return params.appSlug;
+        if (params.id) return params.id;
+        // Fallback: Pega o segmento após 'apps' na URL
+        const pathParts = location.pathname.split('/');
+        const appsIndex = pathParts.indexOf('apps');
+        if (appsIndex !== -1 && pathParts[appsIndex + 1]) {
+            return pathParts[appsIndex + 1];
+        }
+        return null;
+    };
+
+    const appSlug = getAppIdentifier();
+
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Estados do Formulário
     const [formData, setFormData] = useState({
         name: '',
         offerType: 'main' as 'main' | 'bonus' | 'order_bump' | 'upsell',
@@ -38,7 +58,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     });
     const [currentIdInput, setCurrentIdInput] = useState('');
 
-    // Crop State
+    // Estados do Cropper
     const [imgSrc, setImgSrc] = useState('');
     const [crop, setCrop] = useState<Crop>();
     const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
@@ -49,9 +69,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
 
     if (!isOpen) return null;
 
-    // Helpers
+    // Helper UUID
     const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
+    // --- Lógica de Imagem ---
     const onSelectFile = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setCrop(undefined);
@@ -69,15 +90,20 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
 
     const handleConfirmCrop = async () => {
         if (imgRef.current && completedCrop) {
-            const file = await getCroppedImg(imgRef.current, completedCrop);
-            if (file) {
-                setFinalImageFile(file);
-                setPreviewUrl(URL.createObjectURL(file));
-                setShowCropper(false);
+            try {
+                const file = await getCroppedImg(imgRef.current, completedCrop);
+                if (file) {
+                    setFinalImageFile(file);
+                    setPreviewUrl(URL.createObjectURL(file));
+                    setShowCropper(false);
+                }
+            } catch (e) {
+                console.error('Erro crop:', e);
             }
         }
     };
 
+    // --- Lógica de IDs (Tags) - AGORA ESTÁ DENTRO DO COMPONENTE ---
     const handleAddPlatformId = () => {
         if (currentIdInput.trim() && !formData.platformIds.includes(currentIdInput.trim())) {
             setFormData(prev => ({ ...prev, platformIds: [...prev.platformIds, currentIdInput.trim()] }));
@@ -96,33 +122,51 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         }
     };
 
+    // --- Submissão ---
     const handleSubmit = async () => {
         if (!formData.name) return alert('Nome obrigatório');
+
         try {
             setLoading(true);
 
-            // Busca ID do App
-            let query = supabase.from('apps').select('id');
-            if (appSlug && isUUID(appSlug)) query = query.eq('id', appSlug);
-            else if (appSlug) query = query.eq('slug', appSlug);
-            const { data: appData, error: appError } = await query.single();
-            if (appError || !appData) throw new Error("App não encontrado.");
+            // 1. Busca App ID
+            let appId = null;
+            const identifier = appSlug?.trim();
 
-            // Upload Imagem
+            if (!identifier) throw new Error("Não foi possível identificar o App na URL.");
+
+            // Se for UUID, busca direto
+            if (isUUID(identifier)) {
+                const { data } = await supabase.from('apps').select('id').eq('id', identifier).single();
+                if (data) appId = data.id;
+            }
+
+            // Se não achou (ou não é UUID), tenta por Slug
+            if (!appId) {
+                const { data } = await supabase.from('apps').select('id').eq('slug', identifier).single();
+                if (data) appId = data.id;
+            }
+
+            if (!appId) throw new Error(`App não encontrado (ID/Slug: ${identifier})`);
+
+            // 2. Upload Imagem
             let thumbnailUrl = null;
             if (finalImageFile) {
                 const fileExt = finalImageFile.name.split('.').pop();
-                const fileName = `${appData.id}/${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage.from('product-thumbnails').upload(fileName, finalImageFile);
+                const fileName = `${appId}/${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('product-thumbnails')
+                    .upload(fileName, finalImageFile);
+
                 if (!uploadError) {
                     const { data } = supabase.storage.from('product-thumbnails').getPublicUrl(fileName);
                     thumbnailUrl = data.publicUrl;
                 }
             }
 
-            // Insert
+            // 3. Insert
             const { error } = await supabase.from('products').insert([{
-                app_id: appData.id,
+                app_id: appId,
                 name: formData.name,
                 offer_type: formData.offerType,
                 release_type: formData.releaseType,
@@ -140,6 +184,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             // Reset
             setFormData({ name: '', offerType: 'main', releaseType: 'immediate', releaseDays: '', releaseDate: '', platformIds: [], salesPageUrl: '' });
             setPreviewUrl(null); setFinalImageFile(null); setImgSrc('');
+
         } catch (error: any) {
             alert('Erro: ' + error.message);
         } finally {
@@ -151,12 +196,17 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         <>
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
+
+                {/* Modal Principal */}
                 <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md flex flex-col border border-slate-200 dark:border-slate-800 max-h-[90vh]">
+
                     <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                         <h3 className="font-bold text-slate-900 dark:text-white">Novo Produto</h3>
-                        <button onClick={onClose}><X size={18} className="text-slate-400" /></button>
+                        <button onClick={onClose}><X size={18} className="text-slate-400 hover:text-slate-600" /></button>
                     </div>
+
                     <div className="p-5 overflow-y-auto custom-scrollbar space-y-5">
+                        {/* Imagem e Nome */}
                         <div className="flex gap-4">
                             <div className="shrink-0">
                                 {previewUrl ? (
@@ -171,10 +221,11 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                             </div>
                             <div className="flex-1">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Nome do Produto</label>
-                                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:border-brand-blue outline-none" placeholder="Ex: Comunidade Premium" autoFocus />
+                                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:border-brand-blue outline-none font-medium" placeholder="Ex: Comunidade Premium" autoFocus />
                             </div>
                         </div>
 
+                        {/* Tipos */}
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo de Oferta</label>
@@ -195,9 +246,11 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                             </div>
                         </div>
 
-                        {formData.releaseType === 'days_after' && <input type="number" value={formData.releaseDays} onChange={(e) => setFormData({ ...formData, releaseDays: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm" placeholder="Dias" />}
+                        {/* Condicionais */}
+                        {formData.releaseType === 'days_after' && <input type="number" value={formData.releaseDays} onChange={(e) => setFormData({ ...formData, releaseDays: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm" placeholder="Dias após compra" />}
                         {formData.releaseType === 'exact_date' && <input type="date" value={formData.releaseDate} onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm" />}
 
+                        {/* IDs */}
                         <div>
                             <div className="flex justify-between items-center mb-1.5"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">IDs Externos</label></div>
                             <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 flex flex-wrap gap-1.5 min-h-[40px] items-center">
@@ -212,9 +265,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
 
                         {formData.offerType !== 'bonus' && (
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Link Checkout</label><input type="url" value={formData.salesPageUrl} onChange={(e) => setFormData({ ...formData, salesPageUrl: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs" placeholder="https://..." /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Link Checkout (Opcional)</label><input type="url" value={formData.salesPageUrl} onChange={(e) => setFormData({ ...formData, salesPageUrl: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs" placeholder="https://..." /></div>
                         )}
                     </div>
+
                     <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-xl shrink-0">
                         <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg border border-transparent hover:border-slate-200 transition-all">Cancelar</button>
                         <Button onClick={handleSubmit} isLoading={loading} size="sm" className="px-5 text-xs font-bold shadow-md">Criar Produto</Button>
@@ -222,6 +276,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 </div>
             </div>
 
+            {/* Cropper */}
             {showCropper && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
                     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh]">
