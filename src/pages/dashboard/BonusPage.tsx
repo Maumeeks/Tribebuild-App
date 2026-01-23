@@ -1,24 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Gift,
-  Lock,
-  Unlock,
-  Download,
-  Clock,
-  FileText,
-  Rocket,
-  CheckSquare,
-  Headphones,
-  Sparkles,
-  Shield,
-  Star,
-  ArrowRight,
-  AlertCircle,
-  Check,
-  Crown
+  Gift, Lock, Unlock, Download, Clock, FileText, Rocket, CheckSquare,
+  Headphones, Sparkles, Shield, Star, Check, Crown, Loader2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Button from '../../components/Button';
+import { useAuth } from '../../contexts/AuthContext'; // ✅ Integração com o motor real
 
 // Tipo para os bônus
 interface Bonus {
@@ -34,7 +20,6 @@ interface Bonus {
   unlockAfterDays: number;
 }
 
-// Lista de bônus disponíveis
 const bonusList: Bonus[] = [
   {
     id: 'templates',
@@ -86,21 +71,20 @@ const bonusList: Bonus[] = [
   }
 ];
 
-// Mock: data de cadastro do usuário (será substituído pelo Supabase)
-const mockUserRegistrationDate = new Date();
-mockUserRegistrationDate.setDate(mockUserRegistrationDate.getDate() - 2); // Simula 2 dias atrás
-
 const BonusPage: React.FC = () => {
+  const { profile, loading } = useAuth(); // ✅ Puxa o perfil real
   const [timeUntilUnlock, setTimeUntilUnlock] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isUnlocked, setIsUnlocked] = useState(false);
 
-  // Calcular tempo restante para desbloquear
   useEffect(() => {
+    if (loading || !profile?.created_at) return;
+
     const calculateTimeLeft = () => {
       const now = new Date();
-      const registrationDate = mockUserRegistrationDate;
+      // ✅ Calcula a partir da data real de criação do usuário
+      const registrationDate = new Date(profile.created_at);
       const unlockDate = new Date(registrationDate);
-      unlockDate.setDate(unlockDate.getDate() + 7);
+      unlockDate.setDate(unlockDate.getDate() + 7); // Bloqueio estratégico de 7 dias
 
       const difference = unlockDate.getTime() - now.getTime();
 
@@ -118,220 +102,103 @@ const BonusPage: React.FC = () => {
     };
 
     setTimeUntilUnlock(calculateTimeLeft());
-
-    const timer = setInterval(() => {
-      setTimeUntilUnlock(calculateTimeLeft());
-    }, 1000);
+    const timer = setInterval(() => setTimeUntilUnlock(calculateTimeLeft()), 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [profile, loading]);
 
   const totalValue = bonusList.reduce((acc, bonus) => acc + bonus.value, 0);
 
-  const handleDownload = (bonus: Bonus) => {
-    if (bonus.type === 'access') {
-      window.open(bonus.downloadUrl, '_blank');
-    } else {
-      window.open(bonus.downloadUrl, '_blank');
-    }
-  };
-
-  const isBonusUnlocked = (bonus: Bonus) => {
-    if (bonus.unlockAfterDays === 0) return true;
-    return isUnlocked;
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-20">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-10 font-['inter']">
+    <div className="space-y-10 font-sans pb-10">
       {/* Header */}
-      <div className="animate-slide-up">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-2xl">
-            <Gift className="w-8 h-8 text-brand-coral" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-black text-brand-blue tracking-tighter">Seus Bônus Exclusivos</h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium">
-              Materiais especiais para acelerar seu sucesso
-            </p>
-          </div>
+      <div className="flex items-center gap-3 mb-4 animate-slide-up">
+        <div className="p-3 bg-brand-coral/10 rounded-2xl">
+          <Gift className="w-8 h-8 text-brand-coral" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">Seus Bônus Exclusivos</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Acelere seus resultados com materiais de elite.</p>
         </div>
       </div>
 
-      {/* Card Principal - Valor Total */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[2.5rem] p-10 md:p-12 text-white overflow-hidden animate-slide-up" style={{ animationDelay: '100ms' }}>
-        {/* Decorações */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-coral/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-blue/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
+      {/* Card de Valor Total e Contador */}
+      <div className="relative bg-slate-900 rounded-[2.5rem] p-10 md:p-12 text-white overflow-hidden shadow-2xl animate-slide-up">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-coral/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
 
-        <div className="relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-4">
-                <Crown className="w-4 h-4 text-yellow-400" />
-                <span className="text-xs font-black uppercase tracking-widest text-yellow-400">Acesso Exclusivo</span>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-4">
+              <Crown className="w-4 h-4 text-yellow-400" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-400">Entrega de Valor</span>
+            </div>
+            <h2 className="text-4xl font-black tracking-tight mb-2">R${totalValue} em Presentes</h2>
+            <p className="text-white/60 font-medium max-w-md text-sm leading-relaxed">
+              Desbloqueie ferramentas prontas para escalar sua tribo assim que o período de teste for concluído.
+            </p>
+          </div>
+
+          {/* Cronômetro Real */}
+          <div className="bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 min-w-[280px]">
+            {isUnlocked ? (
+              <div className="text-center py-2 animate-bounce">
+                <Unlock className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+                <p className="font-black text-emerald-400 uppercase tracking-widest text-xs">Acesso Liberado!</p>
               </div>
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
-                R${totalValue} em Bônus
-              </h2>
-              <p className="text-white/60 font-medium max-w-md">
-                Materiais criados para garantir que você tenha sucesso com o TribeBuild desde o primeiro dia.
-              </p>
-            </div>
-
-            {/* Status de Desbloqueio */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 border border-white/10 min-w-[280px]">
-              {isUnlocked ? (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
-                    <Unlock className="w-8 h-8 text-white" />
-                  </div>
-                  <p className="text-lg font-black text-emerald-400 mb-1">🎉 Bônus Liberados!</p>
-                  <p className="text-sm text-white/60">Faça o download agora</p>
+            ) : (
+              <div className="text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4 flex items-center justify-center gap-2">
+                  <Lock className="w-3 h-3" /> Libera em:
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  {['Dias', 'Hrs', 'Min'].map((label, i) => (
+                    <div key={label} className="bg-white/10 rounded-2xl px-4 py-3 min-w-[65px]">
+                      <p className="text-3xl font-black leading-none mb-1">
+                        {i === 0 ? timeUntilUnlock.days : i === 1 ? String(timeUntilUnlock.hours).padStart(2, '0') : String(timeUntilUnlock.minutes).padStart(2, '0')}
+                      </p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30">{label}</p>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                    <Lock className="w-8 h-8 text-white/60" />
-                  </div>
-                  <p className="text-xs font-black uppercase tracking-widest text-white/40 mb-3">Libera em</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="bg-white/10 rounded-xl px-3 py-2 min-w-[50px]">
-                      <p className="text-2xl font-black">{timeUntilUnlock.days}</p>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Dias</p>
-                    </div>
-                    <span className="text-2xl font-black text-white/30">:</span>
-                    <div className="bg-white/10 rounded-xl px-3 py-2 min-w-[50px]">
-                      <p className="text-2xl font-black">{String(timeUntilUnlock.hours).padStart(2, '0')}</p>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Hrs</p>
-                    </div>
-                    <span className="text-2xl font-black text-white/30">:</span>
-                    <div className="bg-white/10 rounded-xl px-3 py-2 min-w-[50px]">
-                      <p className="text-2xl font-black">{String(timeUntilUnlock.minutes).padStart(2, '0')}</p>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Min</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Mensagem de Incentivo (quando bloqueado) */}
-      {!isUnlocked && (
-        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-6 flex items-start gap-4 animate-slide-up" style={{ animationDelay: '150ms' }}>
-          <div className="p-2 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
-            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div>
-            <p className="font-black text-amber-800 dark:text-amber-300 mb-1">Continue explorando o TribeBuild!</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400/80">
-              Seus bônus serão liberados automaticamente após 7 dias de uso. Aproveite esse tempo para configurar seu primeiro app e conhecer todas as funcionalidades.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Grid de Bônus */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {bonusList.map((bonus, index) => {
-          const unlocked = isBonusUnlocked(bonus);
+        {bonusList.map((bonus) => {
           const Icon = bonus.icon;
-
           return (
-            <div
-              key={bonus.id}
-              className={cn(
-                "relative bg-white dark:bg-slate-800 rounded-[2rem] border-2 p-8 transition-all duration-500 group animate-slide-up",
-                unlocked
-                  ? "border-emerald-200 dark:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10"
-                  : "border-slate-100 dark:border-slate-700 opacity-80"
-              )}
-              style={{ animationDelay: `${200 + index * 50}ms` }}
-            >
-              {/* Badge de Status */}
-              <div className="absolute -top-3 -right-3">
-                {unlocked ? (
-                  <div className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/30">
-                    <Check className="w-3.5 h-3.5" />
-                    Liberado
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-full">
-                    <Lock className="w-3.5 h-3.5" />
-                    Bloqueado
-                  </div>
-                )}
+            <div key={bonus.id} className={cn(
+              "relative bg-white dark:bg-slate-800 rounded-[2rem] border-2 p-8 transition-all group",
+              isUnlocked ? "border-emerald-100 hover:shadow-xl" : "border-slate-50 opacity-70 grayscale"
+            )}>
+              <div className="absolute top-4 right-6">
+                {isUnlocked ? <Unlock size={16} className="text-emerald-500" /> : <Lock size={16} className="text-slate-300" />}
               </div>
-
-              {/* Ícone e Conteúdo */}
-              <div className="flex items-start gap-6">
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-500",
-                  unlocked
-                    ? `${bonus.bgColor} text-white shadow-lg group-hover:scale-110`
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-400"
-                )}>
-                  <Icon className="w-8 h-8" />
+              <div className="flex gap-6">
+                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center", isUnlocked ? bonus.bgColor : "bg-slate-100")}>
+                  <Icon className={cn("w-7 h-7", isUnlocked ? "text-white" : "text-slate-400")} />
                 </div>
-
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className={cn(
-                      "text-xl font-black tracking-tight",
-                      unlocked ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"
-                    )}>
-                      {bonus.title}
-                    </h3>
-                  </div>
-
-                  <p className={cn(
-                    "text-sm mb-4 leading-relaxed",
-                    unlocked ? "text-slate-600 dark:text-slate-400" : "text-slate-400 dark:text-slate-600"
-                  )}>
-                    {bonus.description}
-                  </p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full",
-                        unlocked
-                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-400"
-                      )}>
-                        Valor: R${bonus.value}
-                      </span>
-                    </div>
-
-                    {unlocked ? (
-                      <button
-                        onClick={() => handleDownload(bonus)}
-                        className={cn(
-                          "flex items-center gap-2 px-5 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95",
-                          bonus.type === 'pdf'
-                            ? "bg-brand-blue text-white hover:bg-brand-blue-dark shadow-lg shadow-blue-500/20"
-                            : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
-                        )}
-                      >
-                        {bonus.type === 'pdf' ? (
-                          <>
-                            <Download className="w-4 h-4" />
-                            Baixar PDF
-                          </>
-                        ) : (
-                          <>
-                            <Headphones className="w-4 h-4" />
-                            Acessar
-                          </>
-                        )}
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">{bonus.title}</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">{bonus.description}</p>
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full text-slate-500">Valor: R${bonus.value}</span>
+                    {isUnlocked && (
+                      <button onClick={() => window.open(bonus.downloadUrl, '_blank')} className="text-xs font-black text-brand-blue uppercase tracking-widest flex items-center gap-2 hover:translate-x-1 transition-transform">
+                        Download <Download size={14} />
                       </button>
-                    ) : (
-                      <div className="flex items-center gap-2 px-5 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                        <Lock className="w-4 h-4" />
-                        Aguardando
-                      </div>
                     )}
                   </div>
                 </div>
@@ -339,44 +206,6 @@ const BonusPage: React.FC = () => {
             </div>
           );
         })}
-      </div>
-
-      {/* Card de Motivação */}
-      <div className="bg-gradient-to-r from-brand-blue/5 via-brand-coral/5 to-brand-blue/5 dark:from-brand-blue/10 dark:via-brand-coral/10 dark:to-brand-blue/10 rounded-[2rem] p-8 md:p-10 border border-slate-200/50 dark:border-slate-700/50 animate-slide-up" style={{ animationDelay: '400ms' }}>
-        <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-          <div className="w-20 h-20 bg-brand-coral/10 dark:bg-brand-coral/20 rounded-3xl flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-10 h-10 text-brand-coral" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-              Por que esperar 7 dias?
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-              Queremos ter certeza de que você está comprometido com seu sucesso. Em 7 dias, você terá tempo de explorar a plataforma,
-              criar seu primeiro app e entender como o TribeBuild funciona. Assim, quando os bônus forem liberados, você saberá
-              exatamente como aproveitá-los ao máximo! 🚀
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Garantias */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '450ms' }}>
-        {[
-          { icon: Shield, title: 'Conteúdo Exclusivo', desc: 'Materiais criados especialmente para clientes TribeBuild' },
-          { icon: Star, title: 'Atualizações Grátis', desc: 'Sempre que atualizarmos, você recebe a nova versão' },
-          { icon: Gift, title: 'Sem Custo Adicional', desc: 'Incluído no seu plano, sem pagar nada a mais' }
-        ].map((item, i) => (
-          <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 flex items-start gap-4">
-            <div className="p-2 bg-brand-blue/10 dark:bg-brand-blue/20 rounded-xl">
-              <item.icon className="w-5 h-5 text-brand-blue" />
-            </div>
-            <div>
-              <h4 className="font-black text-slate-900 dark:text-white text-sm mb-1">{item.title}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{item.desc}</p>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
