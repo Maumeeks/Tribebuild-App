@@ -19,22 +19,35 @@ const offerTypeConfig: Record<string, { label: string, colorClasses: string }> =
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { appSlug } = useParams<{ appSlug: string }>(); // Necessário para garantir que estamos no app certo
+  const { appSlug } = useParams<{ appSlug: string }>();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedProducts, setExpandedProducts] = useState<string[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
+  // Helper para verificar UUID
+  const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
   const fetchProducts = async () => {
     try {
       setLoading(true);
 
-      // 1. Primeiro, pega o ID do App pelo slug
-      const { data: appData, error: appError } = await supabase
-        .from('apps').select('id').eq('slug', appSlug).single();
-      if (appError || !appData) throw new Error("App não encontrado.");
+      // 1. Busca Robusta do App (ID ou Slug)
+      let appId = null;
+      let query = supabase.from('apps').select('id');
 
-      // 2. Busca produtos apenas deste App
+      if (appSlug && isUUID(appSlug)) {
+        query = query.eq('id', appSlug);
+      } else if (appSlug) {
+        query = query.eq('slug', appSlug);
+      }
+
+      const { data: appData, error: appError } = await query.single();
+
+      if (appError || !appData) throw new Error("App não encontrado.");
+      appId = appData.id;
+
+      // 2. Busca produtos filtrados pelo App ID encontrado
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -44,7 +57,7 @@ const ProductsPage: React.FC = () => {
             lessons (*)
           )
         `)
-        .eq('app_id', appData.id) // Filtro crucial!
+        .eq('app_id', appId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -66,7 +79,8 @@ const ProductsPage: React.FC = () => {
 
   return (
     <div className="space-y-8 font-sans pb-32 animate-fade-in max-w-6xl mx-auto">
-      {/* Header estilo Husky App */}
+
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
           <button onClick={() => navigate('/dashboard/apps')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white text-sm font-bold mb-3 transition-all">
@@ -82,10 +96,11 @@ const ProductsPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Listagem de Produtos Refinada */}
+      {/* Listagem */}
       <div className="space-y-6">
         {products.length === 0 ? (
-          <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 shadow-sm">
+          // ✅ Estado Vazio Melhorado (Bordas arredondadas corrigidas)
+          <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 shadow-sm animate-scale-in">
             <Package className="w-16 h-16 text-slate-300 mx-auto mb-6" />
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Nenhum produto criado</h3>
             <p className="text-slate-500 dark:text-slate-400 font-medium mb-8 max-w-md mx-auto">
@@ -101,15 +116,14 @@ const ProductsPage: React.FC = () => {
             const isExpanded = expandedProducts.includes(product.id);
 
             return (
-              <div key={product.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                {/* Card Principal do Produto */}
+              <div key={product.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                {/* Card Principal */}
                 <div className="p-6 flex items-center gap-5">
-                  {/* Drag Handle & Thumbnail */}
                   <div className="flex items-center gap-4">
                     <button className="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
                       <GripVertical className="w-5 h-5" />
                     </button>
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex-shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex-shrink-0">
                       {product.thumbnail_url ? (
                         <img src={product.thumbnail_url} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
@@ -118,16 +132,14 @@ const ProductsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Info do Produto */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{product.name}</h3>
-                      {/* Pílula de ID Cinza */}
-                      <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[11px] font-mono font-bold truncate max-w-[120px] hidden sm:inline-block border border-slate-200 dark:border-slate-700">
-                        {product.id}
+                      {/* Tags */}
+                      <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-mono font-bold truncate max-w-[100px] hidden sm:inline-block border border-slate-200 dark:border-slate-700">
+                        {product.id.split('-')[0]}...
                       </span>
-                      {/* Badge de Tipo Colorido */}
-                      <span className={cn("px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider", offerConfig.colorClasses)}>
+                      <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider", offerConfig.colorClasses)}>
                         {offerConfig.label}
                       </span>
                     </div>
@@ -136,7 +148,6 @@ const ProductsPage: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Ações (Editar, Excluir, Expandir) */}
                   <div className="flex items-center gap-2">
                     <button className="p-2.5 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hidden sm:block">
                       <Edit3 className="w-5 h-5" />
@@ -156,7 +167,7 @@ const ProductsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Área de Conteúdo Expandida */}
+                {/* Área de Conteúdo */}
                 {isExpanded && (
                   <div className="bg-slate-50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 p-8 animate-slide-up">
                     <div className="flex justify-between items-center mb-6">
@@ -166,12 +177,10 @@ const ProductsPage: React.FC = () => {
                       </Button>
                     </div>
 
-                    {/* Lista de Módulos/Aulas */}
                     <div className="space-y-4">
                       {product.modules && product.modules.length > 0 ? (
                         product.modules.map((module: any) => (
                           <div key={module.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                            {/* Header do Módulo */}
                             <div className="p-4 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                               <div className="flex items-center gap-3">
                                 <GripVertical className="w-4 h-4 text-slate-300 cursor-grab" />
@@ -182,7 +191,6 @@ const ProductsPage: React.FC = () => {
                               </button>
                             </div>
 
-                            {/* Aulas do Módulo */}
                             <div className="p-2 space-y-1">
                               {module.lessons && module.lessons.length > 0 ? (
                                 module.lessons.map((lesson: any) => (
@@ -221,7 +229,6 @@ const ProductsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de Criação Modular */}
       <CreateProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
