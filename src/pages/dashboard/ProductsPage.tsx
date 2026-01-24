@@ -139,7 +139,6 @@ export default function ProductsPage() {
     });
   };
 
-  // Helper visual para os tipos de oferta
   const getOfferLabel = (type: string) => {
     switch (type) {
       case 'main': return { label: 'Principal', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' };
@@ -153,7 +152,7 @@ export default function ProductsPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto animate-fade-in font-['inter']">
 
-      {/* Header da Página */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gerenciar Produtos</h1>
@@ -164,7 +163,7 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {/* Barra de Busca */}
+      {/* Busca */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
         <input
@@ -176,7 +175,7 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* Lista de Produtos */}
+      {/* Grid */}
       <div className="grid grid-cols-1 gap-4">
         {products.length === 0 && !loading && (
           <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
@@ -191,7 +190,6 @@ export default function ProductsPage() {
             return (
               <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex items-center gap-5 hover:border-brand-blue/50 transition-all group shadow-sm">
 
-                {/* Icone / Imagem */}
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
                   {product.image_url ? (
                     <img src={product.image_url} className="w-full h-full object-cover" />
@@ -200,7 +198,6 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                {/* Informações */}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg">{product.name}</h3>
@@ -215,8 +212,8 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {/* Botões de Ação */}
                 <div className="flex items-center gap-2">
+                  {/* ✅ BOTÃO EDITAR (LÁPIS) CORRIGIDO */}
                   <button
                     onClick={() => navigate(`/dashboard/apps/${appId}/products/${product.id}`)}
                     className="p-2 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -237,25 +234,22 @@ export default function ProductsPage() {
           })}
       </div>
 
-      {/* --- MODAL NOVO PRODUTO (Estilo Husky & Dark Mode Fix) --- */}
+      {/* --- MODAL COM Z-INDEX CORRIGIDO --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        // ✅ Z-INDEX 100 para ficar acima de qualquer navbar
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-up flex flex-col max-h-[90vh]">
 
-            {/* ✅ NAVBAR DO MODAL CORRIGIDA:
-                    - Fundo separado (slate-50/slate-950) para destacar
-                    - Border bottom para separar do conteúdo
-                */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 shrink-0">
               <h3 className="font-bold text-lg text-slate-900 dark:text-white">Novo Produto</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
 
-              {/* 1. Upload Logo */}
+              {/* Upload */}
               <div className="flex flex-col items-center justify-center mb-2">
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -273,9 +267,8 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {/* 2. Nome */}
+              {/* Nome */}
               <div>
-                {/* ✅ CORREÇÃO: Removido 'block' para evitar conflito com 'flex' */}
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
                   Nome do Produto *
                 </label>
@@ -288,7 +281,7 @@ export default function ProductsPage() {
                 />
               </div>
 
-              {/* 3. Tipo de Liberação */}
+              {/* Tipo de Liberação */}
               <div>
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
                   Tipo de Liberação <HelpCircle className="w-3 h-3 cursor-help text-slate-400" />
@@ -306,7 +299,6 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {/* Condicional: Valor da Liberação */}
               {formData.release_type === 'days' && (
                 <div className="animate-slide-up">
                   <input
@@ -329,7 +321,7 @@ export default function ProductsPage() {
                 </div>
               )}
 
-              {/* 4. Tipo de Oferta */}
+              {/* Tipo de Oferta */}
               <div>
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
                   Tipo de Oferta *
@@ -344,14 +336,9 @@ export default function ProductsPage() {
                   <option value="order_bump">Order Bump (Oferta Adicional)</option>
                   <option value="upsell">Upsell / Downsell (Oferta Extra)</option>
                 </select>
-                <p className="text-[10px] text-slate-400 mt-2 ml-1 leading-relaxed">
-                  {formData.offer_type === 'main' && "Aparece liberado na lista para quem comprou."}
-                  {formData.offer_type === 'bonus' && "Liberado automaticamente como bônus."}
-                  {(formData.offer_type === 'order_bump' || formData.offer_type === 'upsell') && "Aparece bloqueado (cadeado) ou como banner de oferta."}
-                </p>
               </div>
 
-              {/* 5. Link de Checkout (Só aparece para ofertas pagas) */}
+              {/* Link Checkout */}
               {(formData.offer_type === 'order_bump' || formData.offer_type === 'upsell') && (
                 <div className="animate-slide-up">
                   <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
@@ -370,7 +357,7 @@ export default function ProductsPage() {
                 </div>
               )}
 
-              {/* 6. IDs da Plataforma */}
+              {/* IDs */}
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5 justify-between">
                   <span>IDs na Plataforma</span>
@@ -387,12 +374,6 @@ export default function ProductsPage() {
                     onChange={e => setFormData({ ...formData, platform_product_id: e.target.value })}
                   />
                   <button className="px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold text-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">+</button>
-                </div>
-                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg flex gap-3 items-start">
-                  <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-relaxed font-medium">
-                    Este ID conecta o pagamento à liberação automática. Cole o ID que aparece na URL ou Webhook da sua plataforma (Kiwify, Hotmart, etc).
-                  </p>
                 </div>
               </div>
 
