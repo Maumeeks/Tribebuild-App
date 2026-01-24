@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, Palette, Globe, ArrowLeft, Lock, Upload, X, Check, LayoutTemplate, Smartphone } from 'lucide-react';
+import { Eye, Palette, Globe, ArrowLeft, Lock, Upload, X, Check, LayoutTemplate, Smartphone, KeyRound, Mail } from 'lucide-react';
 import Button from '../../components/Button';
 import MockupMobile from '../../components/MockupMobile';
 import { useApps } from '../../contexts/AppsContext';
@@ -30,7 +30,8 @@ const AppBuilder: React.FC = () => {
     description: '',
     primaryColor: '#0066FF',
     logo: null as string | null,
-    language: 'PT'
+    language: 'PT',
+    login_type: 'email_password' as 'email_password' | 'magic_link' // 'email_password' ou 'magic_link'
   });
 
   useEffect(() => {
@@ -43,19 +44,18 @@ const AppBuilder: React.FC = () => {
           description: app.description || '',
           primaryColor: app.primaryColor,
           logo: app.logo || null,
-          language: app.language || 'PT'
+          language: app.language || 'PT',
+          login_type: app.login_type || 'email_password'
         });
       }
     }
   }, [editMode, appIdToEdit, apps]);
 
   const nextStep = () => {
-    // Validação do Passo 1
     if (step === 1) {
       if (!formData.name.trim()) return alert("O nome do app é obrigatório.");
       if (!formData.slug.trim()) return alert("A URL personalizada (slug) é obrigatória.");
 
-      // Validação de Slug Seguro
       const forbiddenSlugs = ['admin', 'login', 'dashboard', 'api', 'app'];
       if (forbiddenSlugs.includes(formData.slug.toLowerCase())) {
         return alert("Este slug é reservado pelo sistema. Escolha outro.");
@@ -67,7 +67,6 @@ const AppBuilder: React.FC = () => {
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
   const updateField = (field: string, value: string) => {
-    // Sanitização do Slug (remove espaços e caracteres especiais)
     if (field === 'slug') {
       value = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     }
@@ -99,6 +98,7 @@ const AppBuilder: React.FC = () => {
         logo: formData.logo,
         primaryColor: formData.primaryColor,
         language: formData.language,
+        login_type: formData.login_type, // ✅ Salva o tipo de login
         status: 'published' as const
       };
 
@@ -140,7 +140,6 @@ const AppBuilder: React.FC = () => {
       {/* --- LEFT SIDE: EDITOR --- */}
       <div className="w-full lg:w-[500px] xl:w-[600px] flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 relative z-10">
 
-        {/* Header */}
         <div className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-slate-950">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/dashboard/apps')} className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
@@ -155,12 +154,10 @@ const AppBuilder: React.FC = () => {
           </button>
         </div>
 
-        {/* Progress Bar */}
         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1">
           <div className="bg-brand-blue h-1 transition-all duration-500 ease-out" style={{ width: `${(step / 4) * 100}%` }} />
         </div>
 
-        {/* Form Area */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 relative">
 
           {isLimitReached && (
@@ -194,13 +191,54 @@ const AppBuilder: React.FC = () => {
               <div>
                 <label className={labelStyle}>URL Personalizada (Slug)</label>
                 <div className="flex rounded-lg shadow-sm">
-                  {/* ✅ Link Corrigido */}
                   <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 text-xs font-mono">
                     app.tribebuild.pro/
                   </span>
                   <input type="text" value={formData.slug} onChange={(e) => updateField('slug', e.target.value)} className={`${inputStyle} rounded-l-none`} placeholder="seu-app" />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2 font-medium">Use apenas letras minúsculas e hifens. Ex: ingles-do-joao</p>
+              </div>
+
+              {/* ✅ NOVO CAMPO: TIPO DE LOGIN */}
+              <div>
+                <label className={labelStyle}>Tipo de Acesso (Login)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    onClick={() => updateField('login_type', 'email_password')}
+                    className={cn(
+                      "cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col gap-2",
+                      formData.login_type === 'email_password'
+                        ? "border-brand-blue bg-blue-50/50 dark:bg-blue-900/10"
+                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-sm">
+                        <KeyRound className="w-4 h-4" /> Completo
+                      </div>
+                      {formData.login_type === 'email_password' && <div className="w-4 h-4 bg-brand-blue rounded-full flex items-center justify-center text-white"><Check className="w-2.5 h-2.5" /></div>}
+                    </div>
+                    <p className="text-xs text-slate-500">O aluno entra com e-mail e senha cadastrada.</p>
+                  </div>
+
+                  <div
+                    onClick={() => updateField('login_type', 'magic_link')}
+                    className={cn(
+                      "cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col gap-2",
+                      formData.login_type === 'magic_link'
+                        ? "border-brand-blue bg-blue-50/50 dark:bg-blue-900/10"
+                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-sm">
+                        <Mail className="w-4 h-4" /> Facilitado
+                      </div>
+                      {formData.login_type === 'magic_link' && <div className="w-4 h-4 bg-brand-blue rounded-full flex items-center justify-center text-white"><Check className="w-2.5 h-2.5" /></div>}
+                    </div>
+                    <p className="text-xs text-slate-500">Apenas e-mail (Magic Link). Sem necessidade de senha.</p>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -307,8 +345,10 @@ const AppBuilder: React.FC = () => {
                     <span className="font-medium text-slate-900 dark:text-white">app.tribebuild.pro/{formData.slug}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Idioma:</span>
-                    <span className="font-medium text-slate-900 dark:text-white">{formData.language}</span>
+                    <span className="text-slate-500">Login:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      {formData.login_type === 'magic_link' ? 'Facilitado' : 'Completo'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -320,7 +360,6 @@ const AppBuilder: React.FC = () => {
           )}
         </div>
 
-        {/* Footer Navigation */}
         <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-between bg-white dark:bg-slate-950">
           <Button variant="ghost" onClick={prevStep} disabled={step === 1} className="text-xs font-bold uppercase text-slate-500">Anterior</Button>
           <Button onClick={nextStep} disabled={step === 4} className="text-xs font-bold uppercase px-6">Próximo</Button>

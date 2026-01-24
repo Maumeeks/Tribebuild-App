@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
+// ✅ 1. Adicionado login_type na definição do App
 export interface App {
   id: string;
   name: string;
@@ -14,25 +15,26 @@ export interface App {
   accessLink: string;
   customDomain: string | null;
   status: 'draft' | 'published';
+  login_type: 'email_password' | 'magic_link';
 }
 
 interface AppsContextType {
   apps: App[];
-  loading: boolean; // Adicionado para saber quando está carregando do banco
+  loading: boolean;
+  // Atualizei a tipagem do addApp para aceitar o login_type
   addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink' | 'status'>) => Promise<string>;
-  updateApp: (id: string, data: Partial<App>) => Promise<void>; // Agora é Promise (async)
-  deleteApp: (id: string) => Promise<void>; // Agora é Promise (async)
+  updateApp: (id: string, data: Partial<App>) => Promise<void>;
+  deleteApp: (id: string) => Promise<void>;
   getApp: (id: string) => App | undefined;
   planLimit: number;
 }
 
-// REGRAS DE NEGÓCIO (LIMITES EXATOS DA OFERTA)
 const PLAN_LIMITS: Record<string, number> = {
-  free: 1,          // Fallback
-  starter: 1,       // Oferta: 1 App
-  professional: 3,  // Oferta: 3 Apps
-  business: 5,      // Oferta: 5 Apps
-  enterprise: 10    // Oferta: 10 Apps
+  free: 1,
+  starter: 1,
+  professional: 3,
+  business: 5,
+  enterprise: 10
 };
 
 const AppsContext = createContext<AppsContextType | undefined>(undefined);
@@ -42,7 +44,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
 
-  // --- 🛡️ CORREÇÃO DO BUG "PISCA-STARTER" (Mantida) ---
   const [cachedPlan, setCachedPlan] = useState(() => {
     return localStorage.getItem('tribebuild_cached_plan');
   });
@@ -59,9 +60,8 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const currentPlan = effectivePlan.toLowerCase().trim();
   const planLimit = PLAN_LIMITS[currentPlan] || 1;
 
-  // --- ☁️ SINCROZINAÇÃO COM SUPABASE ---
+  // --- SINCROZINAÇÃO COM SUPABASE ---
 
-  // 1. Buscar Apps do Banco
   const fetchApps = useCallback(async () => {
     if (!user) {
       setApps([]);
@@ -78,19 +78,20 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) throw error;
 
       if (data) {
-        // Converte do formato do Banco (snake_case) para o App (camelCase)
         const mappedApps: App[] = data.map((item: any) => ({
           id: item.id,
           name: item.name,
           slug: item.slug,
           description: item.description,
           logo: item.logo,
-          primaryColor: item.primary_color, // Banco: primary_color -> App: primaryColor
+          primaryColor: item.primary_color,
           language: item.language,
           createdAt: item.created_at,
           customDomain: item.custom_domain,
           status: item.status as 'draft' | 'published',
-          accessLink: `https://app.tribebuild.com/app/${item.slug}`,
+          // ✅ 2. Lendo do banco (com valor padrão se estiver vazio)
+          login_type: item.login_type || 'email_password',
+          accessLink: item.custom_domain ? `https://${item.custom_domain}` : `https://app.tribebuild.pro/${item.slug}`,
         }));
         setApps(mappedApps);
       }
@@ -101,16 +102,13 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user]);
 
-  // Carrega apps ao iniciar ou mudar usuário
   useEffect(() => {
     fetchApps();
   }, [fetchApps]);
 
-  // 2. Adicionar App (Salva no Banco)
   const addApp = async (appData: Omit<App, 'id' | 'createdAt' | 'accessLink' | 'status'>): Promise<string> => {
     if (!user) throw new Error('Usuário não autenticado');
 
-    // Validação de Limite
     if (apps.length >= planLimit) {
       const errorMsg = `Limite atingido! O plano ${currentPlan.toUpperCase()} permite apenas ${planLimit} app(s).`;
       alert(errorMsg);
@@ -118,7 +116,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      // Inserir no Supabase
       const { data, error } = await supabase
         .from('apps')
         .insert([{
@@ -130,14 +127,15 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           primary_color: appData.primaryColor,
           language: appData.language,
           custom_domain: appData.customDomain,
-          status: 'draft'
+          status: 'draft',
+          // ✅ 3. Salvando no banco
+          login_type: appData.login_type || 'email_password'
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      // Atualiza estado local imediatamente (Optimistic UI)
       if (data) {
         const newApp: App = {
           id: data.id,
@@ -150,7 +148,8 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           createdAt: data.created_at,
           customDomain: data.custom_domain,
           status: data.status,
-          accessLink: `https://app.tribebuild.com/app/${data.slug}`
+          login_type: data.login_type || 'email_password',
+          accessLink: data.custom_domain ? `https://${data.custom_domain}` : `https://app.tribebuild.pro/${data.slug}`
         };
         setApps(prev => [newApp, ...prev]);
         return data.id;
@@ -158,7 +157,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return '';
     } catch (err: any) {
       console.error('[Apps] Erro ao criar app:', err);
-      // Se for erro de slug duplicado (código 23505 no Postgres), avisar
       if (err.code === '23505') {
         alert('Já existe um app com este identificador (slug). Tente outro.');
         throw new Error('Slug duplicado');
@@ -167,10 +165,8 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // 3. Atualizar App (Salva no Banco)
   const updateApp = async (id: string, data: Partial<App>) => {
     try {
-      // Prepara dados para o banco (mapeando camelCase -> snake_case)
       const dbData: any = {};
       if (data.name) dbData.name = data.name;
       if (data.slug) dbData.slug = data.slug;
@@ -180,6 +176,8 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (data.language) dbData.language = data.language;
       if (data.customDomain) dbData.custom_domain = data.customDomain;
       if (data.status) dbData.status = data.status;
+      // ✅ 4. Atualizando no banco
+      if (data.login_type) dbData.login_type = data.login_type;
 
       const { error } = await supabase
         .from('apps')
@@ -188,7 +186,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) throw error;
 
-      // Atualiza estado local
       setApps(prev => prev.map(app =>
         app.id === id ? { ...app, ...data } : app
       ));
@@ -198,7 +195,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // 4. Deletar App (Remove do Banco)
   const deleteApp = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este app? Esta ação não pode ser desfeita.')) return;
 
