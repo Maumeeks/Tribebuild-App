@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Layers, HelpCircle } from 'lucide-react';
+import { X, Layers, HelpCircle } from 'lucide-react'; // ✅ HelpCircle importado
 import { supabase } from '../../lib/supabase';
 import Button from '../Button';
 
@@ -7,15 +7,14 @@ interface CreateModuleModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    productId: string | null;
-    moduleToEdit?: any; // ✅ Agora aceita edição
+    productId: string | null; // ✅ Obrigatório agora
+    moduleToEdit?: any;       // ✅ Opcional para edição
 }
 
 const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, onSuccess, productId, moduleToEdit }) => {
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // ✅ EFEITO: Carrega dados na edição
     useEffect(() => {
         if (isOpen) {
             if (moduleToEdit) {
@@ -34,11 +33,9 @@ const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, 
             setLoading(true);
 
             if (moduleToEdit) {
-                // UPDATE
                 const { error } = await supabase.from('modules').update({ name: name }).eq('id', moduleToEdit.id);
                 if (error) throw error;
             } else {
-                // INSERT
                 if (!productId) throw new Error("ID do Produto obrigatório");
                 const { error } = await supabase.from('modules').insert([{ product_id: productId, name: name }]);
                 if (error) throw error;

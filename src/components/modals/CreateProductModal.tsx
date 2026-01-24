@@ -8,7 +8,7 @@ interface CreateProductModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    productToEdit?: any; // ✅ Agora aceita edição
+    productToEdit?: any; // ✅ Adicionado: Permite receber dados para edição
 }
 
 const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose, onSuccess, productToEdit }) => {
@@ -17,7 +17,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Helper para identificar App
     const getAppIdentifier = () => {
         if (params.appSlug) return params.appSlug;
         if (params.id) return params.id;
@@ -29,15 +28,13 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const appSlug = getAppIdentifier();
     const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-    // States
     const [name, setName] = useState('');
     const [offerType, setOfferType] = useState('main');
     const [salesPageUrl, setSalesPageUrl] = useState('');
-
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-    // ✅ EFEITO: Carrega os dados se for edição
+    // Carrega dados se for edição
     useEffect(() => {
         if (isOpen) {
             if (productToEdit) {
@@ -46,12 +43,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 setSalesPageUrl(productToEdit.sales_page_url || '');
                 setCoverPreview(productToEdit.thumbnail_url || null);
             } else {
-                // Reset para Criação
-                setName('');
-                setOfferType('main');
-                setSalesPageUrl('');
-                setCoverPreview(null);
-                setCoverImage(null);
+                setName(''); setOfferType('main'); setSalesPageUrl(''); setCoverPreview(null); setCoverImage(null);
             }
         }
     }, [isOpen, productToEdit]);
@@ -72,11 +64,9 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         try {
             setLoading(true);
 
-            // 1. Upload da Capa (se houver nova)
             let finalCoverUrl = productToEdit?.thumbnail_url || null;
 
             if (coverImage) {
-                // Tenta salvar, se der erro de permissão (bucket não existe), avisa
                 try {
                     const fileName = `covers/${Date.now()}_${coverImage.name}`;
                     const { error, data } = await supabase.storage.from('product-thumbnails').upload(fileName, coverImage);
@@ -85,7 +75,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         finalCoverUrl = publicUrl.publicUrl;
                     }
                 } catch (err) {
-                    console.warn("Upload falhou (verifique se o bucket 'product-thumbnails' existe)", err);
+                    console.warn("Erro upload capa:", err);
                 }
             }
 
@@ -98,12 +88,9 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             };
 
             if (productToEdit) {
-                // ✅ UPDATE (Editar)
                 const { error } = await supabase.from('products').update(payload).eq('id', productToEdit.id);
                 if (error) throw error;
             } else {
-                // ✅ INSERT (Criar)
-                // Busca o ID do App
                 let appId = null;
                 if (appSlug) {
                     let query = supabase.from('apps').select('id');
@@ -112,8 +99,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                     const { data } = await query.single();
                     if (data) appId = data.id;
                 }
-
-                if (!appId) throw new Error("Erro ao identificar o App.");
+                if (!appId) throw new Error("Erro ao identificar App.");
 
                 payload.app_id = appId;
                 const { error } = await supabase.from('products').insert([payload]);
@@ -133,14 +119,12 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
             <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-800 animate-scale-in">
-
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-slate-900 dark:text-white">{productToEdit ? 'Editar Produto' : 'Novo Produto'}</h3>
                     <button onClick={onClose}><X size={18} className="text-slate-400" /></button>
                 </div>
 
                 <div className="space-y-5">
-                    {/* Capa */}
                     <div className="flex gap-4">
                         <div className="shrink-0">
                             {coverPreview ? (
@@ -159,7 +143,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    {/* Tipo */}
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo de Oferta</label>
                         <select value={offerType} onChange={(e) => setOfferType(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs focus:border-brand-blue outline-none">
