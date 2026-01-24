@@ -23,6 +23,8 @@ import AuthCallback from './pages/AuthCallback';
 import PwaLoginPage from './pages/pwa/PwaLoginPage';
 import PwaRegisterPage from './pages/pwa/PwaRegisterPage';
 import PwaForgotPasswordPage from './pages/pwa/PwaForgotPasswordPage';
+// ✅ IMPORTAÇÃO NOVA
+import PwaUpdatePasswordPage from './pages/pwa/PwaUpdatePasswordPage';
 import PwaHomePage from './pages/pwa/PwaHomePage';
 import PwaProductPage from './pages/pwa/PwaProductPage';
 import PwaLessonPage from './pages/pwa/PwaLessonPage';
@@ -75,12 +77,14 @@ const AppRoutes: React.FC = () => {
   if (isStudentSubdomain) {
     return (
       <Routes>
-        {/* ✅ CORREÇÃO CRÍTICA: Rota Raiz do Slug redireciona para Login */}
+        {/* Rota Raiz do Slug redireciona para Login */}
         <Route path="/:appSlug" element={<RedirectToLogin />} />
 
         <Route path="/:appSlug/login" element={<PwaLoginPage />} />
         <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
         <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
+        {/* ✅ ROTA NOVA DE RECUPERAÇÃO DE SENHA */}
+        <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
         <Route path="/:appSlug/home" element={<PwaHomePage />} />
         <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
