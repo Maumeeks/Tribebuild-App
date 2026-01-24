@@ -1,32 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2, Globe, ArrowRight, Download, Check, KeyRound, ChevronLeft } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Mail, Loader2, ArrowRight, Download, CheckCircle2, AlertCircle, X, Share, PlusSquare, PlayCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+
+// Definindo tipo simples para o aluno
+type StudentSession = {
+  email: string;
+  app_id: string;
+  name?: string;
+};
 
 export default function PwaLoginPage() {
   const { appSlug } = useParams<{ appSlug: string }>();
   const navigate = useNavigate();
-  const { signIn } = useAuth();
 
   const [appData, setAppData] = useState<any>(null);
   const [loadingApp, setLoadingApp] = useState(true);
 
-  // Estados
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [loginStep, setLoginStep] = useState<'email' | 'code'>('email');
 
+  // Modal de Instalação
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+
   const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
 
   // 1. Busca App
   useEffect(() => {
@@ -59,92 +58,81 @@ export default function PwaLoginPage() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const handleInstallClick = () => {
+  const handleInstallClick = () => setShowInstallModal(true);
+
+  const triggerNativeInstall = () => {
     if (installPrompt) {
       installPrompt.prompt();
-    } else {
-      alert('Para instalar: Toque em Compartilhar (iOS) ou Menu (Android) e escolha "Adicionar à Tela de Início".');
+      setShowInstallModal(false);
     }
   };
 
-  // --- LÓGICA DE LOGIN ---
-
-  const handleSendCode = async (e: React.FormEvent) => {
+  // --- LÓGICA DE LOGIN "EMAIL ONLY" (VIP) ---
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!email) return setError('Digite seu e-mail.');
+    if (!email) return setError('Digite seu e-mail de compra.');
 
     setIsLoading(true);
+
     try {
-      // Envia código numérico
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        // 👇 AQUI ESTÁ O AJUSTE PARA TESTE:
-        // true = Se o aluno não existe, CRIA ele na hora. (Perfeito para testar agora)
-        // false = Só entra quem já comprou (Segurança futura)
-        options: { shouldCreateUser: true }
-      });
+      // 1. Verifica na tabela separada de ALUNOS (app_customers)
+      const { data: student, error } = await supabase
+        .from('app_customers')
+        .select('*')
+        .eq('app_id', appData.id)
+        .eq('email', email.trim().toLowerCase()) // Normaliza o email
+        .single();
 
-      if (error) throw error;
+      if (error || !student) {
+        // Se não achou, é porque não comprou.
+        // MODO DE TESTE (Opcional): Se quiser que crie automático para testar, descomente abaixo:
+        /*
+        const { data: newStudent } = await supabase.from('app_customers').insert({
+            app_id: appData.id,
+            email: email.trim().toLowerCase()
+        }).select().single();
+        if (newStudent) {
+             doLogin(newStudent);
+             return;
+        }
+        */
 
-      // Sucesso: Muda para a tela de digitar código
-      setLoginStep('code');
+        throw new Error('Acesso não encontrado. Verifique se é o mesmo e-mail da compra.');
+      }
+
+      // 2. Aluno encontrado! Realiza o login manual
+      doLogin(student);
+
     } catch (err: any) {
       console.error(err);
-      setError('Erro ao enviar código. Tente novamente.');
+      setError('E-mail não encontrado na base de alunos deste app.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const doLogin = (student: any) => {
+    // Salva sessão no LocalStorage (Simulando Auth)
+    const session: StudentSession = {
+      email: student.email,
+      app_id: student.app_id,
+      name: student.full_name
+    };
+    localStorage.setItem(`@tribebuild:student:${appSlug}`, JSON.stringify(session));
 
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode,
-        type: 'email'
-      });
-
-      if (error) throw error;
-
-      // Login validado! Entra na home.
-      navigate(`/${appSlug}/home`);
-    } catch (err: any) {
-      console.error(err);
-      setError('Código inválido ou expirado.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    try {
-      const { error } = await signIn(email, password);
-      if (error) throw error;
-      navigate(`/${appSlug}/home`);
-    } catch (err: any) {
-      setError('E-mail ou senha incorretos.');
-    } finally {
-      setIsLoading(false);
-    }
+    // Redireciona
+    navigate(`/${appSlug}/home`);
   };
 
   if (loadingApp) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="w-8 h-8 animate-spin text-slate-500" /></div>;
   if (!appData) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">App não encontrado</div>;
 
-  const isMagicLink = appData.login_type === 'magic_link';
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-slate-950 font-['inter']">
 
+      {/* Background Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-20" style={{ backgroundColor: appData.primary_color }} />
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-10" style={{ backgroundColor: appData.primary_color }} />
@@ -168,131 +156,76 @@ export default function PwaLoginPage() {
           )}
           <h1 className="text-2xl font-black text-white tracking-tight">{appData.name}</h1>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-3">
-            {isMagicLink ? 'Acesso via Código' : 'Área de Membros'}
+            Acesso Exclusivo
           </p>
         </div>
 
-        {/* --- FORMULÁRIO DINÂMICO --- */}
+        {/* LOGIN FORM */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-3 rounded-2xl text-xs font-bold flex items-center gap-2"><AlertCircle size={14} /> {error}</div>
+          )}
 
-        {/* PASSO 2: DIGITAR O CÓDIGO (APENAS MAGIC LINK) */}
-        {isMagicLink && loginStep === 'code' ? (
-          <form onSubmit={handleVerifyCode} className="space-y-5 animate-fade-in">
-            <button type="button" onClick={() => setLoginStep('email')} className="flex items-center gap-1 text-slate-400 text-xs hover:text-white mb-2">
-              <ChevronLeft size={14} /> Voltar para o e-mail
-            </button>
+          <div className="relative group">
+            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors" style={{ color: emailFocused ? appData.primary_color : '#64748B' }} />
+            <input
+              type="email"
+              placeholder="Seu e-mail de compra"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
+              className="w-full pl-14 pr-5 py-4 bg-slate-950/50 text-white border border-slate-800 rounded-2xl focus:outline-none transition-all font-medium text-sm placeholder:text-slate-600 focus:border-opacity-50"
+              style={{ borderColor: emailFocused ? appData.primary_color : '#1e293b' }}
+            />
+          </div>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-3 rounded-2xl text-xs font-bold flex items-center gap-2"><span className="w-1.5 h-1.5 bg-red-500 rounded-full" /> {error}</div>
-            )}
-
-            <div className="text-center mb-4">
-              <p className="text-white font-medium text-sm">Enviamos um código para:</p>
-              <p className="text-slate-400 text-xs mt-1">{email}</p>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-3 px-6 h-14 text-white rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-300 mt-6 relative overflow-hidden group"
+            style={{ backgroundColor: appData.primary_color, boxShadow: `0 0 20px -5px ${appData.primary_color}40` }}
+          >
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            <div className="relative flex items-center gap-3">
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                <>
+                  Entrar Agora <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </div>
+          </button>
+        </form>
 
-            <div className="relative group">
-              <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Código de 6 dígitos"
-                value={otpCode}
-                maxLength={6}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} // Só números
-                className="w-full pl-14 pr-5 py-4 bg-slate-950/50 text-white border border-slate-800 rounded-2xl focus:outline-none transition-all font-bold text-lg tracking-widest text-center placeholder:text-slate-700 focus:border-opacity-50"
-                style={{ borderColor: appData.primary_color }}
-                autoFocus
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || otpCode.length < 6}
-              className="w-full flex items-center justify-center gap-3 px-6 h-14 text-white rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-300 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: appData.primary_color }}
-            >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Código'}
-            </button>
-          </form>
-        ) : (
-          // PASSO 1: EMAIL (COMUM PARA AMBOS)
-          <form onSubmit={isMagicLink ? handleSendCode : handlePasswordLogin} className="space-y-5">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-3 rounded-2xl text-xs font-bold flex items-center gap-2"><span className="w-1.5 h-1.5 bg-red-500 rounded-full" /> {error}</div>
-            )}
-
-            <div className="relative group">
-              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors" style={{ color: emailFocused ? appData.primary_color : '#64748B' }} />
-              <input
-                type="email"
-                placeholder="Seu e-mail de acesso"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setEmailFocused(true)}
-                onBlur={() => setEmailFocused(false)}
-                className="w-full pl-14 pr-5 py-4 bg-slate-950/50 text-white border border-slate-800 rounded-2xl focus:outline-none transition-all font-medium text-sm placeholder:text-slate-600 focus:border-opacity-50"
-                style={{ borderColor: emailFocused ? appData.primary_color : '#1e293b' }}
-              />
-            </div>
-
-            {/* SÓ MOSTRA SENHA SE NÃO FOR MAGIC LINK */}
-            {!isMagicLink && (
-              <div className="relative group animate-fade-in">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors" style={{ color: passwordFocused ? appData.primary_color : '#64748B' }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Sua senha secreta"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                  className="w-full pl-14 pr-14 py-4 bg-slate-950/50 text-white border border-slate-800 rounded-2xl focus:outline-none transition-all font-medium text-sm placeholder:text-slate-600 focus:border-opacity-50"
-                  style={{ borderColor: passwordFocused ? appData.primary_color : '#1e293b' }}
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            )}
-
-            {/* OPÇÕES EXTRAS */}
-            {!isMagicLink && (
-              <div className="flex items-center justify-between px-1">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative flex items-center">
-                    <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="peer sr-only" />
-                    <div className="w-5 h-5 border-2 border-slate-700 rounded-lg peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all bg-slate-950"></div>
-                    <Check size={12} className="absolute left-1 top-1 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">Lembrar</span>
-                </label>
-                <Link to={`/${appSlug}/forgot-password`} className="text-xs font-black uppercase tracking-widest hover:opacity-80 transition-opacity" style={{ color: appData.primary_color }}>Esqueci a senha</Link>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 px-6 h-14 text-white rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-300 mt-6 relative overflow-hidden group"
-              style={{ backgroundColor: appData.primary_color, boxShadow: `0 0 20px -5px ${appData.primary_color}40` }}
-            >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-              <div className="relative flex items-center gap-3">
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>
-                    {isMagicLink ? 'Receber Código de Acesso' : 'Entrar na Área'}
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </div>
-            </button>
-          </form>
-        )}
-
-        <p className="text-center text-slate-600 text-xs font-bold uppercase tracking-widest mt-10 border-t border-slate-800 pt-8">
-          Ainda não é aluno? <Link to={`/${appSlug}/register`} className="font-black hover:text-white transition-colors ml-1" style={{ color: appData.primary_color }}>Cadastre-se</Link>
+        <p className="text-center text-slate-600 text-xs mt-8 px-4 leading-relaxed">
+          O acesso é liberado automaticamente para o e-mail utilizado na compra.
         </p>
       </div>
+
       <div className="mt-12 text-center opacity-50"><span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">Powered by TribeBuild</span></div>
+
+      {/* MODAL DE INSTALAÇÃO (MANTIDO IGUAL) */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowInstallModal(false)} />
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-slide-up">
+            <div className="p-6 pb-0 flex justify-between items-start">
+              <div><h3 className="text-white font-bold text-lg">Instalar Aplicativo</h3><p className="text-slate-400 text-xs mt-1">Tenha acesso rápido direto da tela inicial.</p></div>
+              <button onClick={() => setShowInstallModal(false)} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white"><X size={16} /></button>
+            </div>
+            <div className="m-6 aspect-video bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 group cursor-pointer relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 to-transparent opacity-50" />
+              <PlayCircle className="w-12 h-12 text-white/50 group-hover:text-white transition-colors z-10" />
+              <p className="absolute bottom-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest z-10">Ver Tutorial</p>
+            </div>
+            <div className="px-6 pb-6 space-y-4">
+              <div className="flex gap-4 items-center"><div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shrink-0"><Share className="w-5 h-5 text-blue-400" /></div><p className="text-sm text-slate-300">1. Toque em <strong>Compartilhar</strong> (iOS) ou <strong>Menu</strong> (Android).</p></div>
+              <div className="flex gap-4 items-center"><div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shrink-0"><PlusSquare className="w-5 h-5 text-emerald-400" /></div><p className="text-sm text-slate-300">2. Selecione <strong>Adicionar à Tela de Início</strong>.</p></div>
+            </div>
+            {installPrompt && (<div className="p-6 pt-0"><button onClick={triggerNativeInstall} className="w-full py-4 bg-white text-slate-900 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors">Instalar Agora</button></div>)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
