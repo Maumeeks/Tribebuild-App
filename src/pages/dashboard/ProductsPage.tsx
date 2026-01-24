@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, GripVertical, Edit3, Trash2, ChevronDown,
-  ChevronUp, Video, Loader2, FileText, Link as LinkIcon, Code, AlertTriangle
+  ChevronUp, Video, Loader2, FileText, Link as LinkIcon, Code
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Button from '../../components/Button';
@@ -23,7 +23,7 @@ const offerTypeConfig: Record<string, { label: string, colorClasses: string }> =
 const getIconForType = (type: string) => {
   if (['pdf', 'file'].includes(type)) return <FileText size={16} />;
   if (['link', 'website'].includes(type)) return <LinkIcon size={16} />;
-  if (['html', 'text'].includes(type)) return <Code size={16} />;
+  if (['html', 'text', 'video_panda'].includes(type)) return <Code size={16} />;
   return <Video size={16} />;
 };
 
@@ -32,7 +32,6 @@ const ProductsPage: React.FC = () => {
   const params = useParams();
   const location = useLocation();
 
-  // Lógica de Identificação do App
   const getAppIdentifier = () => {
     if (params.appSlug) return params.appSlug;
     const pathParts = location.pathname.split('/');
@@ -56,8 +55,9 @@ const ProductsPage: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
-  // (Futuro) Aqui guardaremos o item sendo editado para passar pro modal
-  const [itemToEdit, setItemToEdit] = useState<any>(null);
+  // Itens sendo editados
+  const [moduleToEdit, setModuleToEdit] = useState<any>(null);
+  const [lessonToEdit, setLessonToEdit] = useState<any>(null);
 
   const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
@@ -106,46 +106,41 @@ const ProductsPage: React.FC = () => {
     if (appSlug) fetchProducts();
   }, [appSlug]);
 
-  // --- Ações de Modais ---
-  const handleCreateModule = (productId: string) => {
-    setSelectedProductId(productId);
-    setItemToEdit(null); // Modo criação
-    setIsModuleModalOpen(true);
-  };
+  // --- Handlers de AÇÃO ---
 
-  const handleCreateLesson = (moduleId: string) => {
-    setSelectedModuleId(moduleId);
-    setItemToEdit(null); // Modo criação
-    setIsLessonModalOpen(true);
-  };
-
-  // --- Ações de Edição (Placeholder para próxima etapa) ---
-  const handleEditProduct = (product: any) => {
-    // Futuro: Passar product para o modal
-    alert(`Editar produto: ${product.name} (Funcionalidade vindo no próximo passo)`);
-  };
-
-  const handleEditModule = (module: any) => {
-    // Futuro: Passar module para o modal
-    alert(`Editar módulo: ${module.name} (Funcionalidade vindo no próximo passo)`);
-  };
-
-  const handleEditLesson = (lesson: any) => {
-    // Futuro: Passar lesson para o modal
-    alert(`Editar aula: ${lesson.name} (Funcionalidade vindo no próximo passo)`);
-  };
-
-  // --- Ações de Exclusão (Funcional) ---
   const handleDelete = async (type: 'products' | 'modules' | 'lessons', id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este item? Essa ação não pode ser desfeita.')) return;
-
+    if (!window.confirm('Tem certeza? Essa ação não pode ser desfeita.')) return;
     try {
       const { error } = await supabase.from(type).delete().eq('id', id);
       if (error) throw error;
-      await fetchProducts(); // Recarrega a lista
-    } catch (error: any) {
-      alert('Erro ao excluir: ' + error.message);
+      fetchProducts();
+    } catch (err: any) {
+      alert('Erro ao excluir: ' + err.message);
     }
+  };
+
+  // Módulos
+  const handleCreateModule = (productId: string) => {
+    setSelectedProductId(productId);
+    setModuleToEdit(null);
+    setIsModuleModalOpen(true);
+  };
+  const handleEditModule = (module: any) => {
+    setSelectedProductId(module.product_id);
+    setModuleToEdit(module);
+    setIsModuleModalOpen(true);
+  };
+
+  // Aulas
+  const handleCreateLesson = (moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    setLessonToEdit(null);
+    setIsLessonModalOpen(true);
+  };
+  const handleEditLesson = (lesson: any) => {
+    setSelectedModuleId(lesson.module_id);
+    setLessonToEdit(lesson);
+    setIsLessonModalOpen(true);
   };
 
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-brand-blue" /></div>;
@@ -182,14 +177,11 @@ const ProductsPage: React.FC = () => {
             return (
               <div key={product.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all group">
                 <div className="p-6 flex items-center gap-5">
-                  {/* Drag Handle */}
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden">
                       {product.thumbnail_url ? <img src={product.thumbnail_url} alt={product.name} className="w-full h-full object-cover" /> : <Package className="w-8 h-8 text-slate-400" />}
                     </div>
                   </div>
-
-                  {/* Info Produto */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{product.name}</h3>
@@ -199,12 +191,7 @@ const ProductsPage: React.FC = () => {
                       {product.modules?.length === 0 ? 'Nenhum conteúdo' : `${product.modules?.length} módulos · ${product.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0)} aulas`}
                     </p>
                   </div>
-
-                  {/* Ações Produto */}
                   <div className="flex items-center gap-2">
-                    <button onClick={() => handleEditProduct(product)} className="p-2.5 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hidden sm:block">
-                      <Edit3 className="w-5 h-5" />
-                    </button>
                     <button onClick={() => handleDelete('products', product.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all hidden sm:block">
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -227,7 +214,6 @@ const ProductsPage: React.FC = () => {
                       {product.modules && product.modules.length > 0 ? (
                         product.modules.map((module: any) => (
                           <div key={module.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden group/module">
-                            {/* Header Módulo */}
                             <div className="p-4 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                               <div className="flex items-center gap-3">
                                 <GripVertical className="w-4 h-4 text-slate-300 cursor-grab" />
@@ -235,10 +221,10 @@ const ProductsPage: React.FC = () => {
                               </div>
 
                               <div className="flex items-center gap-2">
-                                {/* Botões de Ação do Módulo (Novos) */}
+                                {/* Botões de Módulo Ativos */}
                                 <div className="flex items-center gap-1 mr-2 opacity-0 group-hover/module:opacity-100 transition-opacity">
-                                  <button onClick={() => handleEditModule(module)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"><Edit3 size={14} /></button>
-                                  <button onClick={() => handleDelete('modules', module.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={14} /></button>
+                                  <button onClick={() => handleEditModule(module)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit3 size={14} /></button>
+                                  <button onClick={() => handleDelete('modules', module.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 size={14} /></button>
                                 </div>
                                 <button onClick={() => handleCreateLesson(module.id)} className="text-[11px] font-bold text-brand-blue uppercase hover:underline flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg border border-blue-100 dark:border-blue-900">
                                   <Plus size={12} /> Aula
@@ -246,7 +232,6 @@ const ProductsPage: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Lista de Aulas */}
                             <div className="p-2 space-y-1">
                               {module.lessons && module.lessons.length > 0 ? (
                                 module.lessons.map((lesson: any) => (
@@ -256,10 +241,10 @@ const ProductsPage: React.FC = () => {
                                     </div>
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1 truncate">{lesson.name}</span>
 
-                                    {/* Ações da Aula */}
+                                    {/* Botões de Aula Ativos */}
                                     <div className="flex items-center gap-2 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
-                                      <button onClick={() => handleEditLesson(lesson)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm"><Edit3 size={14} /></button>
-                                      <button onClick={() => handleDelete('lessons', lesson.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm"><Trash2 size={14} /></button>
+                                      <button onClick={() => handleEditLesson(lesson)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors"><Edit3 size={14} /></button>
+                                      <button onClick={() => handleDelete('lessons', lesson.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors"><Trash2 size={14} /></button>
                                     </div>
                                   </div>
                                 ))
@@ -288,10 +273,12 @@ const ProductsPage: React.FC = () => {
 
       <CreateProductModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} onSuccess={() => { fetchProducts(); setIsProductModalOpen(false); }} />
 
+      {/* Modais recebendo dados de Edição */}
       <CreateModuleModal
         isOpen={isModuleModalOpen}
         onClose={() => setIsModuleModalOpen(false)}
         productId={selectedProductId}
+        moduleToEdit={moduleToEdit}
         onSuccess={() => { fetchProducts(); setIsModuleModalOpen(false); }}
       />
 
@@ -299,6 +286,7 @@ const ProductsPage: React.FC = () => {
         isOpen={isLessonModalOpen}
         onClose={() => setIsLessonModalOpen(false)}
         moduleId={selectedModuleId}
+        lessonToEdit={lessonToEdit}
         onSuccess={() => { fetchProducts(); setIsLessonModalOpen(false); }}
       />
     </div>
