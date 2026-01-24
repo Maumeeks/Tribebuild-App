@@ -9,7 +9,7 @@ interface CreateLessonModalProps {
     onClose: () => void;
     onSuccess: () => void;
     moduleId: string | null;
-    lessonToEdit?: any;
+    lessonToEdit?: any; // ✅ Aceita edição
 }
 
 const contentTypes = [
@@ -22,7 +22,7 @@ const contentTypes = [
     { id: 'pdf', label: 'PDF / Arquivo', icon: FileText, field: 'file', placeholder: '' },
 ];
 
-// Função de Resize para 512px
+// ✅ Resize para 512x512 (Seu pedido)
 const resizeImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -32,7 +32,7 @@ const resizeImage = (file: File): Promise<File> => {
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 512; // Configurado para 512 como você pediu
+                const MAX_WIDTH = 512;
                 const MAX_HEIGHT = 512;
                 let width = img.width;
                 let height = img.height;
@@ -55,11 +55,8 @@ const resizeImage = (file: File): Promise<File> => {
                 ctx?.drawImage(img, 0, 0, width, height);
 
                 canvas.toBlob((blob) => {
-                    if (blob) {
-                        resolve(new File([blob], file.name, { type: file.type, lastModified: Date.now() }));
-                    } else {
-                        resolve(file);
-                    }
+                    if (blob) resolve(new File([blob], file.name, { type: file.type, lastModified: Date.now() }));
+                    else resolve(file);
                 }, file.type, 0.9);
             };
         };
@@ -82,7 +79,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
 
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
-
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [pdfName, setPdfName] = useState<string | null>(null);
     const [attachmentName, setAttachmentName] = useState<string | null>(null);
@@ -99,19 +95,17 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                     description: lessonToEdit.description || '',
                 });
                 setCoverPreview(lessonToEdit.thumbnail_url || null);
-                if (lessonToEdit.content_type === 'pdf' && lessonToEdit.file_url) {
-                    setPdfName('Arquivo PDF Atual');
-                }
+                if (lessonToEdit.content_type === 'pdf' && lessonToEdit.file_url) setPdfName('Arquivo PDF Atual');
             } else {
                 setFormData({ name: '', type: 'video_youtube', url: '', embedCode: '', description: '' });
-                setCoverPreview(null); setCoverImage(null); setPdfFile(null); setPdfName(null);
+                setCoverPreview(null); setCoverImage(null); setPdfFile(null); setPdfName(null); setAttachmentName(null);
             }
         }
     }, [isOpen, lessonToEdit]);
 
     if (!isOpen) return null;
 
-    const handleCoverSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const handleCoverSelect = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
             const file = e.target.files[0];
             setCoverImage(file);
@@ -128,16 +122,15 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
 
     const handleSubmit = async () => {
         if (!formData.name.trim()) return alert('Nome é obrigatório');
-
         try {
             setLoading(true);
 
             // Upload Capa (com Resize 512px)
             let finalCoverUrl = lessonToEdit?.thumbnail_url || null;
             if (coverImage) {
-                const resizedImage = await resizeImage(coverImage);
-                const fileName = `covers/${Date.now()}_${resizedImage.name}`;
-                const { error } = await supabase.storage.from('product-thumbnails').upload(fileName, resizedImage);
+                const resized = await resizeImage(coverImage);
+                const fileName = `covers/${Date.now()}_${resized.name}`;
+                const { error } = await supabase.storage.from('product-thumbnails').upload(fileName, resized);
                 if (!error) {
                     const { data } = supabase.storage.from('product-thumbnails').getPublicUrl(fileName);
                     finalCoverUrl = data.publicUrl;
@@ -147,7 +140,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
             // Upload PDF
             let finalFileUrl = lessonToEdit?.file_url || null;
             if (formData.type === 'pdf' && pdfFile) {
-                // Usa bucket 'product-thumbnails' por enquanto (verifique se permite PDFs) ou crie 'lesson-files'
                 const fileName = `files/${Date.now()}_${pdfFile.name}`;
                 const { error } = await supabase.storage.from('product-thumbnails').upload(fileName, pdfFile);
                 if (!error) {
@@ -164,22 +156,17 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                 is_active: true
             };
 
-            // Limpa campos irrelevantes
             if (['video_youtube', 'video_vimeo', 'link', 'website'].includes(formData.type)) {
                 payload.video_url = formData.url;
-                payload.embed_code = null;
-                payload.file_url = null;
+                payload.embed_code = null; payload.file_url = null;
             } else if (['video_panda', 'html'].includes(formData.type)) {
                 payload.embed_code = formData.embedCode;
-                payload.video_url = null;
-                payload.file_url = null;
+                payload.video_url = null; payload.file_url = null;
             } else if (formData.type === 'pdf') {
                 payload.file_url = finalFileUrl;
-                payload.video_url = null;
-                payload.embed_code = null;
+                payload.video_url = null; payload.embed_code = null;
             }
 
-            // Update ou Insert
             if (lessonToEdit) {
                 const { error } = await supabase.from('lessons').update(payload).eq('id', lessonToEdit.id);
                 if (error) throw error;
@@ -192,7 +179,6 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
 
             onSuccess();
             onClose();
-
         } catch (error: any) {
             alert('Erro: ' + error.message);
         } finally {
@@ -205,10 +191,8 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
     return ReactDOM.createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
-
             <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] animate-scale-in border border-slate-200 dark:border-slate-800">
 
-                {/* Header */}
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl shrink-0">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white">{lessonToEdit ? 'Editar Conteúdo' : 'Novo Conteúdo'}</h3>
@@ -218,24 +202,17 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                 </div>
 
                 <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/50">
-
                     {/* Capa */}
                     <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">Capa do Conteúdo</label>
-                            <HelpCircle size={12} className="text-slate-400" />
-                        </div>
+                        <div className="flex items-center gap-2 mb-2"><label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">Capa (Max 512px)</label><HelpCircle size={12} className="text-slate-400" /></div>
                         <div className="flex justify-center">
                             {coverPreview ? (
                                 <div className="relative group w-40 h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
                                     <img src={coverPreview} className="w-full h-full object-cover" />
-                                    <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Upload size={20} /></button>
+                                    <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white"><Upload size={20} /></button>
                                 </div>
                             ) : (
-                                <button onClick={() => fileInputRef.current?.click()} className="w-40 h-24 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-brand-blue hover:text-brand-blue transition-all">
-                                    <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-full"><Upload size={16} /></div>
-                                    <span className="text-[10px]">Max 512px</span>
-                                </button>
+                                <button onClick={() => fileInputRef.current?.click()} className="w-40 h-24 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-brand-blue"><Upload size={16} /></button>
                             )}
                             <input type="file" ref={fileInputRef} onChange={handleCoverSelect} accept="image/*" className="hidden" />
                         </div>
@@ -243,74 +220,38 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
 
                     {/* Nome */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Nome do Conteúdo*</label>
-                        <input
-                            autoFocus
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none"
-                            placeholder="Digite o nome do conteúdo"
-                        />
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Nome*</label>
+                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none" />
                     </div>
 
                     {/* Tipo */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Tipo de Conteúdo*</label>
-                        <div className="relative">
-                            <select
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none appearance-none"
-                            >
-                                {contentTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><Video size={16} /></div>
-                        </div>
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Tipo*</label>
+                        <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none">
+                            {contentTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                        </select>
                     </div>
 
-                    {/* URL / Embed / PDF */}
+                    {/* Dinâmico */}
                     <div className="animate-fade-in">
-                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">
-                            {currentType.field === 'embed' ? 'Código Embed*' : currentType.id === 'pdf' ? 'Arquivo PDF*' : 'Link / URL*'}
-                        </label>
-
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">{currentType.field === 'embed' ? 'Embed Code' : currentType.id === 'pdf' ? 'Arquivo PDF' : 'URL'}</label>
                         {currentType.field === 'embed' ? (
-                            <textarea
-                                value={formData.embedCode}
-                                onChange={(e) => setFormData({ ...formData, embedCode: e.target.value })}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none h-24 resize-none font-mono"
-                                placeholder={currentType.placeholder}
-                            />
+                            <textarea value={formData.embedCode} onChange={(e) => setFormData({ ...formData, embedCode: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none h-24 font-mono" />
                         ) : currentType.id === 'pdf' ? (
-                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900 cursor-pointer hover:border-brand-blue transition-all" onClick={() => pdfInputRef.current?.click()}>
+                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-blue" onClick={() => pdfInputRef.current?.click()}>
                                 <FileText className="w-8 h-8 text-slate-300 mb-2" />
-                                <p className="text-sm text-slate-500 mb-2">{pdfName || "Clique para selecionar PDF"}</p>
-                                <button type="button" className="text-xs font-bold text-brand-blue bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg">Escolher Arquivo</button>
+                                <p className="text-sm text-slate-500">{pdfName || "Selecionar PDF"}</p>
                                 <input type="file" ref={pdfInputRef} onChange={handlePdfSelect} accept="application/pdf" className="hidden" />
                             </div>
                         ) : (
-                            <input
-                                type="url"
-                                value={formData.url}
-                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none"
-                                placeholder={currentType.placeholder}
-                            />
+                            <input type="url" value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none" />
                         )}
                     </div>
 
                     {/* Descrição */}
                     <div>
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Descrição</label>
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full px-4 py-3 bg-transparent border-none outline-none text-sm h-24 resize-none"
-                                placeholder="Descrição do conteúdo..."
-                            />
-                        </div>
+                        <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm h-24 resize-none focus:border-brand-blue outline-none" />
                     </div>
 
                     {/* Anexos */}
@@ -323,12 +264,11 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                             <input type="file" ref={attachmentInputRef} onChange={(e) => setAttachmentName(e.target.files?.[0]?.name || null)} className="hidden" />
                         </div>
                     </div>
-
                 </div>
 
-                <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900 rounded-b-xl shrink-0">
-                    <button onClick={onClose} className="px-6 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold uppercase text-slate-500 hover:bg-slate-50">Cancelar</button>
-                    <Button onClick={handleSubmit} isLoading={loading} className="px-8 py-3 text-xs font-bold uppercase">{lessonToEdit ? 'Salvar Alterações' : 'Salvar'}</Button>
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900 rounded-b-xl">
+                    <button onClick={onClose} className="px-6 py-3 border border-slate-200 rounded-xl text-xs font-bold uppercase">Cancelar</button>
+                    <Button onClick={handleSubmit} isLoading={loading} className="px-8 py-3 text-xs font-bold uppercase">{lessonToEdit ? 'Salvar' : 'Criar'}</Button>
                 </div>
             </div>
         </div>,

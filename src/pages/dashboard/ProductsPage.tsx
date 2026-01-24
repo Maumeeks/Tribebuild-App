@@ -8,11 +8,11 @@ import { supabase } from '../../lib/supabase';
 import Button from '../../components/Button';
 import { cn } from '../../lib/utils';
 
-// Importação dos Modais
 import CreateProductModal from '../../components/modals/CreateProductModal';
 import CreateModuleModal from '../../components/modals/CreateModuleModal';
 import CreateLessonModal from '../../components/modals/CreateLessonModal';
 
+// ... (offerTypeConfig e getIconForType mantidos iguais)
 const offerTypeConfig: Record<string, { label: string, colorClasses: string }> = {
   main: { label: 'Produto Principal', colorClasses: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
   bonus: { label: 'Bônus', colorClasses: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
@@ -54,8 +54,6 @@ const ProductsPage: React.FC = () => {
   // Estados de Seleção e Edição
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-
-  // Itens sendo editados
   const [moduleToEdit, setModuleToEdit] = useState<any>(null);
   const [lessonToEdit, setLessonToEdit] = useState<any>(null);
 
@@ -102,11 +100,7 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (appSlug) fetchProducts();
-  }, [appSlug]);
-
-  // --- Handlers de AÇÃO ---
+  useEffect(() => { if (appSlug) fetchProducts(); }, [appSlug]);
 
   const handleDelete = async (type: 'products' | 'modules' | 'lessons', id: string) => {
     if (!window.confirm('Tem certeza? Essa ação não pode ser desfeita.')) return;
@@ -119,7 +113,6 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  // Módulos
   const handleCreateModule = (productId: string) => {
     setSelectedProductId(productId);
     setModuleToEdit(null);
@@ -131,7 +124,6 @@ const ProductsPage: React.FC = () => {
     setIsModuleModalOpen(true);
   };
 
-  // Aulas
   const handleCreateLesson = (moduleId: string) => {
     setSelectedModuleId(moduleId);
     setLessonToEdit(null);
@@ -221,7 +213,6 @@ const ProductsPage: React.FC = () => {
                               </div>
 
                               <div className="flex items-center gap-2">
-                                {/* Botões de Módulo Ativos */}
                                 <div className="flex items-center gap-1 mr-2 opacity-0 group-hover/module:opacity-100 transition-opacity">
                                   <button onClick={() => handleEditModule(module)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit3 size={14} /></button>
                                   <button onClick={() => handleDelete('modules', module.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 size={14} /></button>
@@ -241,7 +232,6 @@ const ProductsPage: React.FC = () => {
                                     </div>
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1 truncate">{lesson.name}</span>
 
-                                    {/* Botões de Aula Ativos */}
                                     <div className="flex items-center gap-2 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
                                       <button onClick={() => handleEditLesson(lesson)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors"><Edit3 size={14} /></button>
                                       <button onClick={() => handleDelete('lessons', lesson.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors"><Trash2 size={14} /></button>
@@ -273,12 +263,11 @@ const ProductsPage: React.FC = () => {
 
       <CreateProductModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} onSuccess={() => { fetchProducts(); setIsProductModalOpen(false); }} />
 
-      {/* Modais recebendo dados de Edição */}
       <CreateModuleModal
         isOpen={isModuleModalOpen}
         onClose={() => setIsModuleModalOpen(false)}
         productId={selectedProductId}
-        moduleToEdit={moduleToEdit}
+        moduleToEdit={moduleToEdit} // ✅ AGORA VAI FUNCIONAR
         onSuccess={() => { fetchProducts(); setIsModuleModalOpen(false); }}
       />
 

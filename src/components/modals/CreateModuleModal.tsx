@@ -8,7 +8,7 @@ interface CreateModuleModalProps {
     onClose: () => void;
     onSuccess: () => void;
     productId: string | null;
-    moduleToEdit?: any; // Novo prop
+    moduleToEdit?: any; // ✅ Agora ele aceita edição!
 }
 
 const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, onSuccess, productId, moduleToEdit }) => {
@@ -20,6 +20,7 @@ const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, 
     });
     const [loading, setLoading] = useState(false);
 
+    // Preenche os dados se for edição
     useEffect(() => {
         if (isOpen) {
             if (moduleToEdit) {
@@ -50,9 +51,11 @@ const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, 
             };
 
             if (moduleToEdit) {
+                // UPDATE (Edição)
                 const { error } = await supabase.from('modules').update(payload).eq('id', moduleToEdit.id);
                 if (error) throw error;
             } else {
+                // INSERT (Criação)
                 if (!productId) throw new Error('Produto não identificado');
                 payload.product_id = productId;
                 payload.order_index = 0;
@@ -83,9 +86,36 @@ const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, 
                 <div className="space-y-4">
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Nome do Módulo</label>
-                        <input autoFocus type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:border-brand-blue outline-none font-medium" />
+                        <input
+                            autoFocus
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Ex: Módulo 01"
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:border-brand-blue outline-none font-medium"
+                        />
                     </div>
-                    {/* Campos de Liberação... (Simplifiquei para focar no essencial, mas você pode adicionar os selects aqui igual antes) */}
+
+                    {/* Regras de Liberação Simplificadas */}
+                    <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Liberação</label>
+                        <select
+                            value={formData.releaseType}
+                            onChange={(e) => setFormData({ ...formData, releaseType: e.target.value as any })}
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:border-brand-blue outline-none"
+                        >
+                            <option value="immediate">Imediata</option>
+                            <option value="days_after">Dias após compra</option>
+                            <option value="exact_date">Data Fixa</option>
+                        </select>
+                    </div>
+
+                    {formData.releaseType === 'days_after' && (
+                        <input type="number" value={formData.releaseDays} onChange={(e) => setFormData({ ...formData, releaseDays: e.target.value })} placeholder="Dias" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm" />
+                    )}
+                    {formData.releaseType === 'exact_date' && (
+                        <input type="date" value={formData.releaseDate} onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm" />
+                    )}
                 </div>
 
                 <div className="flex justify-end gap-2 mt-6">
