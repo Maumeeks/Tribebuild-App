@@ -7,6 +7,9 @@ import { useApps } from '../../contexts/AppsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
 
+// Definindo o tipo exato
+type LoginType = 'email_password' | 'magic_link';
+
 const AppBuilder: React.FC = () => {
   const { addApp, updateApp, apps, planLimit } = useApps();
   const { profile } = useAuth();
@@ -31,7 +34,8 @@ const AppBuilder: React.FC = () => {
     primaryColor: '#0066FF',
     logo: null as string | null,
     language: 'PT',
-    login_type: 'email_password' as 'email_password' | 'magic_link' // 'email_password' ou 'magic_link'
+    // ✅ Define valor inicial válido
+    login_type: 'email_password' as LoginType
   });
 
   useEffect(() => {
@@ -45,7 +49,8 @@ const AppBuilder: React.FC = () => {
           primaryColor: app.primaryColor,
           logo: app.logo || null,
           language: app.language || 'PT',
-          login_type: app.login_type || 'email_password'
+          // ✅ Força o tipo ao ler do contexto
+          login_type: (app.login_type || 'email_password') as LoginType
         });
       }
     }
@@ -91,6 +96,7 @@ const AppBuilder: React.FC = () => {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
+      // ✅ Garante que o objeto tenha a tipagem correta antes de enviar
       const appData = {
         name: formData.name,
         slug: formData.slug,
@@ -98,14 +104,15 @@ const AppBuilder: React.FC = () => {
         logo: formData.logo,
         primaryColor: formData.primaryColor,
         language: formData.language,
-        login_type: formData.login_type, // ✅ Salva o tipo de login
-        status: 'published' as const
+        login_type: formData.login_type,
+        status: 'published' as const,
+        customDomain: null
       };
 
       if (editMode && appIdToEdit) {
         await updateApp(appIdToEdit, appData);
       } else {
-        await addApp({ ...appData, customDomain: null });
+        await addApp(appData);
       }
 
       navigate('/dashboard/apps');
@@ -119,11 +126,15 @@ const AppBuilder: React.FC = () => {
   const handleSaveDraft = async () => {
     if (!formData.name) return alert('Defina um nome para salvar rascunho.');
     try {
-      const appData = { ...formData, status: 'draft' as const };
+      const appData = {
+        ...formData,
+        status: 'draft' as const,
+        customDomain: null
+      };
       if (editMode && appIdToEdit) {
         await updateApp(appIdToEdit, appData);
       } else {
-        await addApp({ ...appData, customDomain: null });
+        await addApp(appData);
       }
       navigate('/dashboard/apps');
     } catch (error) {
@@ -199,7 +210,7 @@ const AppBuilder: React.FC = () => {
                 <p className="text-[10px] text-slate-400 mt-2 font-medium">Use apenas letras minúsculas e hifens. Ex: ingles-do-joao</p>
               </div>
 
-              {/* ✅ NOVO CAMPO: TIPO DE LOGIN */}
+              {/* TIPO DE LOGIN - CORRIGIDO */}
               <div>
                 <label className={labelStyle}>Tipo de Acesso (Login)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
