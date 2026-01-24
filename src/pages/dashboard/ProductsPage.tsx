@@ -1,304 +1,400 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import {
-  ArrowLeft, Plus, Package, GripVertical, Edit3, Trash2, ChevronDown,
-  ChevronUp, Video, Loader2, FileText, Link as LinkIcon, Code
-} from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Package, Plus, Search, Edit2, Trash2, X, Upload, HelpCircle, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Button from '../../components/Button';
-import { cn } from '../../lib/utils';
+import { useAuth } from '../../contexts/AuthContext';
 
-// Importação dos Modais
-import CreateProductModal from '../../components/modals/CreateProductModal';
-import CreateModuleModal from '../../components/modals/CreateModuleModal';
-import CreateLessonModal from '../../components/modals/CreateLessonModal';
-
-const offerTypeConfig: Record<string, { label: string, colorClasses: string }> = {
-  main: { label: 'Produto Principal', colorClasses: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  bonus: { label: 'Bônus', colorClasses: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-  order_bump: { label: 'Order Bump', colorClasses: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  upsell: { label: 'Upsell / Downsell', colorClasses: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
-};
-
-const getIconForType = (type: string) => {
-  if (['pdf', 'file'].includes(type)) return <FileText size={16} />;
-  if (['link', 'website'].includes(type)) return <LinkIcon size={16} />;
-  if (['html', 'text', 'video_panda'].includes(type)) return <Code size={16} />;
-  return <Video size={16} />;
-};
-
-const ProductsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const params = useParams();
-  const location = useLocation();
-
-  const getAppIdentifier = () => {
-    if (params.appSlug) return params.appSlug;
-    const pathParts = location.pathname.split('/');
-    const appsIndex = pathParts.indexOf('apps');
-    if (appsIndex !== -1 && pathParts[appsIndex + 1]) return pathParts[appsIndex + 1];
-    return null;
+// Tipagem atualizada com todas as opções do Husky
+interface Product {
+  id: string;
+  name: string;
+  image_url: string | null;
+  status: 'draft' | 'published';
+  offer_type: 'main' | 'bonus' | 'order_bump' | 'upsell';
+  release_type: 'immediate' | 'date' | 'days';
+  release_value: string | null;
+  platform_product_id: string | null;
+  checkout_url: string | null;
+  _count?: {
+    modules: number;
   };
+}
 
-  const appSlug = getAppIdentifier();
+export default function ProductsPage() {
+  const { appId } = useParams();
+  const navigate = useNavigate();
+  const { profile } = useAuth();
 
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedProducts, setExpandedProducts] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados dos Modais
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
-  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  // Estado do Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados de Seleção e Edição
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+  // Formulário
+  const [formData, setFormData] = useState({
+    name: '',
+    offer_type: 'main' as Product['offer_type'],
+    release_type: 'immediate' as Product['release_type'],
+    release_value: '',
+    platform_product_id: '',
+    checkout_url: '',
+    image: null as string | null
+  });
 
-  // NOVOS ESTADOS: Guardam o item que está sendo editado
-  const [productToEdit, setProductToEdit] = useState<any>(null);
-  const [moduleToEdit, setModuleToEdit] = useState<any>(null);
-  const [lessonToEdit, setLessonToEdit] = useState<any>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  useEffect(() => {
+    if (appId) fetchProducts();
+  }, [appId]);
 
-  const fetchProducts = async () => {
+  async function fetchProducts() {
     try {
-      setLoading(true);
-      let appId = null;
-      const cleanSlug = appSlug?.trim();
-
-      if (!cleanSlug) throw new Error("App não identificado.");
-
-      let query = supabase.from('apps').select('id');
-      if (isUUID(cleanSlug)) query = query.eq('id', cleanSlug);
-      else query = query.eq('slug', cleanSlug);
-
-      const { data: appData, error: appError } = await query.single();
-      if (appError || !appData) throw new Error("App não encontrado.");
-      appId = appData.id;
-
       const { data, error } = await supabase
         .from('products')
-        .select(`*, modules (*, lessons (*))`)
+        .select('*, modules(count)')
         .eq('app_id', appId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const sortedData = data?.map(product => ({
-        ...product,
-        modules: product.modules?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
-          .map((module: any) => ({
-            ...module,
-            lessons: module.lessons?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
-          }))
+      const formattedData = data.map((p: any) => ({
+        ...p,
+        _count: { modules: p.modules[0]?.count || 0 }
       }));
 
-      setProducts(sortedData || []);
-    } catch (err) {
-      console.error(err);
+      setProducts(formattedData);
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  useEffect(() => { if (appSlug) fetchProducts(); }, [appSlug]);
-
-  // --- Função Universal de Deletar ---
-  const handleDelete = async (type: 'products' | 'modules' | 'lessons', id: string) => {
-    if (!window.confirm('Tem certeza? Essa ação não pode ser desfeita.')) return;
-    try {
-      const { error } = await supabase.from(type).delete().eq('id', id);
-      if (error) throw error;
-      fetchProducts(); // Recarrega a lista após deletar
-    } catch (err: any) {
-      alert('Erro ao excluir: ' + err.message);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  // --- Handlers de PRODUTO ---
-  const handleCreateProduct = () => {
-    setProductToEdit(null);
-    setIsProductModalOpen(true);
-  };
-  const handleEditProduct = (product: any) => {
-    setProductToEdit(product);
-    setIsProductModalOpen(true);
+  const handleCreateProduct = async () => {
+    if (!formData.name) return alert('Nome é obrigatório');
+
+    // Validação de liberação
+    if (formData.release_type !== 'immediate' && !formData.release_value) {
+      return alert('Defina a data ou dias para liberação');
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase.from('products').insert([{
+        app_id: appId,
+        user_id: profile?.id,
+        name: formData.name,
+        offer_type: formData.offer_type,
+        release_type: formData.release_type,
+        release_value: formData.release_value,
+        platform_product_id: formData.platform_product_id,
+        checkout_url: formData.checkout_url,
+        image_url: formData.image,
+        status: 'published'
+      }]).select().single();
+
+      if (error) throw error;
+
+      setProducts([data, ...products]);
+      setIsModalOpen(false);
+      resetForm();
+
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao criar produto');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // --- Handlers de MÓDULO ---
-  const handleCreateModule = (productId: string) => {
-    setSelectedProductId(productId);
-    setModuleToEdit(null);
-    setIsModuleModalOpen(true);
-  };
-  const handleEditModule = (module: any) => {
-    setSelectedProductId(module.product_id);
-    setModuleToEdit(module);
-    setIsModuleModalOpen(true);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza? Isso apagará todas as aulas deste produto.')) return;
+    try {
+      await supabase.from('products').delete().eq('id', id);
+      setProducts(products.filter(p => p.id !== id));
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  // --- Handlers de AULA ---
-  const handleCreateLesson = (moduleId: string) => {
-    setSelectedModuleId(moduleId);
-    setLessonToEdit(null);
-    setIsLessonModalOpen(true);
-  };
-  const handleEditLesson = (lesson: any) => {
-    setSelectedModuleId(lesson.module_id);
-    setLessonToEdit(lesson);
-    setIsLessonModalOpen(true);
+  const resetForm = () => {
+    setFormData({
+      name: '', offer_type: 'main', release_type: 'immediate',
+      release_value: '', platform_product_id: '', checkout_url: '', image: null
+    });
   };
 
-  if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-brand-blue" /></div>;
+  // Helper para labels de tipo
+  const getOfferLabel = (type: string) => {
+    switch (type) {
+      case 'main': return { label: 'Principal', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' };
+      case 'bonus': return { label: 'Bônus', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' };
+      case 'order_bump': return { label: 'Order Bump', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' };
+      case 'upsell': return { label: 'Upsell', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
+      default: return { label: type, color: 'bg-slate-100 text-slate-500' };
+    }
+  };
 
   return (
-    <div className="space-y-8 font-sans pb-32 animate-fade-in max-w-6xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto animate-fade-in font-['inter']">
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <button onClick={() => navigate('/dashboard/apps')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white text-sm font-bold mb-3 transition-all">
-            <ArrowLeft className="w-4 h-4" /> Voltar para Apps
-          </button>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Produtos do Seu App</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-base mt-2">Gerencie produtos e conteúdos.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gerenciar Produtos</h1>
+          <p className="text-slate-500 dark:text-slate-400">Crie e configure o acesso aos seus cursos.</p>
         </div>
-        <Button onClick={handleCreateProduct} size="lg" leftIcon={Plus} className="shadow-lg shadow-blue-500/20 font-bold px-6">
-          Novo Produto
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" /> Novo Produto
         </Button>
       </div>
 
-      {/* Listagem */}
-      <div className="space-y-6">
-        {products.length === 0 ? (
-          <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 shadow-sm">
-            <Package className="w-16 h-16 text-slate-300 mx-auto mb-6" />
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Nenhum produto criado</h3>
-            <Button onClick={handleCreateProduct} size="lg" leftIcon={Plus} className="font-bold">Criar Primeiro Produto</Button>
-          </div>
-        ) : (
-          products.map((product) => {
-            const offerConfig = offerTypeConfig[product.offer_type] || offerTypeConfig['main'];
-            const isExpanded = expandedProducts.includes(product.id);
+      {/* Filtros */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+        <input
+          type="text"
+          placeholder="Buscar produtos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none transition-all"
+        />
+      </div>
 
+      {/* Grid de Produtos */}
+      <div className="grid grid-cols-1 gap-4">
+        {products.length === 0 && !loading && (
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            <p className="text-slate-500">Nenhum produto criado ainda.</p>
+          </div>
+        )}
+
+        {products
+          .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((product) => {
+            const badge = getOfferLabel(product.offer_type);
             return (
-              <div key={product.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                <div className="p-6 flex items-center gap-5">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden">
-                      {product.thumbnail_url ? <img src={product.thumbnail_url} alt={product.name} className="w-full h-full object-cover" /> : <Package className="w-8 h-8 text-slate-400" />}
-                    </div>
+              <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex items-center gap-5 hover:border-brand-blue/50 transition-all group">
+
+                {/* Icone / Imagem */}
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
+                  {product.image_url ? (
+                    <img src={product.image_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-8 h-8 text-slate-400" />
+                  )}
+                </div>
+
+                {/* Infos */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-lg">{product.name}</h3>
+                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${badge.color}`}>
+                      {badge.label}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{product.name}</h3>
-                      <span className={cn("px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider", offerConfig.colorClasses)}>{offerConfig.label}</span>
-                    </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                      {product.modules?.length === 0 ? 'Nenhum conteúdo' : `${product.modules?.length} módulos · ${product.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0)} aulas`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleEditProduct(product)} className="p-2.5 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hidden sm:block">
-                      <Edit3 className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => handleDelete('products', product.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all hidden sm:block">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => setExpandedProducts(prev => isExpanded ? prev.filter(id => id !== product.id) : [...prev, product.id])} className={cn("p-2.5 rounded-xl transition-all ml-2", isExpanded ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800")}>
-                      {isExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
-                    </button>
+                  <div className="flex items-center gap-4 text-sm text-slate-500">
+                    <span>{product._count?.modules || 0} Módulos</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span>Liberação: {product.release_type === 'immediate' ? 'Imediata' : product.release_type === 'days' ? `${product.release_value} dias` : `Em ${product.release_value}`}</span>
                   </div>
                 </div>
 
-                {isExpanded && (
-                  <div className="bg-slate-50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 p-8 animate-slide-up">
-                    <div className="flex justify-between items-center mb-6">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Conteúdo</h4>
-                      <Button onClick={() => handleCreateModule(product.id)} size="sm" leftIcon={Plus} className="font-bold text-xs px-4 py-2.5 shadow-sm">
-                        Novo Módulo
-                      </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {product.modules && product.modules.length > 0 ? (
-                        product.modules.map((module: any) => (
-                          <div key={module.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden group/module">
-                            <div className="p-4 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-                              <div className="flex items-center gap-3">
-                                <GripVertical className="w-4 h-4 text-slate-300 cursor-grab" />
-                                <h5 className="text-sm font-bold text-slate-900 dark:text-white">{module.name}</h5>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1 mr-2 opacity-0 group-hover/module:opacity-100 transition-opacity">
-                                  <button onClick={() => handleEditModule(module)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><Edit3 size={14} /></button>
-                                  <button onClick={() => handleDelete('modules', module.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 size={14} /></button>
-                                </div>
-                                <button onClick={() => handleCreateLesson(module.id)} className="text-[11px] font-bold text-brand-blue uppercase hover:underline flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg border border-blue-100 dark:border-blue-900">
-                                  <Plus size={12} /> Aula
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="p-2 space-y-1">
-                              {module.lessons && module.lessons.length > 0 ? (
-                                module.lessons.map((lesson: any) => (
-                                  <div key={lesson.id} className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors group/lesson px-4">
-                                    <div className="text-brand-blue dark:text-blue-400">
-                                      {getIconForType(lesson.content_type)}
-                                    </div>
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1 truncate">{lesson.name}</span>
-
-                                    <div className="flex items-center gap-2 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
-                                      <button onClick={() => handleEditLesson(lesson)} className="p-1.5 text-slate-400 hover:text-brand-blue rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors"><Edit3 size={14} /></button>
-                                      <button onClick={() => handleDelete('lessons', lesson.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors"><Trash2 size={14} /></button>
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs text-slate-400 italic p-4 text-center">Nenhuma aula neste módulo.</p>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900">
-                          <p className="text-sm text-slate-500 font-medium mb-3">Nenhum módulo criado</p>
-                          <Button onClick={() => handleCreateModule(product.id)} size="sm" variant="outline" leftIcon={Plus} className="font-bold text-xs">
-                            Criar Primeiro Módulo
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* Ações */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/dashboard/apps/${appId}/products/${product.id}`)}
+                    className="p-2 text-slate-400 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    title="Editar Conteúdo"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Excluir"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             )
-          })
-        )}
+          })}
       </div>
 
-      <CreateProductModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} onSuccess={() => { fetchProducts(); setIsProductModalOpen(false); }} productToEdit={productToEdit} />
+      {/* --- MODAL NOVO PRODUTO (Estilo Husky & Video) --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-up flex flex-col max-h-[90vh]">
 
-      <CreateModuleModal
-        isOpen={isModuleModalOpen}
-        onClose={() => setIsModuleModalOpen(false)}
-        productId={selectedProductId}
-        moduleToEdit={moduleToEdit} // Passo o módulo para edição
-        onSuccess={() => { fetchProducts(); setIsModuleModalOpen(false); }}
-      />
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 shrink-0">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">Novo Produto</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
 
-      <CreateLessonModal
-        isOpen={isLessonModalOpen}
-        onClose={() => setIsLessonModalOpen(false)}
-        moduleId={selectedModuleId}
-        lessonToEdit={lessonToEdit} // Passo a aula para edição
-        onSuccess={() => { fetchProducts(); setIsLessonModalOpen(false); }}
-      />
+            <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+
+              {/* 1. Upload Logo */}
+              <div className="flex flex-col items-center justify-center mb-2">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-slate-50 dark:bg-slate-900/50 group"
+                >
+                  {formData.image ? (
+                    <img src={formData.image} className="w-full h-full object-cover rounded-2xl shadow-sm" />
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-slate-400 group-hover:scale-110 transition-transform mb-2" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Logo</span>
+                    </>
+                  )}
+                  <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </div>
+              </div>
+
+              {/* 2. Nome */}
+              <div>
+                <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
+                  Nome do Produto *
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none text-sm font-medium"
+                  placeholder="Ex: Comunidade Premium"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+
+              {/* 3. Tipo de Liberação */}
+              <div>
+                <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
+                  Tipo de Liberação <HelpCircle className="w-3 h-3 cursor-help text-slate-400" />
+                </label>
+                <select
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-700 dark:text-slate-300 appearance-none cursor-pointer"
+                  value={formData.release_type}
+                  onChange={e => setFormData({ ...formData, release_type: e.target.value as any })}
+                >
+                  <option value="immediate">Liberação Imediata</option>
+                  <option value="days">Dias após a Compra</option>
+                  <option value="date">Data Exata</option>
+                </select>
+              </div>
+
+              {/* Condicional: Valor da Liberação */}
+              {formData.release_type === 'days' && (
+                <div className="animate-slide-up">
+                  <input
+                    type="number"
+                    placeholder="Ex: 7 (dias)"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm"
+                    value={formData.release_value}
+                    onChange={e => setFormData({ ...formData, release_value: e.target.value })}
+                  />
+                </div>
+              )}
+              {formData.release_type === 'date' && (
+                <div className="animate-slide-up">
+                  <input
+                    type="date"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm"
+                    value={formData.release_value}
+                    onChange={e => setFormData({ ...formData, release_value: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* 4. Tipo de Oferta */}
+              <div>
+                <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
+                  Tipo de Oferta *
+                </label>
+                <select
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-700 dark:text-slate-300 appearance-none cursor-pointer"
+                  value={formData.offer_type}
+                  onChange={e => setFormData({ ...formData, offer_type: e.target.value as any })}
+                >
+                  <option value="main">Produto Principal (Acesso Padrão)</option>
+                  <option value="bonus">Bônus (Gratuito/Incluso)</option>
+                  <option value="order_bump">Order Bump (Oferta Adicional)</option>
+                  <option value="upsell">Upsell / Downsell (Oferta Extra)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1.5 ml-1">
+                  {formData.offer_type === 'main' && "Aparece na lista de cursos do aluno."}
+                  {formData.offer_type === 'bonus' && "Liberado automaticamente como bônus."}
+                  {(formData.offer_type === 'order_bump' || formData.offer_type === 'upsell') && "Aparece bloqueado ou como banner para compra."}
+                </p>
+              </div>
+
+              {/* 5. Link de Checkout (Só aparece para ofertas pagas) */}
+              {(formData.offer_type === 'order_bump' || formData.offer_type === 'upsell') && (
+                <div className="animate-slide-up">
+                  <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
+                    Link de Checkout (Opcional)
+                  </label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm"
+                      placeholder="https://pay.kiwify.com.br/..."
+                      value={formData.checkout_url}
+                      onChange={e => setFormData({ ...formData, checkout_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 6. IDs da Plataforma */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5 justify-between">
+                  <span>IDs na Plataforma</span>
+                  <span className="text-brand-blue text-[10px] cursor-pointer hover:underline">Como obter o ID?</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none font-mono text-sm"
+                    placeholder="Cole o ID do produto aqui"
+                    value={formData.platform_product_id}
+                    onChange={e => setFormData({ ...formData, platform_product_id: e.target.value })}
+                  />
+                  <button className="px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold text-lg hover:bg-slate-200 transition-colors">+</button>
+                </div>
+                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg flex gap-2 items-start">
+                  <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-relaxed">
+                    Este ID conecta o pagamento à liberação. Sem ele, o aluno não recebe o acesso automático.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-slate-950 shrink-0">
+              <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+              <Button onClick={handleCreateProduct} isLoading={isSubmitting}>Criar Produto</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
-};
-
-export default ProductsPage;
+}
