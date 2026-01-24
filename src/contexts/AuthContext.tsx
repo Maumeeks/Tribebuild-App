@@ -31,21 +31,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🛡️ PROTEÇÃO: Evita múltiplas chamadas simultâneas
-  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
-
-  // 🔧 CORREÇÃO 1: Timeout reduzido + Cache de última busca bem-sucedida
+  // 🔧 CORREÇÃO 1: Timeout reduzido e controle de requisições
   const fetchProfile = useCallback(async (userId: string, userEmail?: string): Promise<Profile | null> => {
-    // 🛡️ Evita chamadas duplicadas
-    if (isFetchingProfile) {
-      console.log('[Auth] Busca de perfil já em andamento, ignorando...');
-      return profile; // Retorna o profile atual se já estiver buscando
-    }
-
-    setIsFetchingProfile(true);
-
     try {
-      // 🔧 CORREÇÃO 2: Timeout de 3 segundos (mais realista)
+      // 🔧 Timeout de 3 segundos (reduzido de 6s)
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 3000)
       );
@@ -62,71 +51,55 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ]) as any;
 
       if (error) {
-        // 🔧 CORREÇÃO 3: NÃO cria perfil automaticamente se já existir
-        // Apenas cria se for erro PGRST116 E for um cadastro novo
+        // 🔧 NÃO cria perfil automaticamente em qualquer erro
         if (error.code === 'PGRST116') {
-          console.warn('[Auth] Perfil não encontrado.');
+          console.warn('[Auth] Perfil não encontrado. Tentando buscar novamente...');
 
-          // 🛡️ PROTEÇÃO: Verifica se perfil existe antes de criar
-          const { data: existingProfiles } = await supabase
+          // Tenta buscar novamente SEM timeout
+          const { data: retryData, error: retryError } = await supabase
             .from('profiles')
-            .select('id')
-            .eq('id', userId);
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle(); // maybeSingle permite retornar null se não achar
 
-          // Se encontrou perfil(s), não cria novo (evita duplicatas)
-          if (existingProfiles && existingProfiles.length > 0) {
-            console.log('[Auth] Perfil existe mas houve erro na query. Tentando novamente...');
-            // Tenta buscar novamente sem timeout
-            const { data: retryData, error: retryError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', userId)
-              .single();
-
-            if (!retryError && retryData) {
-              setIsFetchingProfile(false);
-              return retryData as Profile;
-            }
+          if (!retryError && retryData) {
+            return retryData as Profile;
           }
 
-          // 🚨 CUIDADO: Só cria perfil se REALMENTE não existir
-          console.warn('[Auth] Criando perfil de emergência APENAS se não existir...');
+          // Se ainda não encontrou, cria apenas para NOVOS usuários
+          console.warn('[Auth] Criando perfil inicial...');
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([{
               id: userId,
               email: userEmail || '',
               full_name: 'Usuário',
-              plan: 'starter', // ⚠️ Mantém starter apenas para novos usuários
+              plan: 'starter',
               plan_status: 'active',
             }])
             .select()
-            .single();
+            .maybeSingle();
 
           if (!createError && newProfile) {
-            console.log('[Auth] Perfil de emergência criado.');
-            setIsFetchingProfile(false);
+            console.log('[Auth] Perfil criado com sucesso.');
             return newProfile as Profile;
           }
 
-          console.error('[Auth] Falha ao criar perfil de emergência:', createError);
+          console.error('[Auth] Falha ao criar perfil:', createError);
         } else {
           console.error('[Auth] Erro ao buscar profile:', error.message);
         }
 
-        setIsFetchingProfile(false);
         return null;
       }
 
-      setIsFetchingProfile(false);
       return data as Profile;
 
     } catch (err) {
       console.error('[Auth] Exceção no fetchProfile:', err);
-      setIsFetchingProfile(false);
       return null;
     }
-  }, [isFetchingProfile, profile]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -151,7 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // 🔧 CORREÇÃO 4: Listener mais inteligente
+    // 🔧 Listener otimizado - só busca perfil UMA VEZ no login
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
@@ -167,21 +140,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setSession(newSession);
           setUser(newSession.user);
 
-          // 🛡️ PROTEÇÃO: Só busca perfil em eventos CRÍTICOS
-          // Evita buscar 2x no SIGNED_IN + INITIAL_SESSION
+          // 🛡️ Só busca perfil no SIGNED_IN (não em INITIAL_SESSION)
           if (event === 'SIGNED_IN') {
             console.log('[Auth] Login detectado, buscando perfil...');
             const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
             if (mounted) setProfile(userProfile);
-          } else if (event === 'TOKEN_REFRESHED') {
-            // No refresh de token, só atualiza se NÃO tiver profile
-            if (!profile) {
-              console.log('[Auth] Token refreshed e profile vazio, buscando...');
-              const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
-              if (mounted) setProfile(userProfile);
-            }
           }
-          // 🚨 REMOVIDO: INITIAL_SESSION - Evita busca duplicada!
 
           setLoading(false);
         }
@@ -194,7 +158,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       mounted = false;
       authSubscription?.unsubscribe();
     };
-  }, [fetchProfile, profile]);
+  }, [fetchProfile]);
 
   const signUp = async (email: string, password: string, fullName: string, cpf?: string, phone?: string) => {
     const { data, error } = await supabase.auth.signUp({
