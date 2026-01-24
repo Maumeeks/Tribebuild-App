@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, Profile } from '../lib/supabase';
+import { supabase, Profile } from '../lib/supabase'; // Certifique-se que Profile está exportado corretamente
 
 interface AuthContextType {
   user: User | null;
@@ -31,116 +31,83 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🛡️ PROTEÇÃO: Evita múltiplas chamadas simultâneas
-  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
-
-  // 🔧 CORREÇÃO 1: Timeout reduzido + Cache de última busca bem-sucedida
+  // 🛡️ PROTEÇÃO 1: Busca de perfil robusta com Timeout e Auto-Criação
   const fetchProfile = useCallback(async (userId: string, userEmail?: string): Promise<Profile | null> => {
-    // 🛡️ Evita chamadas duplicadas
-    if (isFetchingProfile) {
-      console.log('[Auth] Busca de perfil já em andamento, ignorando...');
-      return profile; // Retorna o profile atual se já estiver buscando
-    }
-
-    setIsFetchingProfile(true);
-
     try {
-      // 🔧 CORREÇÃO 2: Timeout de 3 segundos (mais realista)
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 3000)
+      // Timeout Promise: Rejeita se demorar mais de 6s (margem de segurança)
+      const timeoutPromise = new Promise<{ data: null; error: { code: string; message: string } }>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 6000)
       );
 
+      // Busca do Supabase
       const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      const { data, error } = await Promise.race([
-        fetchPromise,
-        timeoutPromise
-      ]) as any;
+      // Corrida: Banco de Dados vs Timeout
+      // @ts-ignore - Supabase types compatibility
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      const { data, error } = result;
 
       if (error) {
-        // 🔧 CORREÇÃO 3: NÃO cria perfil automaticamente se já existir
-        // Apenas cria se for erro PGRST116 E for um cadastro novo
+        // 🛡️ PROTEÇÃO 3: Auto-Healing (Se não achar, cria!)
+        // PGRST116: JSON object requested, multiple (or no) rows returned
         if (error.code === 'PGRST116') {
-          console.warn('[Auth] Perfil não encontrado.');
+          console.warn('[Auth] Perfil não encontrado. Criando perfil de emergência...');
 
-          // 🛡️ PROTEÇÃO: Verifica se perfil existe antes de criar
-          const { data: existingProfiles } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', userId);
-
-          // Se encontrou perfil(s), não cria novo (evita duplicatas)
-          if (existingProfiles && existingProfiles.length > 0) {
-            console.log('[Auth] Perfil existe mas houve erro na query. Tentando novamente...');
-            // Tenta buscar novamente sem timeout
-            const { data: retryData, error: retryError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', userId)
-              .single();
-
-            if (!retryError && retryData) {
-              setIsFetchingProfile(false);
-              return retryData as Profile;
-            }
-          }
-
-          // 🚨 CUIDADO: Só cria perfil se REALMENTE não existir
-          console.warn('[Auth] Criando perfil de emergência APENAS se não existir...');
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([{
               id: userId,
               email: userEmail || '',
               full_name: 'Usuário',
-              plan: 'starter', // ⚠️ Mantém starter apenas para novos usuários
+              plan: 'starter',
               plan_status: 'active',
+              // Adicione aqui outros campos obrigatórios do seu banco com valores default
             }])
             .select()
             .single();
 
           if (!createError && newProfile) {
             console.log('[Auth] Perfil de emergência criado.');
-            setIsFetchingProfile(false);
             return newProfile as Profile;
           }
 
           console.error('[Auth] Falha ao criar perfil de emergência:', createError);
-        } else {
-          console.error('[Auth] Erro ao buscar profile:', error.message);
         }
 
-        setIsFetchingProfile(false);
+        // Se for outro erro, apenas loga e retorna null
+        if (error.code !== 'PGRST116') {
+          console.error('[Auth] Erro ao buscar profile:', error.message);
+        }
         return null;
       }
 
-      setIsFetchingProfile(false);
       return data as Profile;
 
     } catch (err) {
       console.error('[Auth] Exceção no fetchProfile:', err);
-      setIsFetchingProfile(false);
       return null;
     }
-  }, [isFetchingProfile, profile]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
-    let authSubscription: any = null;
 
     const initializeAuth = async () => {
       try {
+        // 1. Verificar sessão atual imediatamente
         const { data: { session: initialSession } } = await supabase.auth.getSession();
 
-        if (mounted && initialSession?.user) {
-          setSession(initialSession);
-          setUser(initialSession.user);
-          const userProfile = await fetchProfile(initialSession.user.id, initialSession.user.email);
-          if (mounted) setProfile(userProfile);
+        if (mounted) {
+          if (initialSession?.user) {
+            setSession(initialSession);
+            setUser(initialSession.user);
+            const userProfile = await fetchProfile(initialSession.user.id, initialSession.user.email);
+            if (mounted) setProfile(userProfile);
+          }
         }
       } catch (error) {
         console.error('[Auth] Erro na inicialização:', error);
@@ -151,7 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // 🔧 CORREÇÃO 4: Listener mais inteligente
+    // 2. Configurar Listener para mudanças futuras
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
@@ -164,39 +131,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setProfile(null);
           setLoading(false);
         } else if (newSession?.user) {
+          // Apenas atualiza se a sessão for diferente ou se o usuário mudou
           setSession(newSession);
           setUser(newSession.user);
 
-          // 🛡️ PROTEÇÃO: Só busca perfil em eventos CRÍTICOS
-          // Evita buscar 2x no SIGNED_IN + INITIAL_SESSION
-          if (event === 'SIGNED_IN') {
-            console.log('[Auth] Login detectado, buscando perfil...');
+          // Se for login ou token refresh, garantimos o perfil atualizado
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+            // Opcional: Só busca se ainda não tiver profile carregado ou se for um evento crítico
             const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
             if (mounted) setProfile(userProfile);
-          } else if (event === 'TOKEN_REFRESHED') {
-            // No refresh de token, só atualiza se NÃO tiver profile
-            if (!profile) {
-              console.log('[Auth] Token refreshed e profile vazio, buscando...');
-              const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
-              if (mounted) setProfile(userProfile);
-            }
           }
-          // 🚨 REMOVIDO: INITIAL_SESSION - Evita busca duplicada!
-
           setLoading(false);
         }
       }
     );
 
-    authSubscription = subscription;
-
     return () => {
       mounted = false;
-      authSubscription?.unsubscribe();
+      subscription.unsubscribe();
     };
-  }, [fetchProfile, profile]);
+  }, [fetchProfile]);
 
   const signUp = async (email: string, password: string, fullName: string, cpf?: string, phone?: string) => {
+    // 1. Cria usuário no Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -209,6 +166,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       },
     });
 
+    // 2. Se sucesso e auto-confirmado, força a criação do profile imediatamente
+    // Isso evita depender apenas do Auto-Healing no primeiro load
     if (!error && data.user) {
       const { error: profileError } = await supabase
         .from('profiles')
@@ -220,7 +179,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           plan_status: 'active'
         }]);
 
-      if (profileError) console.warn('[Auth] Aviso: Profile não criado no cadastro.', profileError);
+      if (profileError) console.warn('[Auth] Aviso: Profile não criado no cadastro (será criado no healing).', profileError);
     }
 
     return { error };
@@ -229,6 +188,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      // Garante que o estado limpe se der erro
       setLoading(false);
     }
     return { error };
@@ -237,11 +197,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
+    // O Listener (SIGNED_OUT) cuidará de limpar o estado e setar loading false
   };
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      redirectTo: `${window.location.origin}/update-password`, // Ajuste a rota conforme seu app
     });
     return { error };
   };
@@ -255,6 +216,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .eq('id', user.id);
 
     if (!error && profile) {
+      // Atualização otimista da UI
       setProfile({ ...profile, ...updates });
     }
     return { error };
@@ -262,7 +224,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+    setLoading(true); // Feedback visual opcional
     const userProfile = await fetchProfile(user.id, user.email);
     setProfile(userProfile);
     setLoading(false);
