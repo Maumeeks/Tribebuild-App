@@ -7,15 +7,15 @@ interface CreateModuleModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    productId: string | null; // ✅ A página manda isso
-    moduleToEdit?: any;       // ✅ E manda isso também
+    productId: string | null;
+    moduleToEdit?: any; // ✅ Agora aceita edição
 }
 
 const CreateModuleModal: React.FC<CreateModuleModalProps> = ({ isOpen, onClose, onSuccess, productId, moduleToEdit }) => {
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Carrega dados se for edição
+    // ✅ EFEITO: Carrega dados na edição
     useEffect(() => {
         if (isOpen) {
             if (moduleToEdit) {

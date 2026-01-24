@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useParams, useLocation } from 'react-router-dom';
 import Button from '../Button';
@@ -8,7 +8,7 @@ interface CreateProductModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    productToEdit?: any; // ✅ Adicionado para aceitar edição
+    productToEdit?: any; // ✅ Agora aceita edição
 }
 
 const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose, onSuccess, productToEdit }) => {
@@ -37,7 +37,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-    // Efeito de Carga (Edição)
+    // ✅ EFEITO: Carrega os dados se for edição
     useEffect(() => {
         if (isOpen) {
             if (productToEdit) {
@@ -46,8 +46,12 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 setSalesPageUrl(productToEdit.sales_page_url || '');
                 setCoverPreview(productToEdit.thumbnail_url || null);
             } else {
-                // Reset Criação
-                setName(''); setOfferType('main'); setSalesPageUrl(''); setCoverPreview(null); setCoverImage(null);
+                // Reset para Criação
+                setName('');
+                setOfferType('main');
+                setSalesPageUrl('');
+                setCoverPreview(null);
+                setCoverImage(null);
             }
         }
     }, [isOpen, productToEdit]);
@@ -70,28 +74,19 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
 
             // 1. Upload da Capa (se houver nova)
             let finalCoverUrl = productToEdit?.thumbnail_url || null;
+
             if (coverImage) {
-                const fileName = `covers/${Date.now()}_${coverImage.name}`;
-                const { error } = await supabase.storage.from('product-thumbnails').upload(fileName, coverImage);
-                if (!error) {
-                    const { data } = supabase.storage.from('product-thumbnails').getPublicUrl(fileName);
-                    finalCoverUrl = data.publicUrl;
+                // Tenta salvar, se der erro de permissão (bucket não existe), avisa
+                try {
+                    const fileName = `covers/${Date.now()}_${coverImage.name}`;
+                    const { error, data } = await supabase.storage.from('product-thumbnails').upload(fileName, coverImage);
+                    if (!error && data) {
+                        const { data: publicUrl } = supabase.storage.from('product-thumbnails').getPublicUrl(fileName);
+                        finalCoverUrl = publicUrl.publicUrl;
+                    }
+                } catch (err) {
+                    console.warn("Upload falhou (verifique se o bucket 'product-thumbnails' existe)", err);
                 }
-            }
-
-            // 2. Resolver App ID (apenas na criação)
-            let appId = productToEdit?.app_id;
-            if (!appId) {
-                const identifier = appSlug?.trim();
-                if (!identifier) throw new Error("App não identificado.");
-
-                let query = supabase.from('apps').select('id');
-                if (isUUID(identifier)) query = query.eq('id', identifier);
-                else query = query.eq('slug', identifier);
-
-                const { data } = await query.single();
-                if (data) appId = data.id;
-                else throw new Error("App não encontrado.");
             }
 
             const payload: any = {
@@ -103,11 +98,23 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             };
 
             if (productToEdit) {
-                // UPDATE
+                // ✅ UPDATE (Editar)
                 const { error } = await supabase.from('products').update(payload).eq('id', productToEdit.id);
                 if (error) throw error;
             } else {
-                // INSERT
+                // ✅ INSERT (Criar)
+                // Busca o ID do App
+                let appId = null;
+                if (appSlug) {
+                    let query = supabase.from('apps').select('id');
+                    if (isUUID(appSlug)) query = query.eq('id', appSlug);
+                    else query = query.eq('slug', appSlug);
+                    const { data } = await query.single();
+                    if (data) appId = data.id;
+                }
+
+                if (!appId) throw new Error("Erro ao identificar o App.");
+
                 payload.app_id = appId;
                 const { error } = await supabase.from('products').insert([payload]);
                 if (error) throw error;
