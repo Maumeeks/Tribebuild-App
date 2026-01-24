@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, Plus, Search, Edit2, Trash2, X, Upload, HelpCircle, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, X, Upload, HelpCircle, Link as LinkIcon, AlertCircle, Copy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Button from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Tipagem atualizada com todas as opções do Husky
+// Tipagem completa baseada no Husky
 interface Product {
   id: string;
   name: string;
@@ -45,7 +45,7 @@ export default function ProductsPage() {
     image: null as string | null
   });
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (appId) fetchProducts();
@@ -139,7 +139,7 @@ export default function ProductsPage() {
     });
   };
 
-  // Helper para labels de tipo
+  // Helper visual para os tipos de oferta
   const getOfferLabel = (type: string) => {
     switch (type) {
       case 'main': return { label: 'Principal', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' };
@@ -153,7 +153,7 @@ export default function ProductsPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto animate-fade-in font-['inter']">
 
-      {/* Header */}
+      {/* Header da Página */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gerenciar Produtos</h1>
@@ -164,7 +164,7 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {/* Filtros */}
+      {/* Barra de Busca */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
         <input
@@ -172,11 +172,11 @@ export default function ProductsPage() {
           placeholder="Buscar produtos..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none transition-all"
+          className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none transition-all text-slate-900 dark:text-white"
         />
       </div>
 
-      {/* Grid de Produtos */}
+      {/* Lista de Produtos */}
       <div className="grid grid-cols-1 gap-4">
         {products.length === 0 && !loading && (
           <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
@@ -189,7 +189,7 @@ export default function ProductsPage() {
           .map((product) => {
             const badge = getOfferLabel(product.offer_type);
             return (
-              <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex items-center gap-5 hover:border-brand-blue/50 transition-all group">
+              <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex items-center gap-5 hover:border-brand-blue/50 transition-all group shadow-sm">
 
                 {/* Icone / Imagem */}
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
@@ -200,9 +200,9 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                {/* Infos */}
+                {/* Informações */}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg">{product.name}</h3>
                     <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${badge.color}`}>
                       {badge.label}
@@ -210,12 +210,12 @@ export default function ProductsPage() {
                   </div>
                   <div className="flex items-center gap-4 text-sm text-slate-500">
                     <span>{product._count?.modules || 0} Módulos</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                     <span>Liberação: {product.release_type === 'immediate' ? 'Imediata' : product.release_type === 'days' ? `${product.release_value} dias` : `Em ${product.release_value}`}</span>
                   </div>
                 </div>
 
-                {/* Ações */}
+                {/* Botões de Ação */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => navigate(`/dashboard/apps/${appId}/products/${product.id}`)}
@@ -237,17 +237,23 @@ export default function ProductsPage() {
           })}
       </div>
 
-      {/* --- MODAL NOVO PRODUTO (Estilo Husky & Video) --- */}
+      {/* --- MODAL NOVO PRODUTO (Estilo Husky & Dark Mode Fix) --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-up flex flex-col max-h-[90vh]">
 
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 shrink-0">
+            {/* ✅ NAVBAR DO MODAL CORRIGIDA:
+                    - Fundo separado (slate-50/slate-950) para destacar
+                    - Border bottom para separar do conteúdo
+                */}
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 shrink-0">
               <h3 className="font-bold text-lg text-slate-900 dark:text-white">Novo Produto</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+            <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
 
               {/* 1. Upload Logo */}
               <div className="flex flex-col items-center justify-center mb-2">
@@ -269,12 +275,13 @@ export default function ProductsPage() {
 
               {/* 2. Nome */}
               <div>
+                {/* ✅ CORREÇÃO: Removido 'block' para evitar conflito com 'flex' */}
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
                   Nome do Produto *
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none text-sm font-medium"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none text-sm font-medium text-slate-900 dark:text-white"
                   placeholder="Ex: Comunidade Premium"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -286,15 +293,17 @@ export default function ProductsPage() {
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5">
                   Tipo de Liberação <HelpCircle className="w-3 h-3 cursor-help text-slate-400" />
                 </label>
-                <select
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-700 dark:text-slate-300 appearance-none cursor-pointer"
-                  value={formData.release_type}
-                  onChange={e => setFormData({ ...formData, release_type: e.target.value as any })}
-                >
-                  <option value="immediate">Liberação Imediata</option>
-                  <option value="days">Dias após a Compra</option>
-                  <option value="date">Data Exata</option>
-                </select>
+                <div className="relative">
+                  <select
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-700 dark:text-slate-300 appearance-none cursor-pointer"
+                    value={formData.release_type}
+                    onChange={e => setFormData({ ...formData, release_type: e.target.value as any })}
+                  >
+                    <option value="immediate">Liberação Imediata</option>
+                    <option value="days">Dias após a Compra</option>
+                    <option value="date">Data Exata</option>
+                  </select>
+                </div>
               </div>
 
               {/* Condicional: Valor da Liberação */}
@@ -303,7 +312,7 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     placeholder="Ex: 7 (dias)"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-900 dark:text-white"
                     value={formData.release_value}
                     onChange={e => setFormData({ ...formData, release_value: e.target.value })}
                   />
@@ -313,7 +322,7 @@ export default function ProductsPage() {
                 <div className="animate-slide-up">
                   <input
                     type="date"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-900 dark:text-white"
                     value={formData.release_value}
                     onChange={e => setFormData({ ...formData, release_value: e.target.value })}
                   />
@@ -335,10 +344,10 @@ export default function ProductsPage() {
                   <option value="order_bump">Order Bump (Oferta Adicional)</option>
                   <option value="upsell">Upsell / Downsell (Oferta Extra)</option>
                 </select>
-                <p className="text-[10px] text-slate-400 mt-1.5 ml-1">
-                  {formData.offer_type === 'main' && "Aparece na lista de cursos do aluno."}
+                <p className="text-[10px] text-slate-400 mt-2 ml-1 leading-relaxed">
+                  {formData.offer_type === 'main' && "Aparece liberado na lista para quem comprou."}
                   {formData.offer_type === 'bonus' && "Liberado automaticamente como bônus."}
-                  {(formData.offer_type === 'order_bump' || formData.offer_type === 'upsell') && "Aparece bloqueado ou como banner para compra."}
+                  {(formData.offer_type === 'order_bump' || formData.offer_type === 'upsell') && "Aparece bloqueado (cadeado) ou como banner de oferta."}
                 </p>
               </div>
 
@@ -352,7 +361,7 @@ export default function ProductsPage() {
                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <input
                       type="text"
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-sm text-slate-900 dark:text-white"
                       placeholder="https://pay.kiwify.com.br/..."
                       value={formData.checkout_url}
                       onChange={e => setFormData({ ...formData, checkout_url: e.target.value })}
@@ -362,25 +371,27 @@ export default function ProductsPage() {
               )}
 
               {/* 6. IDs da Plataforma */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <label className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase mb-1.5 justify-between">
                   <span>IDs na Plataforma</span>
-                  <span className="text-brand-blue text-[10px] cursor-pointer hover:underline">Como obter o ID?</span>
+                  <span className="text-brand-blue text-[10px] cursor-pointer hover:underline flex items-center gap-1">
+                    <Copy className="w-3 h-3" /> Como pegar ID?
+                  </span>
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none font-mono text-sm"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-blue/20 outline-none font-mono text-sm text-slate-900 dark:text-white"
                     placeholder="Cole o ID do produto aqui"
                     value={formData.platform_product_id}
                     onChange={e => setFormData({ ...formData, platform_product_id: e.target.value })}
                   />
-                  <button className="px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold text-lg hover:bg-slate-200 transition-colors">+</button>
+                  <button className="px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 font-bold text-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">+</button>
                 </div>
-                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg flex gap-2 items-start">
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg flex gap-3 items-start">
                   <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-relaxed">
-                    Este ID conecta o pagamento à liberação. Sem ele, o aluno não recebe o acesso automático.
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-relaxed font-medium">
+                    Este ID conecta o pagamento à liberação automática. Cole o ID que aparece na URL ou Webhook da sua plataforma (Kiwify, Hotmart, etc).
                   </p>
                 </div>
               </div>
