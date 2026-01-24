@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase, Profile } from '../lib/supabase';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Hook para ler a URL
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,9 +28,24 @@ const AuthCallback = () => {
           return;
         }
 
-        console.log('[AuthCallback] Sessão encontrada, buscando profile...');
+        // ✅ NOVA LÓGICA CRÍTICA PARA ALUNOS (MAGIC LINK)
+        // Verifica se existe um destino específico na URL (parametro ?next=...)
+        const params = new URLSearchParams(location.search);
+        const next = params.get('next');
 
-        // 2. Buscar profile do usuário
+        if (next) {
+          console.log('[AuthCallback] Redirecionamento forçado encontrado (Aluno/MagicLink):', next);
+          // Redireciona imediatamente para a rota do App do Aluno
+          navigate(next, { replace: true });
+          return;
+        }
+
+        // --- DAQUI PARA BAIXO: LÓGICA PARA CRIADORES (DASHBOARD) ---
+        // Se não tem 'next', assumimos que é um Criador logando no Dashboard
+
+        console.log('[AuthCallback] Sessão encontrada, buscando profile de Criador...');
+
+        // 2. Buscar profile do usuário (Criador)
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -73,7 +89,7 @@ const AuthCallback = () => {
           return;
         }
 
-        // 3. Determinar redirecionamento baseado no plan_status (CAMPO CORRETO!)
+        // 3. Determinar redirecionamento baseado no plan_status
         const redirectPath = determineRedirectPath(profile as Profile);
         console.log('[AuthCallback] Redirecionando para:', redirectPath, '| plan_status:', profile?.plan_status);
 
@@ -87,7 +103,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, location]);
 
   // Função para determinar redirecionamento baseada SOMENTE no status
   const determineRedirectPath = (profile: Profile | null): string => {
@@ -98,7 +114,6 @@ const AuthCallback = () => {
     const { plan_status } = profile;
 
     // Se o status for 'active' (pago) ou 'trial' (período de teste válido), libera o dashboard.
-    // O Stripe/Webhook são responsáveis por mudar 'trial' para 'active' ou 'expired'.
     if (plan_status === 'active' || plan_status === 'trial') {
       return '/dashboard';
     }
