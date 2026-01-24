@@ -7,7 +7,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Configuração do Cliente
+// 🔧 CORREÇÃO: Timeout mais generoso para RLS
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -15,10 +15,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: 'pkce',
   },
+  global: {
+    headers: {
+      'x-client-info': 'tribebuild-app',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
 });
 
-// --- TIPOS (ESSENCIAIS PARA O AUTHCONTEXT) ---
-
+// 🔧 CORREÇÃO: Tipo Profile EXATAMENTE como no banco
 export type Profile = {
   id: string;
   email: string;
@@ -27,11 +34,9 @@ export type Profile = {
   phone: string | null;
   avatar_url: string | null;
   plan: 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
-  plan_status: 'free' | 'trial' | 'active' | 'canceled' | 'expired';
-  products: string[]; // ✅ ADICIONADO: Array de IDs de produtos comprados pelo aluno
+  plan_status: 'trial' | 'active' | 'canceled' | 'expired'; // 🔧 Removido 'free'
   trial_ends_at: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -45,9 +50,6 @@ export type App = {
   logo_url: string | null;
   primary_color: string;
   secondary_color: string;
-  language: string; // ✅ ADICIONADO: Conforme seu script SQL
-  custom_domain: string | null; // ✅ ADICIONADO: Conforme seu script SQL
-  status: 'draft' | 'published'; // ✅ ADICIONADO: Conforme seu script SQL
   is_active: boolean;
   settings: Record<string, any>;
   created_at: string;
@@ -60,16 +62,6 @@ export type Product = {
   name: string;
   description: string | null;
   thumbnail_url: string | null;
-
-  // ✅ NOVOS CAMPOS (Padrão Husky)
-  offer_type: 'main' | 'bonus' | 'order_bump' | 'upsell';
-  release_type: 'immediate' | 'days_after' | 'exact_date';
-  release_days: number | null;
-  release_date: string | null;
-  platform_ids: string[]; // Array de IDs externos
-  sales_page_url: string | null;
-
-  checkout_url: string | null; // Mantido para compatibilidade legado
   price: number;
   is_active: boolean;
   order_index: number;
@@ -77,24 +69,16 @@ export type Product = {
   updated_at: string;
 };
 
-export type Client = {
+export type Module = {
   id: string;
-  app_id: string;
-  email: string;
-  full_name: string | null;
-  phone: string | null;
-  avatar_url: string | null;
-  status: 'active' | 'inactive' | 'blocked';
-  source: string;
-  products: string[]; // ✅ ADICIONADO: Para controle individual de Upsells por aluno
-  external_id: string | null;
-  metadata: Record<string, any>;
-  last_access_at: string | null;
+  product_id: string;
+  name: string;
+  description: string | null;
+  order_index: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };
-
-// ... restante dos tipos (Module, Lesson, Integration, Subscription) permanecem iguais ...
 
 export type Lesson = {
   id: string;
@@ -108,6 +92,52 @@ export type Lesson = {
   order_index: number;
   is_active: boolean;
   is_free: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Client = {
+  id: string;
+  app_id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  status: 'active' | 'inactive' | 'blocked';
+  source: string;
+  external_id: string | null;
+  metadata: Record<string, any>;
+  last_access_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Integration = {
+  id: string;
+  user_id: string;
+  app_id: string;
+  platform: string;
+  webhook_url: string;
+  webhook_secret: string | null;
+  is_active: boolean;
+  product_mapping: Record<string, any>;
+  last_webhook_at: string | null;
+  webhook_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  plan: 'starter' | 'professional' | 'business' | 'enterprise';
+  status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing';
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
   created_at: string;
   updated_at: string;
 };
