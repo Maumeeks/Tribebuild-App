@@ -80,14 +80,12 @@ const AppRoutes: React.FC = () => {
         {/* Rota Raiz do Slug redireciona para Login */}
         <Route path="/:appSlug" element={<RedirectToLogin />} />
 
-        {/* Rotas de Autenticação do Aluno */}
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/:appSlug/login" element={<PwaLoginPage />} />
         <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
         <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
+        {/* ✅ ROTA NOVA DE RECUPERAÇÃO DE SENHA */}
         <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
-        {/* Rotas Logadas do Aluno */}
         <Route path="/:appSlug/home" element={<PwaHomePage />} />
         <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
         <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
@@ -129,7 +127,6 @@ const AppRoutes: React.FC = () => {
       <Route path="/app/:appSlug" element={<RedirectToLogin />} />
       <Route path="/app/:appSlug/login" element={<PwaLoginPage />} />
 
-      {/* 3️⃣ ROTAS DO DASHBOARD (ÁREA DO CRIADOR) */}
       <Route
         path="/dashboard"
         element={
@@ -140,22 +137,12 @@ const AppRoutes: React.FC = () => {
       >
         <Route index element={<DashboardHome />} />
         <Route path="academia" element={<AcademiaPage />} />
-
-        {/* Gestão de Apps */}
         <Route path="apps" element={<AppsPage />} />
-        <Route path="builder" element={<AppBuilder />} />
-
-        {/* Gestão de Produtos */}
         <Route path="apps/:appId/products" element={<ProductsPage />} />
-        {/* ✅ A ROTA DO LÁPIS (CRÍTICA) */}
-        <Route path="apps/:appId/products/:productId" element={<ContentManager />} />
-
-        {/* Outras Funcionalidades do App */}
         <Route path="apps/:appId/feed" element={<FeedPage />} />
         <Route path="apps/:appId/community" element={<CommunityPage />} />
         <Route path="apps/:appId/notifications" element={<NotificationsPage />} />
-
-        {/* Ferramentas Gerais */}
+        <Route path="builder" element={<AppBuilder />} />
         <Route path="content" element={<ContentManager />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
