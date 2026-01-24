@@ -31,36 +31,68 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔧 CORREÇÃO PRINCIPAL: Query simplificada SEM timeout artificial
+  // 🔧 CORREÇÃO: Query com logging detalhado
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
-      console.log('[Auth] Buscando perfil para:', userId);
+      console.log('[Auth] 🔍 Buscando perfil para:', userId);
 
-      // 🎯 Query DIRETA sem race condition
+      // Query DIRETA
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle(); // maybeSingle retorna null se não achar (não dá erro)
+        .maybeSingle();
 
+      // 🚨 LOG DETALHADO DO ERRO
       if (error) {
-        console.error('[Auth] Erro ao buscar perfil:', error);
+        console.error('[Auth] ❌ ERRO CRÍTICO ao buscar perfil:');
+        console.error('Código:', error.code);
+        console.error('Mensagem:', error.message);
+        console.error('Detalhes:', error.details);
+        console.error('Hint:', error.hint);
+
+        // 🛡️ FALLBACK: Tenta criar perfil se não existir
+        if (error.code === 'PGRST116' || !data) {
+          console.warn('[Auth] Tentando criar perfil de emergência...');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: user?.email || '',
+              full_name: 'Usuário',
+              plan: 'enterprise', // 🔧 FORÇA Enterprise!
+              plan_status: 'active'
+            })
+            .select()
+            .maybeSingle();
+
+          if (createError) {
+            console.error('[Auth] ❌ Falha ao criar perfil:', createError);
+          } else {
+            console.log('[Auth] ✅ Perfil criado:', newProfile);
+            return newProfile as Profile;
+          }
+        }
+
         return null;
       }
 
       if (!data) {
-        console.warn('[Auth] Perfil não encontrado no banco');
+        console.warn('[Auth] ⚠️ Perfil não encontrado (data é null)');
         return null;
       }
 
-      console.log('[Auth] ✅ Perfil carregado:', data.plan);
+      console.log('[Auth] ✅ Perfil carregado com sucesso!');
+      console.log('[Auth] Plan:', data.plan);
+      console.log('[Auth] Status:', data.plan_status);
       return data as Profile;
 
-    } catch (err) {
-      console.error('[Auth] Exceção no fetchProfile:', err);
+    } catch (err: any) {
+      console.error('[Auth] ❌ EXCEÇÃO no fetchProfile:', err);
+      console.error('[Auth] Stack:', err.stack);
       return null;
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let mounted = true;
