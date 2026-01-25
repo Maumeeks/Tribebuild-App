@@ -55,7 +55,7 @@ const bonusList: Bonus[] = [
     value: 56,
     icon: Headphones,
     color: 'text-brand-coral',
-    downloadUrl: 'https://wa.me/5561982199922',
+    downloadUrl: 'https://wa.me/5511994066395',
     type: 'access',
   },
 ];
@@ -75,7 +75,7 @@ const BonusPage: React.FC = () => {
       const now = new Date();
       const registrationDate = new Date(profile.created_at);
       const unlockDate = new Date(registrationDate);
-      unlockDate.setDate(unlockDate.getDate() - 1);
+      unlockDate.setDate(unlockDate.getDate() + 7);
 
       const difference = unlockDate.getTime() - now.getTime();
 

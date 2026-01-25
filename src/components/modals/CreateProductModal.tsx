@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Upload, Loader2, HelpCircle, Link as LinkIcon, Copy, AlertCircle } from 'lucide-react';
+import { X, Upload, Loader2, HelpCircle, Link as LinkIcon, Copy, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useParams, useLocation } from 'react-router-dom';
 import Button from '../Button';
@@ -20,21 +20,14 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
 
     // Estados do Formulário
     const [name, setName] = useState('');
-
-    // Configurações Husky
-    const [releaseType, setReleaseType] = useState('immediate'); // immediate, days, date
+    const [releaseType, setReleaseType] = useState('immediate');
     const [releaseValue, setReleaseValue] = useState('');
-
-    const [offerType, setOfferType] = useState('main'); // main, bonus, order_bump, upsell
-
-    const [platformId, setPlatformId] = useState('');
+    const [offerType, setOfferType] = useState('main');
+    const [externalId, setExternalId] = useState(''); // ✅ RENOMEADO
     const [checkoutUrl, setCheckoutUrl] = useState('');
-
-    // Imagem
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-    // Identificar App ID
     const getAppIdentifier = () => {
         if (params.appSlug) return params.appSlug;
         if (params.id) return params.id;
@@ -46,7 +39,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const appSlug = getAppIdentifier();
     const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-    // Carregar dados na edição
     useEffect(() => {
         if (isOpen) {
             if (productToEdit) {
@@ -54,16 +46,15 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 setReleaseType(productToEdit.release_type || 'immediate');
                 setReleaseValue(productToEdit.release_value || '');
                 setOfferType(productToEdit.offer_type || 'main');
-                setPlatformId(productToEdit.platform_product_id || '');
+                setExternalId(productToEdit.external_id || ''); // ✅ CORRIGIDO
                 setCheckoutUrl(productToEdit.checkout_url || '');
                 setCoverPreview(productToEdit.image_url || productToEdit.thumbnail_url || null);
             } else {
-                // Reset
                 setName('');
                 setReleaseType('immediate');
                 setReleaseValue('');
                 setOfferType('main');
-                setPlatformId('');
+                setExternalId(''); // ✅ CORRIGIDO
                 setCheckoutUrl('');
                 setCoverPreview(null);
                 setCoverImage(null);
@@ -83,9 +74,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
 
     const handleSubmit = async () => {
         if (!name.trim()) return alert('Nome é obrigatório');
-
-        // Validações simples
-        if (releaseType !== 'immediate' && !releaseValue) return alert('Defina o valor da liberação (dias ou data).');
+        if (releaseType !== 'immediate' && !releaseValue) return alert('Defina o valor da liberação.');
 
         try {
             setLoading(true);
@@ -107,10 +96,11 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 release_type: releaseType,
                 release_value: releaseValue,
                 offer_type: offerType,
-                platform_product_id: platformId,
-                checkout_url: checkoutUrl,
+                external_id: externalId || null, // ✅ CORRIGIDO
+                checkout_url: checkoutUrl || null,
                 image_url: finalCoverUrl,
-                status: 'published' // Default
+                thumbnail_url: finalCoverUrl, // ✅ Compatibilidade
+                status: 'published'
             };
 
             // 3. Salvar no Banco
@@ -118,7 +108,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 const { error } = await supabase.from('products').update(payload).eq('id', productToEdit.id);
                 if (error) throw error;
             } else {
-                // Descobrir App ID se for novo
                 let appId = null;
                 if (appSlug) {
                     let query = supabase.from('apps').select('id');
@@ -144,13 +133,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         }
     };
 
-    // Renderizado via Portal (Igual ao CreateLessonModal)
     return ReactDOM.createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            {/* Backdrop Blur */}
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-            {/* Container do Modal (Visual Husky/Lesson) */}
             <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] animate-scale-in border border-slate-200 dark:border-slate-800 font-['inter']">
 
                 {/* Header */}
@@ -159,17 +145,17 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                             {productToEdit ? 'Editar Produto' : 'Novo Produto'}
                         </h3>
-                        <p className="text-sm text-slate-500">Preencha as informações do produto</p>
+                        <p className="text-sm text-slate-500">Configure o produto e a liberação automática</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                         <X size={20} className="text-slate-400 hover:text-slate-600" />
                     </button>
                 </div>
 
-                {/* Corpo com Scroll */}
+                {/* Corpo */}
                 <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/50">
 
-                    {/* 1. Logo Centralizada (Husky Style) */}
+                    {/* Logo */}
                     <div className="flex flex-col items-center justify-center">
                         <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Logo do Produto</label>
                         <div
@@ -190,7 +176,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    {/* 2. Nome do Produto */}
+                    {/* Nome */}
                     <div>
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Nome do Produto *</label>
                         <input
@@ -198,11 +184,11 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10 outline-none transition-all font-medium"
-                            placeholder="Ex: Comunidade Premium"
+                            placeholder="Ex: Curso Completo de Adestramento"
                         />
                     </div>
 
-                    {/* 3. Tipo de Liberação */}
+                    {/* Tipo de Liberação */}
                     <div>
                         <div className="flex items-center gap-1 mb-2">
                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">Tipo de Liberação</label>
@@ -219,7 +205,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                                 <option value="date">Data Exata</option>
                             </select>
 
-                            {/* Inputs Condicionais de Liberação */}
                             {releaseType === 'days' && (
                                 <input
                                     type="number"
@@ -240,7 +225,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    {/* 4. Tipo de Oferta */}
+                    {/* Tipo de Oferta */}
                     <div>
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Tipo de Oferta *</label>
                         <select
@@ -254,13 +239,13 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                             <option value="upsell">Upsell / Downsell (Oferta Extra)</option>
                         </select>
                         <p className="text-[10px] text-slate-500 mt-2 ml-1">
-                            {offerType === 'main' && "Aparece liberado na lista de cursos."}
-                            {offerType === 'bonus' && "Liberado automaticamente como bônus."}
-                            {(offerType === 'order_bump' || offerType === 'upsell') && "Aparece bloqueado ou como banner de oferta."}
+                            {offerType === 'main' && "Liberado automaticamente após compra"}
+                            {offerType === 'bonus' && "Liberado junto com o produto principal"}
+                            {(offerType === 'order_bump' || offerType === 'upsell') && "Requer compra separada"}
                         </p>
                     </div>
 
-                    {/* 5. Link de Checkout (Opcional - só para upsell) */}
+                    {/* Checkout URL (Order Bump/Upsell) */}
                     {(offerType === 'order_bump' || offerType === 'upsell') && (
                         <div className="animate-slide-up">
                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block mb-2">Link de Checkout</label>
@@ -277,36 +262,39 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     )}
 
-                    {/* 6. IDs da Plataforma (Husky Style) */}
+                    {/* ✅ SEÇÃO PRINCIPAL: ID EXTERNO (CRITICAL) */}
                     <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-1">
-                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">IDs na Plataforma</label>
-                                <HelpCircle size={12} className="text-slate-400" />
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">ID do Produto (Hotmart/Kiwify)</label>
+                                <Info size={14} className="text-brand-blue cursor-help" />
                             </div>
-                            <button className="text-[10px] font-bold text-brand-blue flex items-center gap-1 hover:underline">
-                                <Copy size={10} /> Como obter o ID?
-                            </button>
                         </div>
 
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={platformId}
-                                onChange={(e) => setPlatformId(e.target.value)}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono text-slate-600 dark:text-slate-400"
-                                placeholder="Cole o ID do produto aqui"
-                            />
-                            {/* Botão visual de adicionar (pode ser funcional no futuro para multiplos IDs) */}
-                            <button className="px-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-lg">+</button>
-                        </div>
+                        <input
+                            type="text"
+                            value={externalId}
+                            onChange={(e) => setExternalId(e.target.value)}
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono text-slate-600 dark:text-slate-400"
+                            placeholder="Cole o ID aqui (ex: editABC123...)"
+                        />
 
-                        {/* Aviso informativo igual ao Husky */}
-                        <div className="mt-3 flex gap-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
-                            <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Este ID conecta o pagamento à liberação automática. Cole o ID que aparece na URL ou Webhook da sua plataforma (Kiwify, Hotmart, etc).
-                            </p>
+                        {/* Avisos Informativos */}
+                        <div className="mt-4 space-y-2">
+                            <div className="flex gap-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
+                                <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                                <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    <strong className="font-bold">Hotmart:</strong> O ID está na URL do produto (depois de <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">prod/</code>)<br />
+                                    <strong className="font-bold">Kiwify:</strong> O ID começa com <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">edit</code> e está na URL de edição
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-xl">
+                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    <strong className="font-bold">Importante:</strong> Sem este ID, o produto NÃO será liberado automaticamente após a compra.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -316,7 +304,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900 rounded-b-xl shrink-0">
                     <button onClick={onClose} className="px-6 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
                     <Button onClick={handleSubmit} isLoading={loading} className="px-8 py-3 text-xs font-bold uppercase shadow-lg shadow-brand-blue/20">
-                        {productToEdit ? 'Salvar Alterações' : 'Criar Produto'}
+                        {productToEdit ? 'Salvar' : 'Criar Produto'}
                     </Button>
                 </div>
 
