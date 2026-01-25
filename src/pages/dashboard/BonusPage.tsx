@@ -75,7 +75,7 @@ const BonusPage: React.FC = () => {
       const now = new Date();
       const registrationDate = new Date(profile.created_at);
       const unlockDate = new Date(registrationDate);
-      unlockDate.setDate(unlockDate.getDate() + 7);
+      unlockDate.setDate(unlockDate.getDate() - 1);
 
       const difference = unlockDate.getTime() - now.getTime();
 
