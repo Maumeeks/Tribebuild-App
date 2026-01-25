@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, Profile } from '../lib/supabase'; // Certifique-se que Profile está exportado corretamente
+import { supabase, Profile } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -31,129 +31,154 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🛡️ PROTEÇÃO 1: Busca de perfil robusta com Timeout e Auto-Criação
-  const fetchProfile = useCallback(async (userId: string, userEmail?: string): Promise<Profile | null> => {
-    try {
-      // Timeout Promise: Rejeita se demorar mais de 6s (margem de segurança)
-      const timeoutPromise = new Promise<{ data: null; error: { code: string; message: string } }>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 6000)
-      );
+  // 🔧 CORREÇÃO: Query otimizada com retry
+  const fetchProfile = useCallback(async (userId: string, retries = 3): Promise<Profile | null> => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`[Auth] 🔍 Tentativa ${attempt}/${retries} - Buscando perfil...`);
 
-      // Busca do Supabase
-      const fetchPromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
 
-      // Corrida: Banco de Dados vs Timeout
-      // @ts-ignore - Supabase types compatibility
-      const result = await Promise.race([fetchPromise, timeoutPromise]);
-      const { data, error } = result;
+        if (error) {
+          console.error(`[Auth] ❌ Erro na tentativa ${attempt}:`, error.message);
 
-      if (error) {
-        // 🛡️ PROTEÇÃO 3: Auto-Healing (Se não achar, cria!)
-        // PGRST116: JSON object requested, multiple (or no) rows returned
-        if (error.code === 'PGRST116') {
-          console.warn('[Auth] Perfil não encontrado. Criando perfil de emergência...');
-
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: userId,
-              email: userEmail || '',
-              full_name: 'Usuário',
-              plan: 'starter',
-              plan_status: 'active',
-              // Adicione aqui outros campos obrigatórios do seu banco com valores default
-            }])
-            .select()
-            .single();
-
-          if (!createError && newProfile) {
-            console.log('[Auth] Perfil de emergência criado.');
-            return newProfile as Profile;
+          // Se for último retry e ainda não tem perfil, NÃO cria
+          if (attempt === retries) {
+            console.error('[Auth] 🚨 Todas tentativas falharam');
+            return null;
           }
 
-          console.error('[Auth] Falha ao criar perfil de emergência:', createError);
+          // Aguarda antes do próximo retry (100ms, 200ms, 300ms)
+          await new Promise(resolve => setTimeout(resolve, attempt * 100));
+          continue;
         }
 
-        // Se for outro erro, apenas loga e retorna null
-        if (error.code !== 'PGRST116') {
-          console.error('[Auth] Erro ao buscar profile:', error.message);
+        if (!data) {
+          console.warn('[Auth] ⚠️ Perfil não encontrado no banco');
+
+          // IMPORTANTE: Não cria perfil automaticamente!
+          // O trigger do Supabase deve fazer isso
+          return null;
         }
-        return null;
+
+        console.log('[Auth] ✅ Perfil carregado!');
+        console.log('[Auth] 📊 Plan:', data.plan, '| Status:', data.plan_status);
+        return data as Profile;
+
+      } catch (err: any) {
+        console.error(`[Auth] ❌ Exceção na tentativa ${attempt}:`, err.message);
+
+        if (attempt === retries) {
+          return null;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, attempt * 100));
       }
-
-      return data as Profile;
-
-    } catch (err) {
-      console.error('[Auth] Exceção no fetchProfile:', err);
-      return null;
     }
+
+    return null;
   }, []);
 
   useEffect(() => {
     let mounted = true;
+    let authSubscription: any = null;
 
     const initializeAuth = async () => {
       try {
-        // 1. Verificar sessão atual imediatamente
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log('[Auth] 🚀 Inicializando...');
 
-        if (mounted) {
-          if (initialSession?.user) {
-            setSession(initialSession);
-            setUser(initialSession.user);
-            const userProfile = await fetchProfile(initialSession.user.id, initialSession.user.email);
-            if (mounted) setProfile(userProfile);
+        // Aguarda 200ms para garantir que o Supabase está pronto
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('[Auth] ❌ Erro ao buscar sessão:', error);
+          if (mounted) setLoading(false);
+          return;
+        }
+
+        if (mounted && initialSession?.user) {
+          console.log('[Auth] ✅ Sessão encontrada:', initialSession.user.email);
+          setSession(initialSession);
+          setUser(initialSession.user);
+
+          // Aguarda mais 300ms antes de buscar o perfil
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          const userProfile = await fetchProfile(initialSession.user.id);
+          if (mounted) {
+            setProfile(userProfile);
+            setLoading(false);
           }
+        } else {
+          console.log('[Auth] ℹ️ Nenhuma sessão ativa');
+          if (mounted) setLoading(false);
         }
       } catch (error) {
-        console.error('[Auth] Erro na inicialização:', error);
-      } finally {
+        console.error('[Auth] ❌ Erro fatal na inicialização:', error);
         if (mounted) setLoading(false);
       }
     };
 
     initializeAuth();
 
-    // 2. Configurar Listener para mudanças futuras
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (!mounted) return;
+    // Listener de mudanças de auth
+    const setupAuthListener = async () => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, newSession) => {
+          if (!mounted) return;
 
-        console.log(`[Auth] Evento: ${event}`);
+          console.log(`[Auth] 📡 Evento: ${event}`);
 
-        if (event === 'SIGNED_OUT' || !newSession) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        } else if (newSession?.user) {
-          // Apenas atualiza se a sessão for diferente ou se o usuário mudou
-          setSession(newSession);
-          setUser(newSession.user);
+          if (event === 'SIGNED_OUT' || !newSession) {
+            console.log('[Auth] 👋 Usuário deslogado');
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          } else if (event === 'SIGNED_IN' && newSession?.user) {
+            console.log('[Auth] 👤 Login detectado:', newSession.user.email);
+            setSession(newSession);
+            setUser(newSession.user);
 
-          // Se for login ou token refresh, garantimos o perfil atualizado
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-            // Opcional: Só busca se ainda não tiver profile carregado ou se for um evento crítico
-            const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
-            if (mounted) setProfile(userProfile);
+            // Aguarda 500ms após login para buscar perfil
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const userProfile = await fetchProfile(newSession.user.id);
+            if (mounted) {
+              setProfile(userProfile);
+              setLoading(false);
+            }
+          } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+            console.log('[Auth] 🔄 Token atualizado');
+            setSession(newSession);
+            setUser(newSession.user);
+            // Não busca perfil no refresh para evitar chamadas desnecessárias
+            setLoading(false);
+          } else if (event === 'INITIAL_SESSION') {
+            // Ignora INITIAL_SESSION pois já foi tratado no initializeAuth
+            console.log('[Auth] ℹ️ INITIAL_SESSION ignorado (já tratado)');
           }
-          setLoading(false);
         }
-      }
-    );
+      );
+
+      authSubscription = subscription;
+    };
+
+    setupAuthListener();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      authSubscription?.unsubscribe();
     };
   }, [fetchProfile]);
 
   const signUp = async (email: string, password: string, fullName: string, cpf?: string, phone?: string) => {
-    // 1. Cria usuário no Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -166,43 +191,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       },
     });
 
-    // 2. Se sucesso e auto-confirmado, força a criação do profile imediatamente
-    // Isso evita depender apenas do Auto-Healing no primeiro load
-    if (!error && data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-          plan: 'starter',
-          plan_status: 'active'
-        }]);
-
-      if (profileError) console.warn('[Auth] Aviso: Profile não criado no cadastro (será criado no healing).', profileError);
-    }
-
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
-      // Garante que o estado limpe se der erro
+      console.error('[Auth] ❌ Erro no login:', error);
       setLoading(false);
     }
+    // Não seta loading false aqui pois o listener vai cuidar disso
+
     return { error };
   };
 
   const signOut = async () => {
+    console.log('[Auth] 🚪 Fazendo logout...');
     setLoading(true);
     await supabase.auth.signOut();
-    // O Listener (SIGNED_OUT) cuidará de limpar o estado e setar loading false
   };
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`, // Ajuste a rota conforme seu app
+      redirectTo: `${window.location.origin}/update-password`,
     });
     return { error };
   };
@@ -210,22 +223,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('Usuário não autenticado') };
 
+    console.log('[Auth] 💾 Atualizando perfil...');
     const { error } = await supabase
       .from('profiles')
       .update(updates)
       .eq('id', user.id);
 
     if (!error && profile) {
-      // Atualização otimista da UI
-      setProfile({ ...profile, ...updates });
+      const updatedProfile = { ...profile, ...updates };
+      setProfile(updatedProfile);
+      console.log('[Auth] ✅ Perfil atualizado:', updatedProfile.plan);
+    } else if (error) {
+      console.error('[Auth] ❌ Erro ao atualizar:', error);
     }
+
     return { error };
   };
 
   const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    setLoading(true); // Feedback visual opcional
-    const userProfile = await fetchProfile(user.id, user.email);
+    if (!user) {
+      console.warn('[Auth] ⚠️ Não pode atualizar: usuário não autenticado');
+      return;
+    }
+
+    console.log('[Auth] 🔄 Atualizando perfil manualmente...');
+    setLoading(true);
+    const userProfile = await fetchProfile(user.id);
     setProfile(userProfile);
     setLoading(false);
   }, [user, fetchProfile]);
