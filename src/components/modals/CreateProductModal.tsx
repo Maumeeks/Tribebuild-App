@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Upload, Loader2, HelpCircle, Link as LinkIcon, Copy, AlertCircle, Info } from 'lucide-react';
+import { X, Upload, Loader2, HelpCircle, Link as LinkIcon, Copy, AlertCircle, Info, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useParams, useLocation } from 'react-router-dom';
 import Button from '../Button';
@@ -93,13 +93,13 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             // 2. Preparar Payload
             const payload: any = {
                 name,
-                release_type: releaseType,
-                release_value: releaseValue,
+                release_type: offerType === 'bonus' ? 'immediate' : releaseType, // ✅ FORÇAR IMEDIATO PARA BÔNUS
+                release_value: offerType === 'bonus' ? null : releaseValue, // ✅ NULL PARA BÔNUS
                 offer_type: offerType,
-                external_id: externalId || null, // ✅ CORRIGIDO
+                external_id: offerType === 'bonus' ? null : (externalId || null), // ✅ NULL PARA BÔNUS
                 checkout_url: checkoutUrl || null,
                 image_url: finalCoverUrl,
-                thumbnail_url: finalCoverUrl, // ✅ Compatibilidade
+                thumbnail_url: finalCoverUrl,
                 status: 'published'
             };
 
@@ -262,41 +262,56 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     )}
 
-                    {/* ✅ SEÇÃO PRINCIPAL: ID EXTERNO (CRITICAL) */}
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">ID do Produto (Hotmart/Kiwify)</label>
-                                <Info size={14} className="text-brand-blue cursor-help" />
-                            </div>
-                        </div>
-
-                        <input
-                            type="text"
-                            value={externalId}
-                            onChange={(e) => setExternalId(e.target.value)}
-                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono text-slate-600 dark:text-slate-400"
-                            placeholder="Cole o ID aqui (ex: editABC123...)"
-                        />
-
-                        {/* Avisos Informativos */}
-                        <div className="mt-4 space-y-2">
-                            <div className="flex gap-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
-                                <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-                                <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    <strong className="font-bold">Hotmart:</strong> O ID está na URL do produto (depois de <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">prod/</code>)<br />
-                                    <strong className="font-bold">Kiwify:</strong> O ID começa com <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">edit</code> e está na URL de edição
+                    {/* ✅ SEÇÃO: ID EXTERNO - OCULTAR PARA BÔNUS */}
+                    {offerType !== 'bonus' && (
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">ID do Produto (Hotmart/Kiwify)</label>
+                                    <Info size={14} className="text-brand-blue cursor-help" />
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-xl">
-                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    <strong className="font-bold">Importante:</strong> Sem este ID, o produto NÃO será liberado automaticamente após a compra.
-                                </p>
+                            <input
+                                type="text"
+                                value={externalId}
+                                onChange={(e) => setExternalId(e.target.value)}
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono text-slate-600 dark:text-slate-400"
+                                placeholder="Cole o ID aqui (ex: editABC123...)"
+                            />
+
+                            {/* Avisos Informativos */}
+                            <div className="mt-4 space-y-2">
+                                <div className="flex gap-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
+                                    <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                                    <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        <strong className="font-bold">Hotmart:</strong> O ID está na URL do produto (depois de <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">prod/</code>)<br />
+                                        <strong className="font-bold">Kiwify:</strong> O ID começa com <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">edit</code> e está na URL de edição
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-xl">
+                                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        <strong className="font-bold">Importante:</strong> Sem este ID, o produto NÃO será liberado automaticamente após a compra.
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* ✅ AVISO PARA BÔNUS */}
+                    {offerType === 'bonus' && (
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                            <div className="flex gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                                <AlertCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                                <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    <strong className="font-bold text-emerald-700 dark:text-emerald-400">Bônus liberado automaticamente!</strong><br />
+                                    Este produto será liberado junto com o produto principal. Não precisa de ID externo.
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                 </div>
 
