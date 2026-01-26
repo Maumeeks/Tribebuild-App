@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   Link2, Check, Copy, X, AlertCircle, CheckCircle2,
-  Settings, Trash2, Zap, ShieldCheck, Loader2, Lock
+  Settings, Trash2, ShieldCheck, Loader2, Lock
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { useParams, useLocation } from 'react-router-dom';
 
 interface Platform {
   id: string;
   name: string;
-  logo: string; // ✅ Agora é path da imagem
+  logo: string;
   color: string;
   description: string;
   enabled: boolean;
@@ -30,7 +29,7 @@ const platformsConfig: Platform[] = [
   {
     id: 'hotmart',
     name: 'Hotmart',
-    logo: '/images/integrations/b4you.png', // ✅ PLACEHOLDER (ajuste depois)
+    logo: '/images/integrations/b4you.png',
     color: 'orange',
     description: 'Maior plataforma de produtos digitais da América Latina.',
     enabled: true,
@@ -39,7 +38,7 @@ const platformsConfig: Platform[] = [
   {
     id: 'kiwify',
     name: 'Kiwify',
-    logo: '/images/integrations/kiwify.png', // ✅ Caminho correto
+    logo: '/images/integrations/kiwify.png',
     color: 'emerald',
     description: 'Checkout de alta conversão para produtos digitais.',
     enabled: true,
@@ -85,11 +84,9 @@ const platformsConfig: Platform[] = [
 
 const IntegrationsPage: React.FC = () => {
   const { user } = useAuth();
-  const params = useParams();
-  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // ✅ NOVO
+  const [error, setError] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,26 +95,11 @@ const IntegrationsPage: React.FC = () => {
     open: false,
     integrationId: null
   });
-  const [appId, setAppId] = useState<string | null>(null);
 
-  const getAppIdentifier = () => {
-    if (params.appSlug) return params.appSlug;
-    if (params.id) return params.id;
-    const pathParts = location.pathname.split('/');
-    const appsIndex = pathParts.indexOf('apps');
-    if (appsIndex !== -1 && pathParts[appsIndex + 1]) return pathParts[appsIndex + 1];
-    return null;
-  };
-
-  const appSlug = getAppIdentifier();
-  const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-
+  // ✅ BUSCAR INTEGRAÇÕES DO USUÁRIO (GLOBAL)
   useEffect(() => {
     const fetchData = async () => {
-      // ✅ PROTEÇÃO: Se não tiver appSlug, não busca
-      if (!appSlug) {
-        console.error('[IntegrationsPage] App não identificado');
-        setError('App não identificado. Volte para a lista de apps.');
+      if (!user) {
         setLoading(false);
         return;
       }
@@ -126,24 +108,10 @@ const IntegrationsPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // 1. Buscar App ID
-        let query = supabase.from('apps').select('id');
-        if (isUUID(appSlug)) query = query.eq('id', appSlug);
-        else query = query.eq('slug', appSlug);
-
-        const { data: appData, error: appError } = await query.single();
-
-        if (appError || !appData) {
-          throw new Error("App não encontrado no banco de dados.");
-        }
-
-        setAppId(appData.id);
-
-        // 2. Buscar Integrações do App
         const { data: integrationsData, error: intError } = await supabase
           .from('integrations')
           .select('*')
-          .eq('app_id', appData.id);
+          .eq('user_id', user.id); // ✅ BUSCA POR USER
 
         if (intError) throw intError;
 
@@ -158,11 +126,12 @@ const IntegrationsPage: React.FC = () => {
     };
 
     fetchData();
-  }, [appSlug]);
+  }, [user]);
 
+  // ✅ WEBHOOK URL COM USER ID
   const generateWebhookUrl = (platform: string) => {
-    if (!appId) return 'https://api.tribebuild.pro/webhook/loading...';
-    return `https://api.tribebuild.pro/webhook/${platform}/${appId}`;
+    if (!user) return 'https://api.tribebuild.pro/webhook/loading...';
+    return `https://api.tribebuild.pro/webhook/${platform}/${user.id}`;
   };
 
   const handleCopyWebhook = async (url: string) => {
@@ -181,15 +150,16 @@ const IntegrationsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  // ✅ CONECTAR (SEM APP_ID)
   const handleConnect = async () => {
-    if (!selectedPlatform || !appId || !user) return;
+    if (!selectedPlatform || !user) return;
 
     try {
       const webhookUrl = generateWebhookUrl(selectedPlatform.id);
 
       const { error } = await supabase.from('integrations').insert([{
         user_id: user.id,
-        app_id: appId,
+        app_id: null, // ✅ NULL = GLOBAL
         platform: selectedPlatform.id,
         webhook_url: webhookUrl,
         is_active: true,
@@ -198,10 +168,11 @@ const IntegrationsPage: React.FC = () => {
 
       if (error) throw error;
 
+      // ✅ RECARREGAR INTEGRAÇÕES
       const { data } = await supabase
         .from('integrations')
         .select('*')
-        .eq('app_id', appId);
+        .eq('user_id', user.id); // ✅ BUSCA POR USER
 
       setIntegrations(data || []);
       setIsModalOpen(false);
@@ -235,7 +206,6 @@ const IntegrationsPage: React.FC = () => {
     return integrations.find(i => i.platform === platformId && i.is_active);
   };
 
-  // ✅ LOADING STATE
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
@@ -245,7 +215,6 @@ const IntegrationsPage: React.FC = () => {
     );
   }
 
-  // ✅ ERROR STATE
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
@@ -308,7 +277,6 @@ const IntegrationsPage: React.FC = () => {
                 )}
               >
                 <div className="flex justify-between items-start mb-4">
-                  {/* ✅ LOGO REAL DA PLATAFORMA */}
                   <div className={cn(
                     "w-11 h-11 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm transition-transform overflow-hidden",
                     platform.enabled && "group-hover:scale-105",
@@ -319,14 +287,12 @@ const IntegrationsPage: React.FC = () => {
                       alt={platform.name}
                       className="w-8 h-8 object-contain"
                       onError={(e) => {
-                        // Fallback se imagem não carregar
                         e.currentTarget.style.display = 'none';
                         e.currentTarget.parentElement!.innerHTML = platform.name.charAt(0);
                       }}
                     />
                   </div>
 
-                  {/* Badge de Status */}
                   {!platform.enabled ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] font-bold uppercase tracking-wide border border-amber-200 dark:border-amber-500/20">
                       <Lock className="w-3 h-3" /> Em Breve
@@ -347,7 +313,6 @@ const IntegrationsPage: React.FC = () => {
                   {platform.description}
                 </p>
 
-                {/* Botões */}
                 <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50 flex gap-2">
                   {!platform.enabled ? (
                     <button
@@ -389,8 +354,120 @@ const IntegrationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modais (igual ao código anterior, mantém igual) */}
-      {/* ... resto do código dos modais ... */}
+      {/* Modal de Configuração */}
+      {isModalOpen && selectedPlatform && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up border border-slate-200 dark:border-slate-800">
+
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <img src={selectedPlatform.logo} alt={selectedPlatform.name} className="w-6 h-6 object-contain" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+                  {isConnected(selectedPlatform.id) ? 'Webhook Configurado' : 'Conectar Plataforma'}
+                </h3>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="space-y-5">
+                <div className="flex gap-4 items-start">
+                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">01</span>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Acesse seu painel no <strong>{selectedPlatform.name}</strong> e procure por "Webhooks" ou "Postback".
+                  </p>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">02</span>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 font-bold">Cole esta URL no campo de destino:</p>
+                    <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-3">
+                      <code className="flex-1 text-[11px] text-blue-400 font-mono truncate">
+                        {generateWebhookUrl(selectedPlatform.id)}
+                      </code>
+                      <button
+                        onClick={() => handleCopyWebhook(generateWebhookUrl(selectedPlatform.id))}
+                        className="text-slate-400 hover:text-brand-blue transition-colors flex-shrink-0"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">03</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 font-bold">Selecione os eventos:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedPlatform.webhookEvents.map((evt, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px] font-bold text-slate-500 uppercase">
+                          {evt}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  Fechar
+                </button>
+                {!isConnected(selectedPlatform.id) && (
+                  <button
+                    onClick={handleConnect}
+                    className="flex-1 py-2.5 bg-brand-blue text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-600 transition-all shadow-md"
+                  >
+                    Confirmar Conexão
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Desconectar */}
+      {disconnectModal.open && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDisconnectModal({ open: false, integrationId: null })} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-slide-up border border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center mb-4 text-red-500">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Desconectar?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                Novos alunos não serão liberados automaticamente até reconectar.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setDisconnectModal({ open: false, integrationId: null })}
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold uppercase"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold uppercase shadow-lg"
+                >
+                  Desconectar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
