@@ -29,7 +29,7 @@ const platformsConfig: Platform[] = [
   {
     id: 'hotmart',
     name: 'Hotmart',
-    logo: '/images/integrations/b4you.png', // ✅ Ajuste depois para hotmart.png
+    logo: '/images/integrations/hotmart.png', // ✅ Ajuste depois para hotmart.png
     color: 'orange',
     description: 'Maior plataforma de produtos digitais da América Latina.',
     enabled: true,
@@ -274,7 +274,7 @@ const IntegrationsPage: React.FC = () => {
                 )}
               >
                 <div className="flex justify-between items-start mb-6">
-                  {/* ✅ LOGO MAIOR (como no HuskyApp) */}
+
                   <div className={cn(
                     "w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-md transition-transform p-3",
                     platform.enabled && "group-hover:scale-105",
