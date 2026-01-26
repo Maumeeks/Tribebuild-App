@@ -29,7 +29,7 @@ const platformsConfig: Platform[] = [
   {
     id: 'hotmart',
     name: 'Hotmart',
-    logo: '/images/integrations/b4you.png',
+    logo: '/images/integrations/b4you.png', // ✅ Ajuste depois para hotmart.png
     color: 'orange',
     description: 'Maior plataforma de produtos digitais da América Latina.',
     enabled: true,
@@ -96,7 +96,7 @@ const IntegrationsPage: React.FC = () => {
     integrationId: null
   });
 
-  // ✅ BUSCAR INTEGRAÇÕES DO USUÁRIO (GLOBAL)
+  // ✅ BUSCAR INTEGRAÇÕES APENAS UMA VEZ (SEM RECARREGAR)
   useEffect(() => {
     const fetchData = async () => {
       if (!user) {
@@ -111,7 +111,7 @@ const IntegrationsPage: React.FC = () => {
         const { data: integrationsData, error: intError } = await supabase
           .from('integrations')
           .select('*')
-          .eq('user_id', user.id); // ✅ BUSCA POR USER
+          .eq('user_id', user.id);
 
         if (intError) throw intError;
 
@@ -126,9 +126,8 @@ const IntegrationsPage: React.FC = () => {
     };
 
     fetchData();
-  }, [user]);
+  }, []); // ✅ ARRAY VAZIO = EXECUTA APENAS UMA VEZ
 
-  // ✅ WEBHOOK URL COM USER ID
   const generateWebhookUrl = (platform: string) => {
     if (!user) return 'https://api.tribebuild.pro/webhook/loading...';
     return `https://api.tribebuild.pro/webhook/${platform}/${user.id}`;
@@ -150,7 +149,6 @@ const IntegrationsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // ✅ CONECTAR (SEM APP_ID)
   const handleConnect = async () => {
     if (!selectedPlatform || !user) return;
 
@@ -159,7 +157,7 @@ const IntegrationsPage: React.FC = () => {
 
       const { error } = await supabase.from('integrations').insert([{
         user_id: user.id,
-        app_id: null, // ✅ NULL = GLOBAL
+        app_id: null,
         platform: selectedPlatform.id,
         webhook_url: webhookUrl,
         is_active: true,
@@ -168,11 +166,10 @@ const IntegrationsPage: React.FC = () => {
 
       if (error) throw error;
 
-      // ✅ RECARREGAR INTEGRAÇÕES
       const { data } = await supabase
         .from('integrations')
         .select('*')
-        .eq('user_id', user.id); // ✅ BUSCA POR USER
+        .eq('user_id', user.id);
 
       setIntegrations(data || []);
       setIsModalOpen(false);
@@ -236,31 +233,31 @@ const IntegrationsPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 font-['inter'] pb-20 animate-fade-in">
+    <div className="space-y-10 font-['inter'] pb-20 animate-fade-in max-w-7xl mx-auto">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Integrações</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Integrações</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-base">
             Conecte suas plataformas e libere acesso automaticamente
           </p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg shadow-sm">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
             Webhooks Seguros
           </span>
         </div>
       </div>
 
-      {/* Grid de Plataformas */}
+      {/* Grid de Plataformas - MELHORADO */}
       <div>
-        <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-slate-300" /> Plataformas Disponíveis
+        <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-8 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-brand-blue" /> Plataformas Disponíveis
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {platformsConfig.map((platform) => {
             const connected = isConnected(platform.id);
 
@@ -268,83 +265,89 @@ const IntegrationsPage: React.FC = () => {
               <div
                 key={platform.id}
                 className={cn(
-                  "group bg-white dark:bg-slate-900 rounded-xl border p-5 transition-all duration-300 flex flex-col",
+                  "group bg-white dark:bg-slate-900 rounded-2xl border-2 p-8 transition-all duration-300 flex flex-col hover:shadow-xl",
                   connected
-                    ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/10 dark:bg-emerald-500/5 shadow-sm"
+                    ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-500/5 shadow-lg shadow-emerald-100/50"
                     : platform.enabled
-                      ? "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md"
+                      ? "border-slate-200 dark:border-slate-800 hover:border-brand-blue/30 dark:hover:border-brand-blue/30"
                       : "border-slate-200 dark:border-slate-800 opacity-60"
                 )}
               >
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-start mb-6">
+                  {/* ✅ LOGO MAIOR (como no HuskyApp) */}
                   <div className={cn(
-                    "w-11 h-11 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm transition-transform overflow-hidden",
+                    "w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-md transition-transform p-3",
                     platform.enabled && "group-hover:scale-105",
                     !platform.enabled && "grayscale"
                   )}>
                     <img
                       src={platform.logo}
                       alt={platform.name}
-                      className="w-8 h-8 object-contain"
+                      className="w-full h-full object-contain"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = platform.name.charAt(0);
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-2xl font-bold text-slate-400';
+                        fallback.textContent = platform.name.charAt(0);
+                        e.currentTarget.parentElement!.appendChild(fallback);
                       }}
                     />
                   </div>
 
+                  {/* Badge de Status */}
                   {!platform.enabled ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] font-bold uppercase tracking-wide border border-amber-200 dark:border-amber-500/20">
-                      <Lock className="w-3 h-3" /> Em Breve
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-200 dark:border-amber-500/20">
+                      <Lock className="w-3.5 h-3.5" /> Em Breve
                     </span>
                   ) : connected ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold uppercase tracking-wide border border-emerald-200 dark:border-emerald-500/20">
-                      <CheckCircle2 className="w-3 h-3" /> Ativo
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Ativo
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[9px] font-bold uppercase tracking-wide border border-slate-100 dark:border-slate-700">
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-wider border border-slate-200 dark:border-slate-700">
                       Offline
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">{platform.name}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{platform.name}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-8 flex-1">
                   {platform.description}
                 </p>
 
-                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50 flex gap-2">
+                {/* Botões */}
+                <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 flex gap-3">
                   {!platform.enabled ? (
                     <button
                       disabled
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-lg cursor-not-allowed border border-slate-200 dark:border-slate-700"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl cursor-not-allowed border-2 border-slate-200 dark:border-slate-700"
                     >
-                      <Lock className="w-3.5 h-3.5" />
+                      <Lock className="w-4 h-4" />
                       Em Breve
                     </button>
                   ) : connected ? (
                     <>
                       <button
                         onClick={() => openConfigModal(platform)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                        className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700"
                       >
-                        <Settings className="w-3.5 h-3.5" /> Ver Webhook
+                        <Settings className="w-4 h-4" /> Configurar
                       </button>
                       <button
                         onClick={() => setDisconnectModal({ open: true, integrationId: connected.id })}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors border-2 border-slate-200 dark:border-slate-700"
                         title="Desconectar"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </>
                   ) : (
                     <button
                       onClick={() => openConfigModal(platform)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-white bg-slate-900 dark:bg-slate-700 hover:bg-brand-blue dark:hover:bg-brand-blue rounded-lg transition-all shadow-sm"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-white bg-brand-blue hover:bg-blue-600 rounded-xl transition-all shadow-lg shadow-blue-500/20 border-2 border-brand-blue"
                     >
-                      <Link2 className="w-3.5 h-3.5" />
-                      Conectar
+                      <Link2 className="w-4 h-4" />
+                      Conectar Plataforma
                     </button>
                   )}
                 </div>
@@ -358,56 +361,56 @@ const IntegrationsPage: React.FC = () => {
       {isModalOpen && selectedPlatform && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up border border-slate-200 dark:border-slate-800">
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up border-2 border-slate-200 dark:border-slate-800">
 
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <img src={selectedPlatform.logo} alt={selectedPlatform.name} className="w-6 h-6 object-contain" />
+            <div className="p-6 border-b-2 border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 p-2">
+                  <img src={selectedPlatform.logo} alt={selectedPlatform.name} className="w-full h-full object-contain" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">
-                  {isConnected(selectedPlatform.id) ? 'Webhook Configurado' : 'Conectar Plataforma'}
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Configurar {selectedPlatform.name}
                 </h3>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                <X className="w-4 h-4 text-slate-400" />
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="space-y-5">
+            <div className="p-8 space-y-6">
+              <div className="space-y-6">
                 <div className="flex gap-4 items-start">
-                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">01</span>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Acesse seu painel no <strong>{selectedPlatform.name}</strong> e procure por "Webhooks" ou "Postback".
+                  <span className="w-7 h-7 bg-brand-blue/10 text-brand-blue border-2 border-brand-blue/20 rounded-lg text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">01</span>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Acesse seu painel no <strong>{selectedPlatform.name}</strong> e procure por <strong>"Webhooks"</strong> ou <strong>"Postback"</strong>.
                   </p>
                 </div>
 
                 <div className="flex gap-4 items-start">
-                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">02</span>
-                  <div className="flex-1 space-y-2">
+                  <span className="w-7 h-7 bg-brand-blue/10 text-brand-blue border-2 border-brand-blue/20 rounded-lg text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">02</span>
+                  <div className="flex-1 space-y-3">
                     <p className="text-sm text-slate-600 dark:text-slate-300 font-bold">Cole esta URL no campo de destino:</p>
-                    <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-3">
-                      <code className="flex-1 text-[11px] text-blue-400 font-mono truncate">
+                    <div className="flex items-center gap-2 bg-slate-900 border-2 border-slate-800 rounded-xl p-4">
+                      <code className="flex-1 text-xs text-blue-400 font-mono break-all">
                         {generateWebhookUrl(selectedPlatform.id)}
                       </code>
                       <button
                         onClick={() => handleCopyWebhook(generateWebhookUrl(selectedPlatform.id))}
-                        className="text-slate-400 hover:text-brand-blue transition-colors flex-shrink-0"
+                        className="text-slate-400 hover:text-brand-blue transition-colors flex-shrink-0 p-2"
                       >
-                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex gap-4 items-start">
-                  <span className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">03</span>
+                  <span className="w-7 h-7 bg-brand-blue/10 text-brand-blue border-2 border-brand-blue/20 rounded-lg text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">03</span>
                   <div className="flex-1">
                     <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 font-bold">Selecione os eventos:</p>
                     <div className="flex flex-wrap gap-2">
                       {selectedPlatform.webhookEvents.map((evt, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px] font-bold text-slate-500 uppercase">
+                        <span key={i} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">
                           {evt}
                         </span>
                       ))}
@@ -416,17 +419,17 @@ const IntegrationsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+              <div className="pt-6 border-t-2 border-slate-100 dark:border-slate-800 flex gap-3">
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="flex-1 py-3 text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
                 >
                   Fechar
                 </button>
                 {!isConnected(selectedPlatform.id) && (
                   <button
                     onClick={handleConnect}
-                    className="flex-1 py-2.5 bg-brand-blue text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-600 transition-all shadow-md"
+                    className="flex-1 py-3 bg-brand-blue text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
                   >
                     Confirmar Conexão
                   </button>
@@ -441,25 +444,25 @@ const IntegrationsPage: React.FC = () => {
       {disconnectModal.open && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDisconnectModal({ open: false, integrationId: null })} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-slide-up border border-slate-200 dark:border-slate-800">
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-8 animate-slide-up border-2 border-slate-200 dark:border-slate-800">
             <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center mb-4 text-red-500">
-                <AlertCircle className="w-6 h-6" />
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mb-4 border-2 border-red-200 dark:border-red-800">
+                <AlertCircle className="w-8 h-8 text-red-500" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Desconectar?</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                Novos alunos não serão liberados automaticamente até reconectar.
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Desconectar Integração?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                Novos alunos não serão liberados automaticamente até você reconectar esta plataforma.
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setDisconnectModal({ open: false, integrationId: null })}
-                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold uppercase"
+                  className="flex-1 py-3 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold uppercase hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleDisconnect}
-                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold uppercase shadow-lg"
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold uppercase shadow-lg shadow-red-500/20 transition-all"
                 >
                   Desconectar
                 </button>
