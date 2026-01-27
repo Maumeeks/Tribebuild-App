@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Upload, Loader2, HelpCircle, Link as LinkIcon, Copy, AlertCircle, Info, CheckCircle2 } from 'lucide-react';
+import { X, Upload, Loader2, HelpCircle, Link as LinkIcon, AlertCircle, Info, Plus, Trash2, CheckCircle2, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useParams, useLocation } from 'react-router-dom';
 import Button from '../Button';
@@ -23,7 +23,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
     const [releaseType, setReleaseType] = useState('immediate');
     const [releaseValue, setReleaseValue] = useState('');
     const [offerType, setOfferType] = useState('main');
-    const [externalId, setExternalId] = useState(''); // ✅ RENOMEADO
+    const [externalIds, setExternalIds] = useState<string[]>(['']); // ✅ ARRAY DE IDs
     const [checkoutUrl, setCheckoutUrl] = useState('');
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -46,15 +46,22 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                 setReleaseType(productToEdit.release_type || 'immediate');
                 setReleaseValue(productToEdit.release_value || '');
                 setOfferType(productToEdit.offer_type || 'main');
-                setExternalId(productToEdit.external_id || ''); // ✅ CORRIGIDO
+
+                // ✅ CARREGAR IDs EXISTENTES (split por vírgula)
+                if (productToEdit.external_id) {
+                    setExternalIds(productToEdit.external_id.split(',').map((id: string) => id.trim()).filter(Boolean));
+                } else {
+                    setExternalIds(['']);
+                }
+
                 setCheckoutUrl(productToEdit.checkout_url || '');
-                setCoverPreview(productToEdit.image_url || productToEdit.thumbnail_url || null);
+                setCoverPreview(productToEdit.thumbnail_url || null);
             } else {
                 setName('');
                 setReleaseType('immediate');
                 setReleaseValue('');
                 setOfferType('main');
-                setExternalId(''); // ✅ CORRIGIDO
+                setExternalIds(['']);
                 setCheckoutUrl('');
                 setCoverPreview(null);
                 setCoverImage(null);
@@ -72,6 +79,23 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
         }
     };
 
+    // ✅ GERENCIAR MÚLTIPLOS IDs
+    const addExternalId = () => {
+        setExternalIds([...externalIds, '']);
+    };
+
+    const removeExternalId = (index: number) => {
+        if (externalIds.length > 1) {
+            setExternalIds(externalIds.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateExternalId = (index: number, value: string) => {
+        const updated = [...externalIds];
+        updated[index] = value;
+        setExternalIds(updated);
+    };
+
     const handleSubmit = async () => {
         if (!name.trim()) return alert('Nome é obrigatório');
         if (releaseType !== 'immediate' && !releaseValue) return alert('Defina o valor da liberação.');
@@ -80,7 +104,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             setLoading(true);
 
             // 1. Upload Imagem
-            let finalCoverUrl = productToEdit?.image_url || null;
+            let finalCoverUrl = productToEdit?.thumbnail_url || null;
             if (coverImage) {
                 const fileName = `covers/${Date.now()}_${coverImage.name}`;
                 const { error, data } = await supabase.storage.from('product-thumbnails').upload(fileName, coverImage);
@@ -93,13 +117,12 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
             // 2. Preparar Payload
             const payload: any = {
                 name,
-                release_type: offerType === 'bonus' ? 'immediate' : releaseType, // ✅ FORÇAR IMEDIATO PARA BÔNUS
-                release_value: offerType === 'bonus' ? null : releaseValue, // ✅ NULL PARA BÔNUS
+                release_type: offerType === 'bonus' ? 'immediate' : releaseType,
+                release_value: offerType === 'bonus' ? null : releaseValue,
                 offer_type: offerType,
-                external_id: offerType === 'bonus' ? null : (externalId || null), // ✅ NULL PARA BÔNUS
+                external_id: offerType === 'bonus' ? null : externalIds.filter(id => id.trim()).join(','), // ✅ SALVAR COMO STRING SEPARADA POR VÍRGULA
                 checkout_url: checkoutUrl || null,
-                image_url: finalCoverUrl,
-                thumbnail_url: finalCoverUrl,
+                thumbnail_url: finalCoverUrl, // ✅ REMOVIDO image_url
                 status: 'published'
             };
 
@@ -262,28 +285,68 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                         </div>
                     )}
 
-                    {/* ✅ SEÇÃO: ID EXTERNO - OCULTAR PARA BÔNUS */}
+                    {/* ✅ SEÇÃO: IDs DAS PLATAFORMAS - OCULTAR PARA BÔNUS */}
                     {offerType !== 'bonus' && (
-                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                            <div className="flex items-center justify-between mb-3">
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">ID do Produto (Hotmart/Kiwify)</label>
-                                    <Info size={14} className="text-brand-blue cursor-help" />
+                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        IDs do Produto nas Plataformas
+                                    </label>
+                                    <a
+                                        href="#"
+                                        className="text-xs text-brand-blue hover:underline flex items-center gap-1"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            alert('Tutorial em breve! Por enquanto:\n\nHotmart: ID na URL após prod/\nKiwify: ID começa com edit na URL de edição');
+                                        }}
+                                    >
+                                        <ExternalLink className="w-3 h-3" />
+                                        Como obter o ID?
+                                    </a>
                                 </div>
                             </div>
 
-                            <input
-                                type="text"
-                                value={externalId}
-                                onChange={(e) => setExternalId(e.target.value)}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono text-slate-600 dark:text-slate-400"
-                                placeholder="Cole o ID aqui (ex: editABC123...)"
-                            />
+                            {/* Lista de IDs */}
+                            <div className="space-y-3">
+                                {externalIds.map((id, index) => (
+                                    <div key={index} className="flex gap-2 items-start">
+                                        <div className="flex-1">
+                                            <input
+                                                type="text"
+                                                value={id}
+                                                onChange={(e) => updateExternalId(index, e.target.value)}
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-brand-blue outline-none font-mono text-slate-600 dark:text-slate-400"
+                                                placeholder={index === 0 ? "Cole o ID aqui (ex: editABC123...)" : "ID adicional da plataforma"}
+                                            />
+                                        </div>
+                                        {externalIds.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExternalId(index)}
+                                                className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors border border-slate-200 dark:border-slate-700"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Botão + Adicionar ID */}
+                                <button
+                                    type="button"
+                                    onClick={addExternalId}
+                                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-brand-blue hover:text-brand-blue transition-all"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Adicionar outro ID
+                                </button>
+                            </div>
 
                             {/* Avisos Informativos */}
-                            <div className="mt-4 space-y-2">
+                            <div className="space-y-2">
                                 <div className="flex gap-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
-                                    <AlertCircle className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                                    <Info className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
                                     <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                                         <strong className="font-bold">Hotmart:</strong> O ID está na URL do produto (depois de <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">prod/</code>)<br />
                                         <strong className="font-bold">Kiwify:</strong> O ID começa com <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">edit</code> e está na URL de edição
@@ -293,7 +356,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                                 <div className="flex gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-xl">
                                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                                     <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        <strong className="font-bold">Importante:</strong> Sem este ID, o produto NÃO será liberado automaticamente após a compra.
+                                        <strong className="font-bold">Importante:</strong> Sem estes IDs, o produto NÃO será liberado automaticamente após a compra.
                                     </p>
                                 </div>
                             </div>
@@ -304,7 +367,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({ isOpen, onClose
                     {offerType === 'bonus' && (
                         <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                             <div className="flex gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800 rounded-xl">
-                                <AlertCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                                 <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                                     <strong className="font-bold text-emerald-700 dark:text-emerald-400">Bônus liberado automaticamente!</strong><br />
                                     Este produto será liberado junto com o produto principal. Não precisa de ID externo.
