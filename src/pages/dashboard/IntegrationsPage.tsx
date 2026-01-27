@@ -1,477 +1,377 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Link2, Check, Copy, X, AlertCircle, CheckCircle2,
-  Settings, Trash2, ShieldCheck, Loader2, Lock
-} from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-
-interface Platform {
-  id: string;
-  name: string;
-  logo: string;
-  color: string;
-  description: string;
-  enabled: boolean;
-  webhookEvents: string[];
-}
+import { useAuth } from '../../contexts/AuthContext';
+import { Check, Copy, ExternalLink, AlertCircle, Info, CheckCircle } from 'lucide-react';
 
 interface Integration {
   id: string;
   platform: string;
   webhook_url: string;
-  is_active: boolean;
+  hottok?: string;
+  status: 'active' | 'inactive';
   created_at: string;
 }
 
-const platformsConfig: Platform[] = [
-  {
-    id: 'hotmart',
-    name: 'Hotmart',
-    logo: '/images/integrations/hotmart.png', // ✅ Ajuste depois para hotmart.png
-    color: 'orange',
-    description: 'Maior plataforma de produtos digitais da América Latina.',
-    enabled: true,
-    webhookEvents: ['Compra aprovada', 'Cancelamento', 'Reembolso']
-  },
-  {
-    id: 'kiwify',
-    name: 'Kiwify',
-    logo: '/images/integrations/kiwify.png',
-    color: 'emerald',
-    description: 'Checkout de alta conversão para produtos digitais.',
-    enabled: true,
-    webhookEvents: ['Order Approved', 'Order Refunded']
-  },
-  {
-    id: 'eduzz',
-    name: 'Eduzz',
-    logo: '/images/integrations/eduzz.png',
-    color: 'blue',
-    description: 'Ecossistema completo para infoprodutores.',
-    enabled: false,
-    webhookEvents: []
-  },
-  {
-    id: 'perfectpay',
-    name: 'PerfectPay',
-    logo: '/images/integrations/perfectpay.png',
-    color: 'indigo',
-    description: 'Plataforma robusta para alta escala.',
-    enabled: false,
-    webhookEvents: []
-  },
-  {
-    id: 'ticto',
-    name: 'Ticto',
-    logo: '/images/integrations/ticto.png',
-    color: 'purple',
-    description: 'Checkout moderno e rápido.',
-    enabled: false,
-    webhookEvents: []
-  },
-  {
-    id: 'cartpanda',
-    name: 'Cart Panda',
-    logo: '/images/integrations/cartpanda.png',
-    color: 'blue',
-    description: 'Checkout otimizado para conversão.',
-    enabled: false,
-    webhookEvents: []
-  }
-];
-
 const IntegrationsPage: React.FC = () => {
   const { user } = useAuth();
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [disconnectModal, setDisconnectModal] = useState<{ open: boolean; integrationId: string | null }>({
-    open: false,
-    integrationId: null
-  });
+  const [loading, setLoading] = useState(true);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [hottok, setHottok] = useState('');
 
-  // ✅ BUSCAR INTEGRAÇÕES APENAS UMA VEZ (SEM RECARREGAR)
+  // Plataformas disponíveis
+  const platformsConfig = [
+    { id: 'hotmart', name: 'Hotmart', enabled: true, logo: '/images/integrations/hotmart.png' },
+    { id: 'kiwify', name: 'Kiwify', enabled: true, logo: '/images/integrations/kiwify.png' },
+    { id: 'eduzz', name: 'Eduzz', enabled: false, logo: '/images/integrations/eduzz.png' },
+    { id: 'perfectpay', name: 'PerfectPay', enabled: false, logo: '/images/integrations/perfectpay.png' },
+    { id: 'ticto', name: 'Ticto', enabled: false, logo: '/images/integrations/ticto.png' },
+    { id: 'cartpanda', name: 'CartPanda', enabled: false, logo: '/images/integrations/cartpanda.png' },
+  ];
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    if (user) {
+      fetchIntegrations();
+    }
+  }, [user]);
 
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchIntegrations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('user_id', user!.id);
 
-        const { data: integrationsData, error: intError } = await supabase
-          .from('integrations')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (intError) throw intError;
-
-        setIntegrations(integrationsData || []);
-
-      } catch (err: any) {
-        console.error('[IntegrationsPage] Erro:', err);
-        setError(err.message || 'Erro ao carregar integrações');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []); // ✅ ARRAY VAZIO = EXECUTA APENAS UMA VEZ
+      if (error) throw error;
+      setIntegrations(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar integrações:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const generateWebhookUrl = (platform: string) => {
     if (!user) return 'https://api.tribebuild.pro/webhook/loading...';
     return `https://api.tribebuild.pro/webhook/${platform}`;
   };
 
+  const copyToClipboard = async (text: string, platform: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedUrl(platform);
+    setTimeout(() => setCopiedUrl(null), 2000);
+  };
 
-  const handleCopyWebhook = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Erro ao copiar:', err);
+  const saveIntegration = async () => {
+    if (!selectedPlatform || !hottok.trim()) {
+      alert('Por favor, preencha o Hottok');
+      return;
     }
-  };
-
-  const openConfigModal = (platform: Platform) => {
-    if (!platform.enabled) return;
-    setSelectedPlatform(platform);
-    setIsModalOpen(true);
-  };
-
-  const handleConnect = async () => {
-    if (!selectedPlatform || !user) return;
 
     try {
-      const webhookUrl = generateWebhookUrl(selectedPlatform.id);
+      const webhookUrl = generateWebhookUrl(selectedPlatform);
 
-      const { error } = await supabase.from('integrations').insert([{
-        user_id: user.id,
-        app_id: null,
-        platform: selectedPlatform.id,
-        webhook_url: webhookUrl,
-        is_active: true,
-        product_mapping: {}
-      }]);
-
-      if (error) throw error;
-
-      const { data } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('user_id', user.id);
-
-      setIntegrations(data || []);
-      setIsModalOpen(false);
-      setSelectedPlatform(null);
-
-    } catch (err: any) {
-      alert('Erro ao conectar: ' + err.message);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!disconnectModal.integrationId) return;
-
-    try {
       const { error } = await supabase
         .from('integrations')
-        .delete()
-        .eq('id', disconnectModal.integrationId);
+        .upsert({
+          user_id: user!.id,
+          platform: selectedPlatform,
+          webhook_url: webhookUrl,
+          hottok: hottok.trim(),
+          status: 'active',
+        }, {
+          onConflict: 'user_id,platform'
+        });
 
       if (error) throw error;
 
-      setIntegrations(integrations.filter(i => i.id !== disconnectModal.integrationId));
-      setDisconnectModal({ open: false, integrationId: null });
-
-    } catch (err: any) {
-      alert('Erro ao desconectar: ' + err.message);
+      alert('Integração configurada com sucesso!');
+      setSelectedPlatform(null);
+      setHottok('');
+      fetchIntegrations();
+    } catch (error: any) {
+      console.error('Erro ao salvar integração:', error);
+      alert('Erro ao salvar: ' + error.message);
     }
   };
 
-  const isConnected = (platformId: string) => {
-    return integrations.find(i => i.platform === platformId && i.is_active);
+  const isIntegrationActive = (platformId: string) => {
+    return integrations.some(i => i.platform === platformId && i.status === 'active');
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
-        <p className="text-sm text-slate-500">Carregando integrações...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-          <AlertCircle className="w-6 h-6 text-red-500" />
-        </div>
-        <div className="text-center">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Erro ao Carregar</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-brand-blue text-white rounded-lg text-xs font-bold uppercase"
-          >
-            Tentar Novamente
-          </button>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-coral"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 font-['inter'] pb-20 animate-fade-in max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Integrações</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-base">
-            Conecte suas plataformas e libere acesso automaticamente
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Integrações
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Conecte sua área de membros com plataformas de pagamento para liberar acesso automaticamente.
           </p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm">
-          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-            Webhooks Seguros
-          </span>
-        </div>
-      </div>
 
-      {/* Grid de Plataformas - MELHORADO */}
-      <div>
-        <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-8 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-brand-blue" /> Plataformas Disponíveis
-        </h3>
-
+        {/* Plataformas Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {platformsConfig.map((platform) => {
-            const connected = isConnected(platform.id);
+          {platformsConfig.map((platform) => (
+            <div
+              key={platform.id}
+              className={`
+                bg-white dark:bg-gray-800 rounded-2xl border-2 p-8 transition-all duration-300
+                ${platform.enabled
+                  ? 'border-gray-200 dark:border-gray-700 hover:border-brand-coral hover:shadow-xl cursor-pointer'
+                  : 'border-gray-100 dark:border-gray-800 opacity-50 cursor-not-allowed'}
+              `}
+              onClick={() => platform.enabled && setSelectedPlatform(platform.id)}
+            >
+              {/* Logo */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center overflow-hidden">
+                  <img
+                    src={platform.logo}
+                    alt={platform.name}
+                    className="w-full h-full object-contain p-2"
+                    onError={(e) => {
+                      // Fallback para inicial se imagem não carregar
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement!.innerHTML = `
+                        <span class="text-4xl font-bold text-gray-400">${platform.name[0]}</span>
+                      `;
+                    }}
+                  />
+                </div>
 
-            return (
-              <div
-                key={platform.id}
-                className={cn(
-                  "group bg-white dark:bg-slate-900 rounded-2xl border-2 p-8 transition-all duration-300 flex flex-col hover:shadow-xl",
-                  connected
-                    ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-500/5 shadow-lg shadow-emerald-100/50"
-                    : platform.enabled
-                      ? "border-slate-200 dark:border-slate-800 hover:border-brand-blue/30 dark:hover:border-brand-blue/30"
-                      : "border-slate-200 dark:border-slate-800 opacity-60"
+                {/* Status Badge */}
+                {platform.enabled ? (
+                  isIntegrationActive(platform.id) ? (
+                    <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-full">
+                      CONECTADO
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-bold rounded-full">
+                      OFFLINE
+                    </span>
+                  )
+                ) : (
+                  <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-full">
+                    EM BREVE
+                  </span>
                 )}
-              >
-                <div className="flex justify-between items-start mb-6">
+              </div>
 
-                  <div className={cn(
-                    "w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-md transition-transform p-3",
-                    platform.enabled && "group-hover:scale-105",
-                    !platform.enabled && "grayscale"
-                  )}>
+              {/* Nome e Descrição */}
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                {platform.name}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                {platform.enabled
+                  ? 'Configure o webhook para liberar acesso automaticamente.'
+                  : 'Integração em desenvolvimento. Em breve disponível!'}
+              </p>
+
+              {/* Botão */}
+              {platform.enabled && (
+                <button
+                  className="w-full py-3 bg-brand-coral hover:bg-brand-coral-dark text-white font-bold rounded-xl transition-all"
+                  onClick={() => setSelectedPlatform(platform.id)}
+                >
+                  {isIntegrationActive(platform.id) ? 'Reconfigurar' : 'Conectar Plataforma'}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Modal de Configuração */}
+        {selectedPlatform && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+
+              {/* Header do Modal */}
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
                     <img
-                      src={platform.logo}
-                      alt={platform.name}
-                      className="w-full h-full object-contain"
+                      src={platformsConfig.find(p => p.id === selectedPlatform)?.logo}
+                      alt={selectedPlatform}
+                      className="w-8 h-8 object-contain"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
-                        const fallback = document.createElement('div');
-                        fallback.className = 'text-2xl font-bold text-slate-400';
-                        fallback.textContent = platform.name.charAt(0);
-                        e.currentTarget.parentElement!.appendChild(fallback);
+                        e.currentTarget.parentElement!.innerHTML = `
+                          <span class="text-2xl font-bold text-gray-400">${selectedPlatform[0].toUpperCase()}</span>
+                        `;
                       }}
                     />
                   </div>
-
-                  {/* Badge de Status */}
-                  {!platform.enabled ? (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-200 dark:border-amber-500/20">
-                      <Lock className="w-3.5 h-3.5" /> Em Breve
-                    </span>
-                  ) : connected ? (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-500/20">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Ativo
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-wider border border-slate-200 dark:border-slate-700">
-                      Offline
-                    </span>
-                  )}
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Configurar {platformsConfig.find(p => p.id === selectedPlatform)?.name}
+                  </h2>
                 </div>
-
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{platform.name}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-8 flex-1">
-                  {platform.description}
-                </p>
-
-                {/* Botões */}
-                <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 flex gap-3">
-                  {!platform.enabled ? (
-                    <button
-                      disabled
-                      className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl cursor-not-allowed border-2 border-slate-200 dark:border-slate-700"
-                    >
-                      <Lock className="w-4 h-4" />
-                      Em Breve
-                    </button>
-                  ) : connected ? (
-                    <>
-                      <button
-                        onClick={() => openConfigModal(platform)}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all border-2 border-slate-200 dark:border-slate-700"
-                      >
-                        <Settings className="w-4 h-4" /> Configurar
-                      </button>
-                      <button
-                        onClick={() => setDisconnectModal({ open: true, integrationId: connected.id })}
-                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors border-2 border-slate-200 dark:border-slate-700"
-                        title="Desconectar"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => openConfigModal(platform)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-white bg-brand-blue hover:bg-blue-600 rounded-xl transition-all shadow-lg shadow-blue-500/20 border-2 border-brand-blue"
-                    >
-                      <Link2 className="w-4 h-4" />
-                      Conectar Plataforma
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={() => setSelectedPlatform(null)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <span className="text-2xl text-gray-500">×</span>
+                </button>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Modal de Configuração */}
-      {isModalOpen && selectedPlatform && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up border-2 border-slate-200 dark:border-slate-800">
+              {/* Conteúdo do Modal */}
+              <div className="p-6 space-y-6">
 
-            <div className="p-6 border-b-2 border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 p-2">
-                  <img src={selectedPlatform.logo} alt={selectedPlatform.name} className="w-full h-full object-contain" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Configurar {selectedPlatform.name}
-                </h3>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
-            </div>
+                {/* Tutorial Passo a Passo */}
+                <div className="space-y-4">
 
-            <div className="p-8 space-y-6">
-              <div className="space-y-6">
-                <div className="flex gap-4 items-start">
-                  <span className="w-7 h-7 bg-brand-blue/10 text-brand-blue border-2 border-brand-blue/20 rounded-lg text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">01</span>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Acesse seu painel no <strong>{selectedPlatform.name}</strong> e procure por <strong>"Webhooks"</strong> ou <strong>"Postback"</strong>.
-                  </p>
-                </div>
-
-                <div className="flex gap-4 items-start">
-                  <span className="w-7 h-7 bg-brand-blue/10 text-brand-blue border-2 border-brand-blue/20 rounded-lg text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">02</span>
-                  <div className="flex-1 space-y-3">
-                    <p className="text-sm text-slate-600 dark:text-slate-300 font-bold">Cole esta URL no campo de destino:</p>
-                    <div className="flex items-center gap-2 bg-slate-900 border-2 border-slate-800 rounded-xl p-4">
-                      <code className="flex-1 text-xs text-blue-400 font-mono break-all">
-                        {generateWebhookUrl(selectedPlatform.id)}
-                      </code>
-                      <button
-                        onClick={() => handleCopyWebhook(generateWebhookUrl(selectedPlatform.id))}
-                        className="text-slate-400 hover:text-brand-blue transition-colors flex-shrink-0 p-2"
-                      >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </button>
+                  {/* Passo 1 */}
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      01
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Acesse seu painel no <strong>{platformsConfig.find(p => p.id === selectedPlatform)?.name}</strong> e procure por <strong>"Webhooks"</strong> ou <strong>"Postback"</strong>.
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex gap-4 items-start">
-                  <span className="w-7 h-7 bg-brand-blue/10 text-brand-blue border-2 border-brand-blue/20 rounded-lg text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">03</span>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 font-bold">Selecione os eventos:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedPlatform.webhookEvents.map((evt, i) => (
-                        <span key={i} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">
-                          {evt}
+                  {/* Passo 2 */}
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      02
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-700 dark:text-gray-300 mb-3">
+                        Cole esta URL no campo de destino:
+                      </p>
+
+                      {/* Card da URL com cor coral */}
+                      <div className="bg-gradient-to-r from-brand-coral to-brand-coral-dark p-4 rounded-xl">
+                        <div className="flex items-center justify-between gap-3">
+                          <code className="text-white font-mono text-sm break-all flex-1">
+                            {generateWebhookUrl(selectedPlatform)}
+                          </code>
+                          <button
+                            onClick={() => copyToClipboard(generateWebhookUrl(selectedPlatform), selectedPlatform)}
+                            className="flex-shrink-0 p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                          >
+                            {copiedUrl === selectedPlatform ? (
+                              <Check className="w-5 h-5 text-white" />
+                            ) : (
+                              <Copy className="w-5 h-5 text-white" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Passo 3 */}
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      03
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-700 dark:text-gray-300 mb-3">
+                        Selecione os eventos:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-full">
+                          COMPRA APROVADA
                         </span>
-                      ))}
+                        <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold rounded-full">
+                          CANCELAMENTO
+                        </span>
+                        <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-full">
+                          REEMBOLSO
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Passo 4 - Campo Hottok */}
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      04
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-700 dark:text-gray-300 mb-3">
+                        Copie o <strong>Hottok</strong> (token de autenticação) e cole aqui:
+                      </p>
+                      <input
+                        type="text"
+                        value={hottok}
+                        onChange={(e) => setHottok(e.target.value)}
+                        placeholder="Cole seu Hottok aqui..."
+                        className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-xl focus:border-brand-coral focus:ring-4 focus:ring-brand-coral/20 outline-none text-gray-900 dark:text-white"
+                      />
+                      <div className="mt-2 flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <p>
+                          O Hottok é um código de segurança fornecido pela {platformsConfig.find(p => p.id === selectedPlatform)?.name} para validar webhooks. Sem ele, os webhooks podem ser rejeitados.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Passo 5 */}
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      05
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-700 dark:text-gray-300">
+                        Salve as configurações no painel da {platformsConfig.find(p => p.id === selectedPlatform)?.name} e clique em <strong>"Confirmar Conexão"</strong> abaixo.
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Aviso de Segurança */}
+                <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong className="block mb-1">Importante:</strong>
+                      Mantenha seu Hottok em segurança. Não compartilhe com terceiros. Ele garante que apenas webhooks legítimos da {platformsConfig.find(p => p.id === selectedPlatform)?.name} sejam processados.
                     </div>
                   </div>
                 </div>
+
               </div>
 
-              <div className="pt-6 border-t-2 border-slate-100 dark:border-slate-800 flex gap-3">
+              {/* Footer do Modal */}
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-800">
                 <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  onClick={() => setSelectedPlatform(null)}
+                  className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  Fechar
+                  FECHAR
                 </button>
-                {!isConnected(selectedPlatform.id) && (
-                  <button
-                    onClick={handleConnect}
-                    className="flex-1 py-3 bg-brand-blue text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
-                  >
-                    Confirmar Conexão
-                  </button>
-                )}
+                <button
+                  onClick={saveIntegration}
+                  disabled={!hottok.trim()}
+                  className="px-6 py-3 bg-brand-coral hover:bg-brand-coral-dark disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-coral/20"
+                >
+                  CONFIRMAR CONEXÃO
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Modal de Desconectar */}
-      {disconnectModal.open && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDisconnectModal({ open: false, integrationId: null })} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-8 animate-slide-up border-2 border-slate-200 dark:border-slate-800">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mb-4 border-2 border-red-200 dark:border-red-800">
-                <AlertCircle className="w-8 h-8 text-red-500" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Desconectar Integração?</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                Novos alunos não serão liberados automaticamente até você reconectar esta plataforma.
-              </p>
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setDisconnectModal({ open: false, integrationId: null })}
-                  className="flex-1 py-3 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold uppercase hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleDisconnect}
-                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold uppercase shadow-lg shadow-red-500/20 transition-all"
-                >
-                  Desconectar
-                </button>
-              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
     </div>
   );
 };
