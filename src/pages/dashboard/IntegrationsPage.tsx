@@ -183,8 +183,15 @@ const IntegrationsPage: React.FC = () => {
               {/* Botão */}
               {platform.enabled && (
                 <button
-                  className="w-full py-3 bg-brand-coral hover:bg-brand-coral-dark text-white font-bold rounded-xl transition-all"
-                  onClick={() => setSelectedPlatform(platform.id)}
+                  className={`
+    w-full py-3 font-bold rounded-xl transition-all
+    ${platform.enabled
+                      ? 'bg-brand-coral hover:bg-brand-coral-dark dark:bg-brand-coral-darker dark:hover:bg-brand-coral-dark text-white shadow-lg shadow-brand-coral/20'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                    }
+  `}
+                  onClick={() => platform.enabled && setSelectedPlatform(platform.id)}
+                  disabled={!platform.enabled}
                 >
                   {isIntegrationActive(platform.id) ? 'Reconfigurar' : 'Conectar Plataforma'}
                 </button>
