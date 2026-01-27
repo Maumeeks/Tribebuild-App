@@ -244,7 +244,7 @@ const IntegrationsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Passo 2 */}
+                  {/* Passo 2 - URL com cor ajustada */}
                   <div className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
                       02
@@ -254,8 +254,8 @@ const IntegrationsPage: React.FC = () => {
                         Cole esta URL no campo de destino:
                       </p>
 
-                      {/* Card da URL com cor coral */}
-                      <div className="bg-gradient-to-r from-brand-coral to-brand-coral-dark p-4 rounded-xl">
+                      {/* Card da URL - Ajustado para dark mode */}
+                      <div className="bg-gradient-to-r from-brand-coral to-brand-coral-dark dark:from-brand-coral-darker dark:to-brand-coral-dark p-4 rounded-xl shadow-lg">
                         <div className="flex items-center justify-between gap-3">
                           <code className="text-white font-mono text-sm break-all flex-1">
                             {generateWebhookUrl(selectedPlatform)}
@@ -275,25 +275,42 @@ const IntegrationsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Passo 3 */}
+                  {/* Passo 3 - Eventos corretos */}
                   <div className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-brand-coral text-white rounded-full flex items-center justify-center font-bold text-sm">
                       03
                     </div>
                     <div className="flex-1">
                       <p className="text-gray-700 dark:text-gray-300 mb-3">
-                        Selecione os eventos:
+                        Selecione os eventos na Hotmart:
                       </p>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-full">
-                          COMPRA APROVADA
-                        </span>
-                        <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold rounded-full">
-                          CANCELAMENTO
-                        </span>
-                        <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-full">
-                          REEMBOLSO
-                        </span>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            <strong>Compra aprovada</strong> (obrigatório)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Compra reembolsada (opcional)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Cancelamento de Assinatura (opcional)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex gap-2 text-xs text-blue-800 dark:text-blue-200">
+                          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <p>
+                            <strong>Dica:</strong> Para começar, selecione apenas "Compra aprovada". Você pode adicionar outros eventos depois.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>

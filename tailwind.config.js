@@ -71,3 +71,35 @@ export default {
   },
   plugins: [],
 }
+
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        'brand-coral': '#FF6B6B',
+        'brand-coral-dark': '#E85555',
+        'brand-coral-darker': '#CC4444', // ← NOVO para dark mode
+      }
+    }
+  }
+}
+
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'brand-coral': '#FF6B6B',
+        'brand-coral-dark': '#E85555',
+        'brand-coral-darker': '#CC4444', // ← NOVO
+        'brand-blue': '#4A90E2',
+        // ... resto das cores
+      },
+    },
+  },
+  plugins: [],
+}
