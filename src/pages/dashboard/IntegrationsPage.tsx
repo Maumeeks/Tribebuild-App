@@ -80,6 +80,7 @@ const IntegrationsPage: React.FC = () => {
           webhook_url: webhookUrl,
           hottok: hottok.trim(),
           status: 'active',
+          app_id: null, // ✅ ADICIONADO: Integração global (não por app)
         }, {
           onConflict: 'user_id,platform'
         });
@@ -143,11 +144,16 @@ const IntegrationsPage: React.FC = () => {
                     alt={platform.name}
                     className="w-full h-full object-contain p-2"
                     onError={(e) => {
-                      // Fallback para inicial se imagem não carregar
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.parentElement!.innerHTML = `
-                        <span class="text-4xl font-bold text-gray-400">${platform.name[0]}</span>
-                      `;
+                      // ✅ CORRIGIDO: Fallback funcional
+                      const target = e.currentTarget as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('span');
+                        fallback.className = 'text-4xl font-bold text-gray-400';
+                        fallback.textContent = platform.name[0];
+                        parent.appendChild(fallback);
+                      }
                     }}
                   />
                 </div>
@@ -208,16 +214,22 @@ const IntegrationsPage: React.FC = () => {
               {/* Header do Modal */}
               <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center overflow-hidden">
                     <img
                       src={platformsConfig.find(p => p.id === selectedPlatform)?.logo}
                       alt={selectedPlatform}
                       className="w-8 h-8 object-contain"
                       onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = `
-                          <span class="text-2xl font-bold text-gray-400">${selectedPlatform[0].toUpperCase()}</span>
-                        `;
+                        // ✅ CORRIGIDO: Fallback funcional
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent && selectedPlatform) {
+                          const fallback = document.createElement('span');
+                          fallback.className = 'text-2xl font-bold text-gray-400';
+                          fallback.textContent = selectedPlatform[0].toUpperCase();
+                          parent.appendChild(fallback);
+                        }
                       }}
                     />
                   </div>
