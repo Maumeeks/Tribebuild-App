@@ -80,7 +80,7 @@ const IntegrationsPage: React.FC = () => {
           webhook_url: webhookUrl,
           hottok: hottok.trim(),
           status: 'active',
-          app_id: null, // ✅ ADICIONADO: Integração global (não por app)
+          app_id: null, // ✅ ADICIONE ESTA LINHA
         }, {
           onConflict: 'user_id,platform'
         });
