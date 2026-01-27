@@ -130,8 +130,9 @@ const IntegrationsPage: React.FC = () => {
 
   const generateWebhookUrl = (platform: string) => {
     if (!user) return 'https://api.tribebuild.pro/webhook/loading...';
-    return `https://api.tribebuild.pro/webhook/${platform}/${user.id}`;
+    return `https://api.tribebuild.pro/webhook/${platform}`;
   };
+
 
   const handleCopyWebhook = async (url: string) => {
     try {
