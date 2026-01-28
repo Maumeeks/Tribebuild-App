@@ -79,10 +79,10 @@ export default function PwaLoginPage() {
     try {
       // 1. Verifica na tabela separada de ALUNOS (app_customers)
       const { data: student, error } = await supabase
-        .from('app_customers')
+        .from('clients')  // ✅ TABELA CORRETA!
         .select('*')
         .eq('app_id', appData.id)
-        .eq('email', email.trim().toLowerCase()) // Normaliza o email
+        .eq('email', email.trim().toLowerCase())
         .single();
 
       if (error || !student) {
