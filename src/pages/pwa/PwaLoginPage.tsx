@@ -1,753 +1,354 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Camera,
-  User,
-  Mail,
-  Phone,
-  Lock,
-  ChevronRight,
-  Bell,
-  Mail as MailIcon,
-  LogOut,
-  X,
-  Eye,
-  EyeOff,
-  Check,
-  AlertCircle,
-  ShieldCheck,
-  Smartphone,
-  Loader2
-} from 'lucide-react';
-import BottomNavigation from '../../components/pwa/BottomNavigation';
-import { cn } from '../../lib/utils';
+import { Mail, Loader2, ArrowRight, Download, CheckCircle2, AlertCircle, X, Share, PlusSquare, PlayCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-// Tipos
-interface AppData {
-  id: string;
-  name: string;
-  slug: string;
-  logo_url: string | null;
-  primary_color: string;
-  secondary_color: string;
-}
-
-interface ClientData {
-  id: string;
+// Definindo tipo simples para o aluno
+type StudentSession = {
   email: string;
-  full_name: string;
-  phone: string | null;
-  avatar_url: string | null;
   app_id: string;
-}
+  name?: string;
+};
 
-export default function PwaProfilePage() {
+export default function PwaLoginPage() {
   const { appSlug } = useParams<{ appSlug: string }>();
   const navigate = useNavigate();
 
-  // Estados de carregamento
-  const [loading, setLoading] = useState(true);
-  const [appData, setAppData] = useState<AppData | null>(null);
-  const [client, setClient] = useState<ClientData | null>(null);
+  const [appData, setAppData] = useState<any>(null);
+  const [loadingApp, setLoadingApp] = useState(true);
 
-  // Estados de edição
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Estados de notificações (localStorage)
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  // Modal de Instalação
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
-  // Estados dos modais
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
 
-  // Estados da senha
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-
-  // 1. Carregar dados na inicialização
+  // 1. Busca App COM DEBUG COMPLETO
   useEffect(() => {
-    loadData();
+    const fetchApp = async () => {
+      try {
+        console.log('🔍 [DEBUG] Buscando app com slug:', appSlug);
+
+        const { data, error } = await supabase
+          .from('apps')
+          .select('*')
+          .eq('slug', appSlug)
+          .single();
+
+        if (error) {
+          console.error('❌ [DEBUG] Erro ao buscar app:', error);
+          throw error;
+        }
+
+        // ✅ DEBUG COMPLETO DO APP
+        console.log('✅ [DEBUG] App encontrado!');
+        console.log('📦 [DEBUG] App completo:', data);
+        console.log('🔑 [DEBUG] App ID:', data.id);
+        console.log('📏 [DEBUG] App ID length:', data.id.length);
+        console.log('🔤 [DEBUG] App ID typeof:', typeof data.id);
+        console.log('🎨 [DEBUG] Primary color:', data.primary_color);
+
+        setAppData(data);
+      } catch (err) {
+        console.error('💥 [DEBUG] App não encontrado:', err);
+      } finally {
+        setLoadingApp(false);
+      }
+    };
+    if (appSlug) fetchApp();
   }, [appSlug]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
+  // 2. Instalação
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
 
-      // 1. Buscar app
-      const { data: app, error: appError } = await supabase
-        .from('apps')
+  const handleInstallClick = () => setShowInstallModal(true);
+
+  const triggerNativeInstall = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      setShowInstallModal(false);
+    }
+  };
+
+  // --- LÓGICA DE LOGIN COM DEBUG E QUERY ALTERNATIVA ---
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!email) return setError('Digite seu e-mail de compra.');
+
+    console.log('🚀 [DEBUG] Iniciando login...');
+    console.log('📧 [DEBUG] Email:', email.trim().toLowerCase());
+    console.log('🏢 [DEBUG] App data:', appData);
+    console.log('🔑 [DEBUG] App ID que será usado:', appData.id);
+
+    setIsLoading(true);
+
+    try {
+      // ESTRATÉGIA 1: Query direta com app_id
+      console.log('🔄 [DEBUG] Tentando query com app_id...');
+
+      const { data: student, error: studentError } = await supabase
+        .from('clients')
         .select('*')
-        .eq('slug', appSlug)
+        .eq('app_id', appData.id)
+        .eq('email', email.trim().toLowerCase())
         .single();
 
-      if (appError) throw new Error('App não encontrado');
-      setAppData(app);
+      console.log('📊 [DEBUG] Resultado da query:', { student, studentError });
 
-      // 2. Buscar sessão do cliente no localStorage
-      const sessionKey = `@tribebuild:student:${appSlug}`;
-      const sessionData = localStorage.getItem(sessionKey);
+      if (studentError || !student) {
+        console.log('⚠️ [DEBUG] Cliente não encontrado com app_id');
+        console.log('🔄 [DEBUG] Tentando query alternativa com JOIN...');
 
-      if (!sessionData) {
-        // Não está logado, redirecionar para login
-        navigate(`/${appSlug}/login`);
+        // ESTRATÉGIA 2: Query com JOIN pelo slug (mais confiável)
+        const { data: studentAlt, error: errorAlt } = await supabase
+          .from('clients')
+          .select(`
+            *,
+            apps!inner (
+              id,
+              slug,
+              name
+            )
+          `)
+          .eq('email', email.trim().toLowerCase())
+          .eq('apps.slug', appSlug)
+          .single();
+
+        console.log('📊 [DEBUG] Resultado da query alternativa:', { studentAlt, errorAlt });
+
+        if (errorAlt || !studentAlt) {
+          console.error('❌ [DEBUG] Cliente não encontrado em nenhuma estratégia');
+          throw new Error('Acesso não encontrado. Verifique se é o mesmo e-mail da compra.');
+        }
+
+        console.log('✅ [DEBUG] Cliente encontrado via JOIN!');
+        doLogin(studentAlt);
         return;
       }
 
-      const session = JSON.parse(sessionData);
+      console.log('✅ [DEBUG] Cliente encontrado via app_id!');
+      doLogin(student);
 
-      // 3. Buscar dados completos do cliente no banco
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('app_id', app.id)
-        .eq('email', session.email)
-        .single();
-
-      if (clientError || !clientData) {
-        // Sessão inválida, fazer logout
-        localStorage.removeItem(sessionKey);
-        navigate(`/${appSlug}/login`);
-        return;
-      }
-
-      setClient(clientData);
-      setEditName(clientData.full_name || '');
-      setEditPhone(clientData.phone || '');
-
-      // 4. Carregar preferências de notificações do localStorage
-      const notifKey = `@tribebuild:notif:${clientData.id}`;
-      const notifData = localStorage.getItem(notifKey);
-      if (notifData) {
-        const prefs = JSON.parse(notifData);
-        setPushNotifications(prefs.push ?? true);
-        setEmailNotifications(prefs.email ?? true);
-      }
-
-    } catch (error: any) {
-      console.error('Erro ao carregar dados:', error);
-      navigate(`/${appSlug}/login`);
+    } catch (err: any) {
+      console.error('💥 [DEBUG] Erro no login:', err);
+      setError(err.message || 'E-mail não encontrado na base de alunos deste app.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Formatar telefone
-  const formatPhone = (value: string): string => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    if (numbers.length <= 11) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+  const doLogin = (student: any) => {
+    console.log('🎉 [DEBUG] Login bem-sucedido!');
+    console.log('👤 [DEBUG] Dados do aluno:', student);
+
+    // Salva sessão no LocalStorage
+    const session: StudentSession = {
+      email: student.email,
+      app_id: student.app_id,
+      name: student.full_name
+    };
+
+    console.log('💾 [DEBUG] Salvando sessão:', session);
+    localStorage.setItem(`@tribebuild:student:${appSlug}`, JSON.stringify(session));
+
+    console.log('🚀 [DEBUG] Redirecionando para home...');
+
+    // Redireciona
+    navigate(`/${appSlug}/home`);
   };
 
-  // Salvar edições
-  const handleSaveEdit = async () => {
-    if (!client || !appData) return;
-
-    try {
-      setSaving(true);
-
-      const { error } = await supabase
-        .from('clients')
-        .update({
-          full_name: editName.trim(),
-          phone: editPhone.trim() || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', client.id);
-
-      if (error) throw error;
-
-      // Atualizar estado local
-      setClient({
-        ...client,
-        full_name: editName.trim(),
-        phone: editPhone.trim() || null
-      });
-
-      setIsEditing(false);
-    } catch (error: any) {
-      console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar alterações. Tente novamente.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditName(client?.full_name || '');
-    setEditPhone(client?.phone || '');
-    setIsEditing(false);
-  };
-
-  // Alterar senha
-  const handleChangePassword = async () => {
-    if (!client) return;
-
-    setPasswordError('');
-    setPasswordSuccess(false);
-
-    if (!currentPassword) {
-      setPasswordError('Digite sua senha atual');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordError('A nova senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('As senhas não coincidem');
-      return;
-    }
-
-    try {
-      setChangingPassword(true);
-
-      // Atualizar senha no Supabase
-      const { error } = await supabase
-        .from('clients')
-        .update({
-          password_hash: newPassword, // Em produção, usar bcrypt!
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', client.id);
-
-      if (error) throw error;
-
-      setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-
-      setTimeout(() => {
-        setShowPasswordModal(false);
-        setPasswordSuccess(false);
-      }, 1500);
-
-    } catch (error: any) {
-      console.error('Erro ao alterar senha:', error);
-      setPasswordError('Erro ao alterar senha. Tente novamente.');
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  // Salvar preferências de notificação
-  const togglePushNotifications = () => {
-    if (!client) return;
-    const newValue = !pushNotifications;
-    setPushNotifications(newValue);
-    const notifKey = `@tribebuild:notif:${client.id}`;
-    localStorage.setItem(notifKey, JSON.stringify({
-      push: newValue,
-      email: emailNotifications
-    }));
-  };
-
-  const toggleEmailNotifications = () => {
-    if (!client) return;
-    const newValue = !emailNotifications;
-    setEmailNotifications(newValue);
-    const notifKey = `@tribebuild:notif:${client.id}`;
-    localStorage.setItem(notifKey, JSON.stringify({
-      push: pushNotifications,
-      email: newValue
-    }));
-  };
-
-  // Logout
-  const handleLogout = () => {
-    if (!appSlug) return;
-    const sessionKey = `@tribebuild:student:${appSlug}`;
-    localStorage.removeItem(sessionKey);
-    navigate(`/${appSlug}/login`);
-  };
-
-  // Loading state
-  if (loading) {
+  if (loadingApp) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-slate-500 mx-auto" />
-          <p className="text-slate-400 font-black uppercase tracking-widest text-xs">
-            Carregando perfil...
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
       </div>
     );
   }
 
-  // Not found state
-  if (!appData || !client) {
+  if (!appData) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-center p-6">
-        <div className="space-y-4">
-          <div className="w-16 h-16 bg-slate-800 rounded-full mx-auto flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-red-400" />
-          </div>
-          <p className="text-slate-400 font-black uppercase tracking-widest text-xs">
-            Sessão inválida
-          </p>
-          <button
-            onClick={() => navigate(`/${appSlug}/login`)}
-            className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-700 transition-colors"
-          >
-            Fazer Login
-          </button>
-        </div>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        App não encontrado
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      {/* Header Premium */}
-      <header
-        className="sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-lg"
-        style={{
-          backgroundColor: appData.primary_color,
-          boxShadow: `0 4px 20px ${appData.primary_color}20`
-        }}
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20">
-            <User className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-white font-black text-base tracking-tight leading-none">Meu Perfil</h1>
-            <p className="text-white/60 text-[8px] font-black uppercase tracking-widest mt-0.5">Gestão da Conta</p>
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-slate-950 font-['inter']">
 
-        {isEditing ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCancelEdit}
-              disabled={saving}
-              className="px-3 py-1.5 text-white/70 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSaveEdit}
-              disabled={saving}
-              className="px-5 py-1.5 bg-white text-xs font-black uppercase tracking-widest rounded-lg shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
-              style={{ color: appData.primary_color }}
-            >
-              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              Salvar
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-1.5 bg-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-white/30 transition-all active:scale-95 border border-white/10"
-          >
-            Editar Perfil
-          </button>
-        )}
-      </header>
+      {/* Background Glow */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-20"
+          style={{ backgroundColor: appData.primary_color }}
+        />
+        <div
+          className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-10"
+          style={{ backgroundColor: appData.primary_color }}
+        />
+      </div>
 
-      {/* Conteúdo Principal */}
-      <main className="p-6 space-y-8 animate-slide-up">
-
-        {/* Avatar Section */}
-        <div className="flex flex-col items-center">
-          <div className="relative group">
-            <div
-              className="w-28 h-28 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl relative z-10 border-4 border-white"
-              style={{
-                backgroundColor: appData.primary_color,
-                boxShadow: `0 20px 40px -10px ${appData.primary_color}40`
-              }}
-            >
-              {client.avatar_url ? (
-                <img
-                  src={client.avatar_url}
-                  alt={client.full_name}
-                  className="w-full h-full object-cover rounded-[2.5rem]"
-                />
-              ) : (
-                (client.full_name || client.email).charAt(0).toUpperCase()
-              )}
-            </div>
-
-            <button
-              onClick={() => alert('Upload de foto será implementado em breve!')}
-              className="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-900 text-white rounded-2xl shadow-xl flex items-center justify-center border-4 border-white z-20 hover:scale-110 active:scale-90 transition-all"
-            >
-              <Camera size={18} />
-            </button>
-          </div>
-
-          <div className="text-center mt-6">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {client.full_name || 'Sem nome'}
-            </h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2">
-              {client.email}
-            </p>
-          </div>
-        </div>
-
-        {/* Informações Pessoais */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-2 h-2 rounded-full bg-blue-400" />
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Informações Pessoais
-            </h3>
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-            <div className="p-6 transition-all group">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                Nome de Exibição
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full text-slate-900 font-bold bg-slate-50 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 border border-slate-200 transition-all"
-                  placeholder="Digite seu nome"
-                />
-              ) : (
-                <p className="text-slate-800 font-bold text-sm tracking-tight">
-                  {client.full_name || 'Não informado'}
-                </p>
-              )}
-            </div>
-
-            <div className="p-6 group relative">
-              <div className="flex justify-between items-start">
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
-                    Email de Acesso
-                  </label>
-                  <p className="text-slate-400 font-bold text-sm tracking-tight">
-                    {client.email}
-                  </p>
-                </div>
-                <div className="p-2 bg-slate-50 rounded-xl text-slate-300">
-                  <Lock size={14} />
-                </div>
-              </div>
-              <p className="text-[8px] text-slate-300 font-bold uppercase tracking-widest mt-2">
-                O e-mail não pode ser alterado
-              </p>
-            </div>
-
-            <div className="p-6">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                WhatsApp / Telefone
-              </label>
-              {isEditing ? (
-                <input
-                  type="tel"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(formatPhone(e.target.value))}
-                  maxLength={15}
-                  className="w-full text-slate-900 font-bold bg-slate-50 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 border border-slate-200 transition-all"
-                  placeholder="(00) 00000-0000"
-                />
-              ) : (
-                <p className="text-slate-800 font-bold text-sm tracking-tight">
-                  {client.phone || 'Não informado'}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Segurança */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Segurança da Conta
-            </h3>
-          </div>
-
-          <button
-            onClick={() => setShowPasswordModal(true)}
-            className="w-full bg-white rounded-[2rem] border border-slate-100 p-6 flex items-center justify-between group hover:bg-slate-50 transition-all shadow-sm active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
-                <ShieldCheck size={20} />
-              </div>
-              <span className="text-slate-800 font-black text-sm tracking-tight">
-                Alterar minha senha
-              </span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
-
-        {/* Preferências */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-2 h-2 rounded-full bg-green-400" />
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Notificações & Avisos
-            </h3>
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-            <div className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                  <Bell size={20} />
-                </div>
-                <div>
-                  <span className="block text-slate-800 font-black text-sm tracking-tight">
-                    Alertas Push
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 block">
-                    Avisos no celular
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={togglePushNotifications}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-all relative p-1",
-                  pushNotifications ? "bg-green-500" : "bg-slate-200"
-                )}
-              >
-                <div className={cn(
-                  "w-4 h-4 bg-white rounded-full shadow-md transition-all",
-                  pushNotifications ? "translate-x-6" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-
-            <div className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
-                  <MailIcon size={20} />
-                </div>
-                <div>
-                  <span className="block text-slate-800 font-black text-sm tracking-tight">
-                    Resumos por E-mail
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 block">
-                    Semanal e novidades
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={toggleEmailNotifications}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-all relative p-1",
-                  emailNotifications ? "bg-green-500" : "bg-slate-200"
-                )}
-              >
-                <div className={cn(
-                  "w-4 h-4 bg-white rounded-full shadow-md transition-all",
-                  emailNotifications ? "translate-x-6" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Botão Sair */}
+      <div className="mb-8 animate-fade-in relative z-10">
         <button
-          onClick={() => setShowLogoutModal(true)}
-          className="w-full p-6 bg-red-50 rounded-[2rem] border-2 border-red-100 flex items-center justify-center gap-4 text-red-600 font-black uppercase tracking-[0.2em] text-xs transition-all hover:bg-red-100 active:scale-95 shadow-sm shadow-red-500/5"
+          onClick={handleInstallClick}
+          className="flex items-center gap-2 px-6 py-3 bg-slate-900/80 backdrop-blur-md border border-slate-800 text-slate-300 hover:text-white rounded-full text-xs font-bold uppercase tracking-wider shadow-xl hover:scale-105 transition-all"
         >
-          <LogOut size={20} />
-          Encerrar Sessão
+          <Download size={14} /> Instalar App
         </button>
+      </div>
 
-        {/* Branding */}
-        <div className="text-center py-8 opacity-20">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Smartphone size={12} className="text-slate-400" />
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
-              Powered by TribeBuild
-            </p>
-          </div>
-          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-[0.2em]">
-            v1.0.0
+      <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] shadow-2xl shadow-black/50 max-w-md w-full p-8 md:p-10 animate-slide-up relative z-10">
+
+        <div className="text-center mb-10">
+          {appData.logo_url ? (
+            <img
+              src={appData.logo_url}
+              alt={appData.name}
+              className="w-24 h-24 rounded-3xl mx-auto mb-6 object-cover shadow-2xl border-4 border-slate-800 bg-slate-800"
+            />
+          ) : (
+            <div
+              className="w-24 h-24 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center text-white text-4xl font-black shadow-2xl border-4 border-slate-800"
+              style={{ backgroundColor: appData.primary_color }}
+            >
+              {appData.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <h1 className="text-2xl font-black text-white tracking-tight">{appData.name}</h1>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-3">
+            Acesso Exclusivo
           </p>
         </div>
-      </main>
 
-      {/* Modal: Alterar Senha */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fade-in">
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            onClick={() => !changingPassword && setShowPasswordModal(false)}
-          />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Nova Senha</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                  Proteção da sua conta
-                </p>
-              </div>
-              <button
-                onClick={() => !changingPassword && setShowPasswordModal(false)}
-                disabled={changingPassword}
-                className="p-2 text-slate-300 hover:text-slate-600 transition-colors disabled:opacity-50"
-              >
-                <X size={24} />
-              </button>
+        {/* LOGIN FORM */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-3 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <AlertCircle size={14} /> {error}
             </div>
+          )}
 
-            <div className="p-8 space-y-6">
-              {passwordSuccess ? (
-                <div className="flex flex-col items-center py-8 animate-fade-in text-center">
-                  <div className="w-20 h-20 bg-green-50 rounded-[2rem] flex items-center justify-center mb-6 text-green-500 shadow-inner">
-                    <Check size={40} strokeWidth={3} />
-                  </div>
-                  <h4 className="text-xl font-black text-slate-900 mb-2">Senha alterada!</h4>
-                  <p className="text-slate-500 text-sm font-medium">
-                    Sua segurança foi atualizada com sucesso.
-                  </p>
-                </div>
+          <div className="relative group">
+            <Mail
+              className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors"
+              style={{ color: emailFocused ? appData.primary_color : '#64748B' }}
+            />
+            <input
+              type="email"
+              placeholder="Seu e-mail de compra"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
+              className="w-full pl-14 pr-5 py-4 bg-slate-950/50 text-white border border-slate-800 rounded-2xl focus:outline-none transition-all font-medium text-sm placeholder:text-slate-600 focus:border-opacity-50"
+              style={{ borderColor: emailFocused ? appData.primary_color : '#1e293b' }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-3 px-6 h-14 text-white rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-300 mt-6 relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: appData.primary_color,
+              boxShadow: `0 0 20px -5px ${appData.primary_color}40`
+            }}
+          >
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            <div className="relative flex items-center gap-3">
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  {passwordError && (
-                    <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold flex items-center gap-3">
-                      <AlertCircle size={16} />
-                      {passwordError}
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-1">
-                        Senha Atual
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showCurrentPassword ? 'text' : 'password'}
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          disabled={changingPassword}
-                          className="w-full px-5 py-4 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl focus:border-blue-500 focus:outline-none font-bold disabled:opacity-50"
-                        />
-                        <button
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300"
-                          type="button"
-                        >
-                          {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-1">
-                        Nova Senha
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showNewPassword ? 'text' : 'password'}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Mínimo 6 caracteres"
-                          disabled={changingPassword}
-                          className="w-full px-5 py-4 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl focus:border-blue-500 focus:outline-none font-bold placeholder:font-medium disabled:opacity-50"
-                        />
-                        <button
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300"
-                          type="button"
-                        >
-                          {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-1">
-                        Confirmar Nova Senha
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={changingPassword}
-                        className="w-full px-5 py-4 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl focus:border-blue-500 focus:outline-none font-bold disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleChangePassword}
-                    disabled={changingPassword}
-                    className="w-full py-5 text-white font-black uppercase tracking-[0.15em] text-xs rounded-[1.5rem] shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{
-                      backgroundColor: appData.primary_color,
-                      boxShadow: `0 10px 25px ${appData.primary_color}30`
-                    }}
-                  >
-                    {changingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
-                    Confirmar Alteração
-                  </button>
+                  Entrar Agora <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </button>
+        </form>
 
-      {/* Modal: Confirmar Logout */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fade-in">
+        <p className="text-center text-slate-600 text-xs mt-8 px-4 leading-relaxed">
+          O acesso é liberado automaticamente para o e-mail utilizado na compra.
+        </p>
+      </div>
+
+      <div className="mt-12 text-center opacity-50">
+        <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
+          Powered by TribeBuild
+        </span>
+      </div>
+
+      {/* MODAL DE INSTALAÇÃO */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            onClick={() => setShowLogoutModal(false)}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            onClick={() => setShowInstallModal(false)}
           />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full p-10 text-center animate-slide-up">
-            <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 text-red-500 shadow-inner">
-              <LogOut size={32} strokeWidth={3} />
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
-              Encerrar sessão?
-            </h3>
-            <p className="text-slate-500 text-sm font-medium mb-10 leading-relaxed">
-              Você precisará fazer login novamente para acessar seus conteúdos exclusivos.
-            </p>
-
-            <div className="flex flex-col gap-3">
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-slide-up">
+            <div className="p-6 pb-0 flex justify-between items-start">
+              <div>
+                <h3 className="text-white font-bold text-lg">Instalar Aplicativo</h3>
+                <p className="text-slate-400 text-xs mt-1">Tenha acesso rápido direto da tela inicial.</p>
+              </div>
               <button
-                onClick={() => setShowLogoutModal(false)}
-                className="w-full py-4 bg-slate-50 text-slate-500 font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-100 transition-all"
+                onClick={() => setShowInstallModal(false)}
+                className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white"
               >
-                Voltar ao App
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full py-4 bg-red-500 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-red-500/20 hover:bg-red-600 transition-all active:scale-95"
-              >
-                Sim, desejo sair
+                <X size={16} />
               </button>
             </div>
+            <div className="m-6 aspect-video bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 group cursor-pointer relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 to-transparent opacity-50" />
+              <PlayCircle className="w-12 h-12 text-white/50 group-hover:text-white transition-colors z-10" />
+              <p className="absolute bottom-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest z-10">
+                Ver Tutorial
+              </p>
+            </div>
+            <div className="px-6 pb-6 space-y-4">
+              <div className="flex gap-4 items-center">
+                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shrink-0">
+                  <Share className="w-5 h-5 text-blue-400" />
+                </div>
+                <p className="text-sm text-slate-300">
+                  1. Toque em <strong>Compartilhar</strong> (iOS) ou <strong>Menu</strong> (Android).
+                </p>
+              </div>
+              <div className="flex gap-4 items-center">
+                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shrink-0">
+                  <PlusSquare className="w-5 h-5 text-emerald-400" />
+                </div>
+                <p className="text-sm text-slate-300">
+                  2. Selecione <strong>Adicionar à Tela de Início</strong>.
+                </p>
+              </div>
+            </div>
+            {installPrompt && (
+              <div className="p-6 pt-0">
+                <button
+                  onClick={triggerNativeInstall}
+                  className="w-full py-4 bg-white text-slate-900 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                >
+                  Instalar Agora
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* Bottom Navigation */}
-      <BottomNavigation primaryColor={appData.primary_color} />
     </div>
   );
 }
