@@ -77,7 +77,7 @@ export default function PwaLoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Verifica na tabela separada de ALUNOS (app_customers)
+      // 1. Verifica na tabela separada de ALUNOS (clients)
       const { data: student, error } = await supabase
         .from('clients')  // ✅ TABELA CORRETA!
         .select('*')
@@ -89,7 +89,7 @@ export default function PwaLoginPage() {
         // Se não achou, é porque não comprou.
         // MODO DE TESTE (Opcional): Se quiser que crie automático para testar, descomente abaixo:
         /*
-        const { data: newStudent } = await supabase.from('app_customers').insert({
+        const { data: newStudent } = await supabase.from('clients').insert({
             app_id: appData.id,
             email: email.trim().toLowerCase()
         }).select().single();
