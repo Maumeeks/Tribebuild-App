@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
-// ✅ 1. Adicionado login_type na definição do App
+// ✅ ÚNICA DECLARAÇÃO DA INTERFACE APP (com todos os campos)
 export interface App {
   id: string;
   name: string;
@@ -16,12 +16,19 @@ export interface App {
   customDomain: string | null;
   status: 'draft' | 'published';
   login_type: 'email_password' | 'magic_link';
+
+  // ✅ NOVOS CAMPOS (adicionados aqui!)
+  banners: Array<{
+    image_url: string | null;
+    link: string;
+  }>;
+  support_type: 'email' | 'whatsapp' | null;
+  support_value: string;
 }
 
 interface AppsContextType {
   apps: App[];
   loading: boolean;
-  // Atualizei a tipagem do addApp para aceitar o login_type
   addApp: (appData: Omit<App, 'id' | 'createdAt' | 'accessLink' | 'status'>) => Promise<string>;
   updateApp: (id: string, data: Partial<App>) => Promise<void>;
   deleteApp: (id: string) => Promise<void>;
@@ -60,7 +67,7 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const currentPlan = effectivePlan.toLowerCase().trim();
   const planLimit = PLAN_LIMITS[currentPlan] || 1;
 
-  // --- SINCROZINAÇÃO COM SUPABASE ---
+  // --- SINCRONIZAÇÃO COM SUPABASE ---
 
   const fetchApps = useCallback(async () => {
     if (!user) {
@@ -82,16 +89,25 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           id: item.id,
           name: item.name,
           slug: item.slug,
-          description: item.description,
-          logo: item.logo,
-          primaryColor: item.primary_color,
-          language: item.language,
+          description: item.description || '',
+          logo: item.logo || null,
+          primaryColor: item.primary_color || '#0066FF',
+          language: item.language || 'PT',
           createdAt: item.created_at,
-          customDomain: item.custom_domain,
+          customDomain: item.custom_domain || null,
           status: item.status as 'draft' | 'published',
-          // ✅ 2. Lendo do banco (com valor padrão se estiver vazio)
           login_type: item.login_type || 'email_password',
-          accessLink: item.custom_domain ? `https://${item.custom_domain}` : `https://app.tribebuild.pro/${item.slug}`,
+          accessLink: item.custom_domain
+            ? `https://${item.custom_domain}`
+            : `https://app.tribebuild.pro/${item.slug}`,
+          // ✅ Novos campos
+          banners: item.banners || [
+            { image_url: null, link: '' },
+            { image_url: null, link: '' },
+            { image_url: null, link: '' }
+          ],
+          support_type: item.support_type || null,
+          support_value: item.support_value || ''
         }));
         setApps(mappedApps);
       }
@@ -122,14 +138,21 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           user_id: user.id,
           name: appData.name,
           slug: appData.slug,
-          description: appData.description,
-          logo: appData.logo,
-          primary_color: appData.primaryColor,
-          language: appData.language,
-          custom_domain: appData.customDomain,
+          description: appData.description || '',
+          logo: appData.logo || null,
+          primary_color: appData.primaryColor || '#0066FF',
+          language: appData.language || 'PT',
+          custom_domain: appData.customDomain || null,
           status: 'draft',
-          // ✅ 3. Salvando no banco
-          login_type: appData.login_type || 'email_password'
+          login_type: appData.login_type || 'email_password',
+          // ✅ Novos campos
+          banners: appData.banners || [
+            { image_url: null, link: '' },
+            { image_url: null, link: '' },
+            { image_url: null, link: '' }
+          ],
+          support_type: appData.support_type || null,
+          support_value: appData.support_value || ''
         }])
         .select()
         .single();
@@ -141,15 +164,25 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           id: data.id,
           name: data.name,
           slug: data.slug,
-          description: data.description,
-          logo: data.logo,
-          primaryColor: data.primary_color,
-          language: data.language,
+          description: data.description || '',
+          logo: data.logo || null,
+          primaryColor: data.primary_color || '#0066FF',
+          language: data.language || 'PT',
           createdAt: data.created_at,
-          customDomain: data.custom_domain,
+          customDomain: data.custom_domain || null,
           status: data.status,
           login_type: data.login_type || 'email_password',
-          accessLink: data.custom_domain ? `https://${data.custom_domain}` : `https://app.tribebuild.pro/${data.slug}`
+          accessLink: data.custom_domain
+            ? `https://${data.custom_domain}`
+            : `https://app.tribebuild.pro/${data.slug}`,
+          // ✅ Novos campos
+          banners: data.banners || [
+            { image_url: null, link: '' },
+            { image_url: null, link: '' },
+            { image_url: null, link: '' }
+          ],
+          support_type: data.support_type || null,
+          support_value: data.support_value || ''
         };
         setApps(prev => [newApp, ...prev]);
         return data.id;
@@ -168,16 +201,19 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateApp = async (id: string, data: Partial<App>) => {
     try {
       const dbData: any = {};
-      if (data.name) dbData.name = data.name;
-      if (data.slug) dbData.slug = data.slug;
-      if (data.description) dbData.description = data.description;
-      if (data.logo) dbData.logo = data.logo;
-      if (data.primaryColor) dbData.primary_color = data.primaryColor;
-      if (data.language) dbData.language = data.language;
-      if (data.customDomain) dbData.custom_domain = data.customDomain;
-      if (data.status) dbData.status = data.status;
-      // ✅ 4. Atualizando no banco
-      if (data.login_type) dbData.login_type = data.login_type;
+      if (data.name !== undefined) dbData.name = data.name;
+      if (data.slug !== undefined) dbData.slug = data.slug;
+      if (data.description !== undefined) dbData.description = data.description;
+      if (data.logo !== undefined) dbData.logo = data.logo;
+      if (data.primaryColor !== undefined) dbData.primary_color = data.primaryColor;
+      if (data.language !== undefined) dbData.language = data.language;
+      if (data.customDomain !== undefined) dbData.custom_domain = data.customDomain;
+      if (data.status !== undefined) dbData.status = data.status;
+      if (data.login_type !== undefined) dbData.login_type = data.login_type;
+      // ✅ Novos campos
+      if (data.banners !== undefined) dbData.banners = data.banners;
+      if (data.support_type !== undefined) dbData.support_type = data.support_type;
+      if (data.support_value !== undefined) dbData.support_value = data.support_value;
 
       const { error } = await supabase
         .from('apps')
