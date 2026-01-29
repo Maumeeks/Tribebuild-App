@@ -213,9 +213,9 @@ export default function PwaLoginPage() {
       <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] shadow-2xl shadow-black/50 max-w-md w-full p-8 md:p-10 animate-slide-up relative z-10">
 
         <div className="text-center mb-10">
-          {appData.logo_url ? (
+          {appData.logo ? (
             <img
-              src={appData.logo_url}
+              src={appData.logo}
               alt={appData.name}
               className="w-24 h-24 rounded-3xl mx-auto mb-6 object-cover shadow-2xl border-4 border-slate-800 bg-slate-800"
             />
