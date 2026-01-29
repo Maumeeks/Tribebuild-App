@@ -125,12 +125,19 @@ export default function PwaHomePage() {
         if (appError) throw appError;
         setAppData(app);
 
+        console.log('👤 [DEBUG] Buscando cliente no banco...');
+        console.log('📧 [DEBUG] Email da sessão:', session.email);
+        console.log('🏢 [DEBUG] App ID:', app.id);
+
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .select('*')
           .eq('app_id', app.id)
           .eq('email', session.email)
           .single();
+
+        console.log('📊 [DEBUG] Resultado da busca do cliente:', clientData);
+        console.log('❌ [DEBUG] Erro ao buscar cliente (se houver):', clientError);
 
         if (clientError || !clientData) {
           localStorage.removeItem(`@tribebuild:student:${appSlug}`);
@@ -139,6 +146,10 @@ export default function PwaHomePage() {
         }
 
         setClient(clientData);
+
+        console.log('🔍 [DEBUG] Buscando produtos do cliente...');
+        console.log('👤 [DEBUG] Client ID:', clientData.id);
+        console.log('📧 [DEBUG] Client Email:', clientData.email);
 
         const { data: clientProducts, error: cpError } = await supabase
           .from('client_products')
@@ -156,18 +167,43 @@ export default function PwaHomePage() {
           .eq('client_id', clientData.id)
           .eq('status', 'active');
 
-        if (cpError) throw cpError;
+        console.log('📊 [DEBUG] Resultado client_products:', clientProducts);
+        console.log('❌ [DEBUG] Erro (se houver):', cpError);
+        console.log('🔢 [DEBUG] Quantidade de produtos:', clientProducts?.length || 0);
+
+        if (cpError) {
+          console.error('💥 [DEBUG] ERRO ao buscar client_products:', cpError);
+          throw cpError;
+        }
+
+        if (!clientProducts || clientProducts.length === 0) {
+          console.warn('⚠️ [DEBUG] Nenhum produto encontrado para este cliente!');
+          setProducts([]);
+          return;
+        }
 
         const productsWithProgress: ProductWithProgress[] = [];
 
+        console.log('🔄 [DEBUG] Iniciando processamento de produtos...');
+
         for (const cp of clientProducts || []) {
           const product = cp.products;
-          if (!product) continue;
+
+          console.log('📦 [DEBUG] Processando produto:', product?.name || 'SEM NOME');
+          console.log('🔑 [DEBUG] Product ID:', product?.id);
+          console.log('📋 [DEBUG] Product data completo:', product);
+
+          if (!product) {
+            console.warn('⚠️ [DEBUG] Produto não encontrado no client_product:', cp.id);
+            continue;
+          }
 
           const { data: modules } = await supabase
             .from('modules')
             .select('id')
             .eq('product_id', product.id);
+
+          console.log('📚 [DEBUG] Módulos encontrados:', modules?.length || 0);
 
           const moduleIds = modules?.map(m => m.id) || [];
 
@@ -177,6 +213,7 @@ export default function PwaHomePage() {
             .in('module_id', moduleIds);
 
           const totalLessons = lessons?.length || 0;
+          console.log('📝 [DEBUG] Total de aulas:', totalLessons);
 
           const { data: progress } = await supabase
             .from('client_progress')
@@ -190,13 +227,23 @@ export default function PwaHomePage() {
             ? Math.round((completedLessons / totalLessons) * 100)
             : 0;
 
+          console.log('✅ [DEBUG] Progresso:', `${completedLessons}/${totalLessons} (${progressPercent}%)`);
+
           productsWithProgress.push({
             ...product,
             progress: progressPercent,
             total_lessons: totalLessons,
             completed_lessons: completedLessons
           });
+
+          console.log('✅ [DEBUG] Produto adicionado ao array!');
         }
+
+        console.log('🎯 [DEBUG] Total de produtos processados:', productsWithProgress.length);
+        console.log('📦 [DEBUG] Array final de produtos:', productsWithProgress);
+
+        console.log('🎯 [DEBUG] Total de produtos processados:', productsWithProgress.length);
+        console.log('📦 [DEBUG] Array final de produtos:', productsWithProgress);
 
         productsWithProgress.sort((a, b) => {
           if (a.progress > 0 && b.progress === 0) return -1;
@@ -204,11 +251,20 @@ export default function PwaHomePage() {
           return b.progress - a.progress;
         });
 
+        console.log('✅ [DEBUG] Produtos ordenados!');
+        console.log('🎨 [DEBUG] Setando produtos no state...');
+
         setProducts(productsWithProgress);
 
+        console.log('🎉 [DEBUG] Produtos setados com sucesso!');
+        console.log('📊 [DEBUG] Total final:', productsWithProgress.length);
+
       } catch (err) {
-        console.error('Erro ao carregar home:', err);
+        console.error('💥 [DEBUG] ERRO COMPLETO ao carregar home:', err);
+        console.error('💥 [DEBUG] Erro detalhado:', JSON.stringify(err, null, 2));
+        console.error('💥 [DEBUG] Stack trace:', (err as Error).stack);
       } finally {
+        console.log('🏁 [DEBUG] Finalizando carregamento...');
         setLoading(false);
       }
     };
