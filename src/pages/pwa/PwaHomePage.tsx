@@ -6,14 +6,13 @@ import {
   ChevronLeft,
   Bell,
   Search,
-  Zap,
-  Trophy,
   Loader2,
   MessageCircle,
   Mail as MailIcon,
   Lock,
   Star,
-  Gift
+  Gift,
+  ShoppingCart
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
@@ -33,6 +32,7 @@ type ProductWithProgress = Product & {
   progress: number;
   total_lessons: number;
   completed_lessons: number;
+  isLocked?: boolean;
 };
 
 export default function PwaHomePage() {
@@ -51,39 +51,17 @@ export default function PwaHomePage() {
   const mockBanners = [
     {
       id: 1,
-      title: "Mentoria Elite",
-      subtitle: "Acelere seus resultados em 30 dias",
       image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=2070&auto=format&fit=crop",
-      badge: "Oportunidade",
       link: "#"
     },
-    {
-      id: 2,
-      title: "Comunidade VIP",
-      subtitle: "Networking com os melhores",
-      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop",
-      badge: "Exclusivo",
-      link: "#"
-    },
-    {
-      id: 3,
-      title: "Imersão Presencial",
-      subtitle: "Garanta seu ingresso antecipado",
-      image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db48e?q=80&w=2060&auto=format&fit=crop",
-      badge: "Evento",
-      link: "#"
-    }
   ];
 
-  // Banners reais do banco
+  // Banners reais do banco (SEM título)
   const realBanners = appData?.banners
     ?.filter((b: any) => b.image_url)
     .map((b: any, idx: number) => ({
       id: idx + 1,
-      title: `Banner ${idx + 1}`,
-      subtitle: "Toque para saber mais",
       image: b.image_url,
-      badge: "Novidade",
       link: b.link || "#"
     })) || [];
 
@@ -91,6 +69,7 @@ export default function PwaHomePage() {
 
   // Auto-Play dos banners
   useEffect(() => {
+    if (banners.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
     }, 5000);
@@ -108,7 +87,6 @@ export default function PwaHomePage() {
     }
   }, [currentBannerIndex]);
 
-  // ✅ FUNÇÕES DE NAVEGAÇÃO DO BANNER (CORRIGIDO)
   const goToNextBanner = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
@@ -162,7 +140,8 @@ export default function PwaHomePage() {
 
         setClient(clientData);
 
-        const { data: clientProducts, error: cpError } = await supabase
+        // 1. Buscar produtos que o cliente TEM ACESSO
+        const { data: clientProducts } = await supabase
           .from('client_products')
           .select(`
             *,
@@ -178,15 +157,18 @@ export default function PwaHomePage() {
           .eq('client_id', clientData.id)
           .eq('status', 'active');
 
-        if (cpError) throw cpError;
+        const clientProductIds = clientProducts?.map(cp => cp.products?.id).filter(Boolean) || [];
 
-        if (!clientProducts || clientProducts.length === 0) {
-          setProducts([]);
-          return;
-        }
+        // 2. Buscar TODOS os produtos do app (para mostrar upsells bloqueados)
+        const { data: allAppProducts } = await supabase
+          .from('products')
+          .select('*')
+          .eq('app_id', app.id)
+          .eq('status', 'active');
 
         const productsWithProgress: ProductWithProgress[] = [];
 
+        // Processar produtos que o cliente TEM
         for (const cp of clientProducts || []) {
           const product = cp.products;
           if (!product) continue;
@@ -229,12 +211,31 @@ export default function PwaHomePage() {
             ...product,
             progress: progressPercent,
             total_lessons: totalLessons,
-            completed_lessons: completedLessons
+            completed_lessons: completedLessons,
+            isLocked: false
           });
         }
 
-        // Ordenar: em progresso primeiro, depois não iniciados
+        // 3. Adicionar produtos UPSELL/DOWNSELL que o cliente NÃO TEM
+        for (const product of allAppProducts || []) {
+          const isUpsellType = ['upsell', 'downsell', 'order_bump'].includes(product.offer_type);
+          const clientAlreadyHas = clientProductIds.includes(product.id);
+
+          if (isUpsellType && !clientAlreadyHas) {
+            productsWithProgress.push({
+              ...product,
+              progress: 0,
+              total_lessons: 0,
+              completed_lessons: 0,
+              isLocked: true
+            });
+          }
+        }
+
+        // Ordenar: em progresso > não iniciados > bloqueados
         productsWithProgress.sort((a, b) => {
+          if (a.isLocked && !b.isLocked) return 1;
+          if (!a.isLocked && b.isLocked) return -1;
           if (a.progress > 0 && b.progress === 0) return -1;
           if (a.progress === 0 && b.progress > 0) return 1;
           return b.progress - a.progress;
@@ -271,7 +272,6 @@ export default function PwaHomePage() {
     );
   }
 
-  // Cor primária com fallback
   const primaryColor = appData.primary_color || '#f59e0b';
 
   return (
@@ -309,7 +309,7 @@ export default function PwaHomePage() {
 
         <main className="p-5 space-y-6">
 
-          {/* ✅ BANNER CAROUSEL - CORRIGIDO */}
+          {/* BANNER - SEM TEXTO */}
           <section className="relative">
             <div
               ref={bannerScrollRef}
@@ -323,28 +323,22 @@ export default function PwaHomePage() {
                 >
                   <img
                     src={banner.image}
-                    alt={banner.title}
+                    alt="Banner"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
-                  <div className="absolute bottom-0 left-0 p-5 w-full">
-                    <span
-                      className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md mb-2 inline-block"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      {banner.badge}
-                    </span>
-                    <h3 className="text-lg font-bold text-white leading-tight mb-1">
-                      {banner.title}
-                    </h3>
-                    <p className="text-xs text-white/70">{banner.subtitle}</p>
+                  {/* Texto sutil */}
+                  <div className="absolute bottom-3 left-0 right-0 text-center">
+                    <p className="text-[10px] text-white/40 font-medium">
+                      Toque para saber mais
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ✅ BOTÕES DE NAVEGAÇÃO DO BANNER */}
+            {/* Botões de navegação */}
             {banners.length > 1 && (
               <>
                 <button
@@ -363,21 +357,23 @@ export default function PwaHomePage() {
             )}
 
             {/* Indicadores */}
-            <div className="flex justify-center gap-1.5 mt-3">
-              {banners.map((_: any, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentBannerIndex(idx)}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all duration-300",
-                    idx === currentBannerIndex
-                      ? "w-6"
-                      : "w-1.5 bg-slate-700 hover:bg-slate-600"
-                  )}
-                  style={idx === currentBannerIndex ? { backgroundColor: primaryColor } : {}}
-                />
-              ))}
-            </div>
+            {banners.length > 1 && (
+              <div className="flex justify-center gap-1.5 mt-3">
+                {banners.map((_: any, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentBannerIndex(idx)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      idx === currentBannerIndex
+                        ? "w-6"
+                        : "w-1.5 bg-slate-700 hover:bg-slate-600"
+                    )}
+                    style={idx === currentBannerIndex ? { backgroundColor: primaryColor } : {}}
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* MEUS CURSOS */}
@@ -387,7 +383,7 @@ export default function PwaHomePage() {
                 <Play size={14} style={{ color: primaryColor }} /> Meus Cursos
               </h2>
               <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                {products.length} Disponíveis
+                {products.filter(p => !p.isLocked).length} Disponíveis
               </span>
             </div>
 
@@ -402,8 +398,8 @@ export default function PwaHomePage() {
                   const isUpsell = product.offer_type === 'upsell';
                   const isDownsell = product.offer_type === 'downsell';
                   const isOrderBump = product.offer_type === 'order_bump';
+                  const isLocked = product.isLocked;
 
-                  // Define badge baseado no tipo
                   const getBadge = () => {
                     if (isBonus) return { text: 'BÔNUS', color: 'emerald', icon: Gift };
                     if (isUpsell) return { text: 'PREMIUM', color: 'amber', icon: Lock };
@@ -413,7 +409,6 @@ export default function PwaHomePage() {
                   };
 
                   const badge = getBadge();
-                  const isLocked = isUpsell || isDownsell;
 
                   return (
                     <div
@@ -422,11 +417,11 @@ export default function PwaHomePage() {
                       className={cn(
                         "bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex items-center gap-4 transition-all cursor-pointer group relative overflow-hidden",
                         isLocked
-                          ? "opacity-70 cursor-not-allowed"
+                          ? "opacity-80"
                           : "hover:border-slate-700 active:scale-[0.98]"
                       )}
                     >
-                      {/* Badge de tipo */}
+                      {/* Badge */}
                       {badge && (
                         <div
                           className={cn(
@@ -442,7 +437,7 @@ export default function PwaHomePage() {
                         </div>
                       )}
 
-                      {/* THUMBNAIL DO PRODUTO */}
+                      {/* THUMBNAIL */}
                       <div className="w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-slate-800 relative">
                         {product.thumbnail_url ? (
                           <img
@@ -470,7 +465,6 @@ export default function PwaHomePage() {
                           {product.name.charAt(0)}
                         </div>
 
-                        {/* Overlay de play */}
                         {!isLocked && (
                           <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <div
@@ -482,7 +476,6 @@ export default function PwaHomePage() {
                           </div>
                         )}
 
-                        {/* Overlay de bloqueado */}
                         {isLocked && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <Lock size={24} className="text-white/60" />
@@ -490,7 +483,7 @@ export default function PwaHomePage() {
                         )}
                       </div>
 
-                      {/* Info do produto */}
+                      {/* Info */}
                       <div className="flex-1 min-w-0 py-1">
                         <h3 className="text-sm font-bold text-white leading-tight mb-1 truncate pr-8">
                           {product.name}
@@ -499,7 +492,6 @@ export default function PwaHomePage() {
                           {product.description || "Toque para acessar o conteúdo."}
                         </p>
 
-                        {/* Barra de progresso */}
                         {!isLocked && (
                           <>
                             <div className="flex items-center gap-3">
@@ -525,21 +517,20 @@ export default function PwaHomePage() {
                           </>
                         )}
 
-                        {/* CTA para produtos bloqueados */}
                         {isLocked && (
                           <button
-                            className="mt-2 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors"
+                            className="mt-1 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                             style={{
                               backgroundColor: `${primaryColor}20`,
                               color: primaryColor
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              // TODO: Abrir checkout
                               alert('Abrir checkout do produto');
                             }}
                           >
-                            Desbloquear Agora
+                            <ShoppingCart size={12} />
+                            Liberar Acesso
                           </button>
                         )}
                       </div>
@@ -554,82 +545,9 @@ export default function PwaHomePage() {
             </div>
           </section>
 
-          {/* CARD DE UPSELL/UPGRADE */}
-          <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-900/50">
-            <div
-              className="absolute inset-0 opacity-10"
-              style={{
-                background: `linear-gradient(135deg, ${primaryColor}40 0%, transparent 50%)`
-              }}
-            />
-
-            <div className="relative p-6">
-              <div className="flex items-start gap-4">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${primaryColor}20` }}
-                >
-                  <Star size={24} style={{ color: primaryColor }} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
-                      style={{ backgroundColor: primaryColor, color: 'white' }}
-                    >
-                      Upgrade
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-white mb-1">
-                    Desbloqueie o Acesso Premium
-                  </h3>
-                  <p className="text-xs text-slate-400 mb-4 line-clamp-2">
-                    Tenha acesso a conteúdos exclusivos, mentorias e muito mais.
-                  </p>
-
-                  <button
-                    className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                    style={{ backgroundColor: primaryColor }}
-                    onClick={() => {
-                      // TODO: Abrir checkout premium
-                      alert('Abrir checkout premium');
-                    }}
-                  >
-                    Ver Planos Premium
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Card de Gamificação */}
-          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <Trophy size={20} className="text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <Zap size={12} className="text-amber-400" />
-                  <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
-                    Nível 1
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-white">Iniciante</h3>
-                <p className="text-[10px] text-slate-500">
-                  Assista às aulas para subir de nível
-                </p>
-              </div>
-              <button className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors">
-                Ver Conquistas →
-              </button>
-            </div>
-          </section>
-
         </main>
 
-        {/* Botão de Suporte Flutuante */}
+        {/* Botão de Suporte */}
         {appData.support_type && appData.support_value && (
           <button
             onClick={handleSupport}
@@ -647,7 +565,6 @@ export default function PwaHomePage() {
           </button>
         )}
 
-        {/* ✅ SEM PROPS - Usa o BottomNavigation existente */}
         <BottomNavigation primaryColor={primaryColor} />
       </div>
     </div>

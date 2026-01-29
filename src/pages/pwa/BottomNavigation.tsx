@@ -48,7 +48,6 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
     const currentPath = location.pathname;
 
     if (itemId === 'home') {
-      // Home é ativa na home, product e lesson pages
       return currentPath.includes('/home') ||
         currentPath.includes('/product/') ||
         currentPath.includes('/lesson/');
@@ -61,7 +60,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   };
 
   const handleNavigation = (path: string, itemId: string) => {
-    // Páginas que ainda não existem mostram alerta
+    // Páginas que ainda não existem
     if (['feed', 'community', 'profile'].includes(itemId)) {
       alert('Esta funcionalidade estará disponível em breve!');
       return;

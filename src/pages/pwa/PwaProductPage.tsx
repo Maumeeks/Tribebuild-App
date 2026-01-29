@@ -16,7 +16,6 @@ import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
 import { cn } from '../../lib/utils';
 
-// Tipos
 interface Lesson {
   id: string;
   name: string;
@@ -58,7 +57,6 @@ export default function PwaProductPage() {
       try {
         setLoading(true);
 
-        // 1. Buscar sessão
         const sessionJson = localStorage.getItem(`@tribebuild:student:${appSlug}`);
         if (!sessionJson) {
           navigate(`/${appSlug}/login`);
@@ -66,7 +64,6 @@ export default function PwaProductPage() {
         }
         const session = JSON.parse(sessionJson);
 
-        // 2. Buscar app
         const { data: app } = await supabase
           .from('apps')
           .select('*')
@@ -76,7 +73,6 @@ export default function PwaProductPage() {
         if (!app) throw new Error('App não encontrado');
         setAppData(app);
 
-        // 3. Buscar cliente
         const { data: clientData } = await supabase
           .from('clients')
           .select('*')
@@ -90,7 +86,6 @@ export default function PwaProductPage() {
         }
         setClient(clientData);
 
-        // 4. Buscar produto
         const { data: productData } = await supabase
           .from('products')
           .select('*')
@@ -99,14 +94,12 @@ export default function PwaProductPage() {
 
         if (!productData) throw new Error('Produto não encontrado');
 
-        // 5. Buscar módulos
         const { data: modules } = await supabase
           .from('modules')
           .select('*')
           .eq('product_id', productId)
           .order('order_index');
 
-        // 6. Para cada módulo, buscar aulas
         const modulesWithLessons: Module[] = [];
 
         for (const mod of modules || []) {
@@ -116,7 +109,6 @@ export default function PwaProductPage() {
             .eq('module_id', mod.id)
             .order('order_index');
 
-          // Verificar progresso de cada aula
           const lessonsWithProgress = await Promise.all(
             (lessons || []).map(async (lesson) => {
               const { data: progress } = await supabase
@@ -144,7 +136,6 @@ export default function PwaProductPage() {
           modules: modulesWithLessons
         });
 
-        // Abrir primeiro módulo por padrão
         if (modulesWithLessons.length > 0) {
           setOpenModules([modulesWithLessons[0].id]);
         }
@@ -177,7 +168,6 @@ export default function PwaProductPage() {
   };
 
   const goToLesson = (lesson: Lesson) => {
-    // Navegar para a página da aula
     navigate(`/${appSlug}/lesson/${lesson.id}`);
   };
 
@@ -189,10 +179,8 @@ export default function PwaProductPage() {
     );
   }
 
-  // Cor primária com fallback
   const primaryColor = appData.primary_color || '#f59e0b';
 
-  // Calcular progresso total
   const totalLessons = product.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
   const completedLessons = product.modules.reduce(
     (acc, mod) => acc + mod.lessons.filter(l => l.completed).length,
@@ -204,7 +192,7 @@ export default function PwaProductPage() {
     <div className="min-h-screen bg-slate-950 flex flex-col items-center">
       <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['Inter'] text-white pb-24">
 
-        {/* HEADER - Tema Dark */}
+        {/* HEADER */}
         <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-lg border-b border-slate-800/50 px-5 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(`/${appSlug}/home`)}
@@ -224,7 +212,7 @@ export default function PwaProductPage() {
 
         <main className="p-5 space-y-6">
 
-          {/* CARD DE PROGRESSO - Tema Dark com cor primária */}
+          {/* CARD DE PROGRESSO */}
           <div
             className="rounded-2xl p-6 text-white relative overflow-hidden"
             style={{
@@ -232,7 +220,6 @@ export default function PwaProductPage() {
               boxShadow: `0 15px 30px -10px ${primaryColor}50`
             }}
           >
-            {/* Decorações de fundo */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
 
@@ -297,7 +284,6 @@ export default function PwaProductPage() {
                       isOpen ? "border-slate-700" : "border-slate-800"
                     )}
                   >
-                    {/* Cabeçalho do Módulo */}
                     <button
                       onClick={() => toggleModule(module.id)}
                       className="w-full flex items-center justify-between p-5 hover:bg-slate-800/50 transition-colors text-left"
@@ -339,33 +325,25 @@ export default function PwaProductPage() {
                       </div>
                     </button>
 
-                    {/* Lista de Aulas */}
                     {isOpen && (
                       <div className="px-4 pb-4">
                         <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 divide-y divide-slate-700/50">
                           {module.lessons.map((lesson) => {
-                            const isLocked = !lesson.video_url && !lesson.embed_code;
+                            const hasContent = lesson.video_url || lesson.embed_code;
                             const isCompleted = lesson.completed;
 
                             return (
                               <button
                                 key={lesson.id}
-                                onClick={() => !isLocked && goToLesson(lesson)}
-                                disabled={isLocked}
-                                className={cn(
-                                  "w-full flex items-center gap-4 p-4 text-left transition-all active:scale-[0.98]",
-                                  isLocked
-                                    ? 'opacity-40 cursor-not-allowed'
-                                    : 'hover:bg-slate-700/30 cursor-pointer'
-                                )}
+                                onClick={() => goToLesson(lesson)}
+                                className="w-full flex items-center gap-4 p-4 text-left transition-all active:scale-[0.98] hover:bg-slate-700/30 cursor-pointer"
                               >
-                                {/* Ícone de status */}
                                 <div className="relative flex-shrink-0">
                                   {isCompleted ? (
                                     <div className="w-7 h-7 bg-emerald-500 text-white rounded-lg flex items-center justify-center">
                                       <CheckCircle2 size={14} />
                                     </div>
-                                  ) : isLocked ? (
+                                  ) : !hasContent ? (
                                     <div className="w-7 h-7 bg-slate-700 text-slate-500 rounded-lg flex items-center justify-center">
                                       <Lock size={14} />
                                     </div>
@@ -382,12 +360,8 @@ export default function PwaProductPage() {
                                   )}
                                 </div>
 
-                                {/* Info da aula */}
                                 <div className="flex-1 min-w-0">
-                                  <p className={cn(
-                                    "text-sm font-semibold truncate leading-tight",
-                                    isLocked ? 'text-slate-500' : 'text-white'
-                                  )}>
+                                  <p className="text-sm font-semibold truncate leading-tight text-white">
                                     {lesson.name}
                                   </p>
                                   {lesson.duration && (
@@ -400,8 +374,7 @@ export default function PwaProductPage() {
                                   )}
                                 </div>
 
-                                {/* Botão de play */}
-                                {!isLocked && !isCompleted && (
+                                {hasContent && !isCompleted && (
                                   <div
                                     className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-90"
                                     style={{ backgroundColor: primaryColor }}
@@ -422,14 +395,12 @@ export default function PwaProductPage() {
           </div>
         </main>
 
-        {/* Rodapé */}
         <div className="text-center pb-8 pt-4">
           <p className="text-[9px] font-medium text-slate-700 uppercase tracking-widest">
             Tecnologia TribeBuild • PWA
           </p>
         </div>
 
-        {/* ✅ SEM PROPS appSlug - Usa o BottomNavigation existente */}
         <BottomNavigation primaryColor={primaryColor} />
       </div>
     </div>
