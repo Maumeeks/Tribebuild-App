@@ -3,13 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Play,
   ChevronRight,
+  ChevronLeft,
   Bell,
   Search,
   Zap,
   Trophy,
   Loader2,
   MessageCircle,
-  Mail as MailIcon
+  Mail as MailIcon,
+  Lock,
+  Star,
+  Gift
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
@@ -85,14 +89,15 @@ export default function PwaHomePage() {
 
   const banners = realBanners.length > 0 ? realBanners : mockBanners;
 
-  // Auto-Play
+  // Auto-Play dos banners
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [banners.length]);
 
+  // Scroll do banner
   useEffect(() => {
     if (bannerScrollRef.current) {
       const width = bannerScrollRef.current.offsetWidth;
@@ -102,6 +107,23 @@ export default function PwaHomePage() {
       });
     }
   }, [currentBannerIndex]);
+
+  // ✅ FUNÇÕES DE NAVEGAÇÃO DO BANNER (CORRIGIDO)
+  const goToNextBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+  };
+
+  const goToPrevBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentBannerIndex((prev) => (prev - 1 + banners.length) % banners.length);
+  };
+
+  const handleBannerClick = (link: string) => {
+    if (link && link !== '#') {
+      window.open(link, '_blank');
+    }
+  };
 
   // Inicialização
   useEffect(() => {
@@ -125,19 +147,12 @@ export default function PwaHomePage() {
         if (appError) throw appError;
         setAppData(app);
 
-        console.log('👤 [DEBUG] Buscando cliente no banco...');
-        console.log('📧 [DEBUG] Email da sessão:', session.email);
-        console.log('🏢 [DEBUG] App ID:', app.id);
-
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .select('*')
           .eq('app_id', app.id)
           .eq('email', session.email)
           .single();
-
-        console.log('📊 [DEBUG] Resultado da busca do cliente:', clientData);
-        console.log('❌ [DEBUG] Erro ao buscar cliente (se houver):', clientError);
 
         if (clientError || !clientData) {
           localStorage.removeItem(`@tribebuild:student:${appSlug}`);
@@ -146,10 +161,6 @@ export default function PwaHomePage() {
         }
 
         setClient(clientData);
-
-        console.log('🔍 [DEBUG] Buscando produtos do cliente...');
-        console.log('👤 [DEBUG] Client ID:', clientData.id);
-        console.log('📧 [DEBUG] Client Email:', clientData.email);
 
         const { data: clientProducts, error: cpError } = await supabase
           .from('client_products')
@@ -167,67 +178,52 @@ export default function PwaHomePage() {
           .eq('client_id', clientData.id)
           .eq('status', 'active');
 
-        console.log('📊 [DEBUG] Resultado client_products:', clientProducts);
-        console.log('❌ [DEBUG] Erro (se houver):', cpError);
-        console.log('🔢 [DEBUG] Quantidade de produtos:', clientProducts?.length || 0);
-
-        if (cpError) {
-          console.error('💥 [DEBUG] ERRO ao buscar client_products:', cpError);
-          throw cpError;
-        }
+        if (cpError) throw cpError;
 
         if (!clientProducts || clientProducts.length === 0) {
-          console.warn('⚠️ [DEBUG] Nenhum produto encontrado para este cliente!');
           setProducts([]);
           return;
         }
 
         const productsWithProgress: ProductWithProgress[] = [];
 
-        console.log('🔄 [DEBUG] Iniciando processamento de produtos...');
-
         for (const cp of clientProducts || []) {
           const product = cp.products;
-
-          console.log('📦 [DEBUG] Processando produto:', product?.name || 'SEM NOME');
-          console.log('🔑 [DEBUG] Product ID:', product?.id);
-          console.log('📋 [DEBUG] Product data completo:', product);
-
-          if (!product) {
-            console.warn('⚠️ [DEBUG] Produto não encontrado no client_product:', cp.id);
-            continue;
-          }
+          if (!product) continue;
 
           const { data: modules } = await supabase
             .from('modules')
             .select('id')
             .eq('product_id', product.id);
 
-          console.log('📚 [DEBUG] Módulos encontrados:', modules?.length || 0);
-
           const moduleIds = modules?.map(m => m.id) || [];
 
-          const { data: lessons } = await supabase
-            .from('lessons')
-            .select('id')
-            .in('module_id', moduleIds);
+          let totalLessons = 0;
+          let completedLessons = 0;
 
-          const totalLessons = lessons?.length || 0;
-          console.log('📝 [DEBUG] Total de aulas:', totalLessons);
+          if (moduleIds.length > 0) {
+            const { data: lessons } = await supabase
+              .from('lessons')
+              .select('id')
+              .in('module_id', moduleIds);
 
-          const { data: progress } = await supabase
-            .from('client_progress')
-            .select('id')
-            .eq('client_id', clientData.id)
-            .eq('completed', true)
-            .in('lesson_id', lessons?.map(l => l.id) || []);
+            totalLessons = lessons?.length || 0;
 
-          const completedLessons = progress?.length || 0;
+            if (lessons && lessons.length > 0) {
+              const { data: progress } = await supabase
+                .from('client_progress')
+                .select('id')
+                .eq('client_id', clientData.id)
+                .eq('completed', true)
+                .in('lesson_id', lessons.map(l => l.id));
+
+              completedLessons = progress?.length || 0;
+            }
+          }
+
           const progressPercent = totalLessons > 0
             ? Math.round((completedLessons / totalLessons) * 100)
             : 0;
-
-          console.log('✅ [DEBUG] Progresso:', `${completedLessons}/${totalLessons} (${progressPercent}%)`);
 
           productsWithProgress.push({
             ...product,
@@ -235,36 +231,20 @@ export default function PwaHomePage() {
             total_lessons: totalLessons,
             completed_lessons: completedLessons
           });
-
-          console.log('✅ [DEBUG] Produto adicionado ao array!');
         }
 
-        console.log('🎯 [DEBUG] Total de produtos processados:', productsWithProgress.length);
-        console.log('📦 [DEBUG] Array final de produtos:', productsWithProgress);
-
-        console.log('🎯 [DEBUG] Total de produtos processados:', productsWithProgress.length);
-        console.log('📦 [DEBUG] Array final de produtos:', productsWithProgress);
-
+        // Ordenar: em progresso primeiro, depois não iniciados
         productsWithProgress.sort((a, b) => {
           if (a.progress > 0 && b.progress === 0) return -1;
           if (a.progress === 0 && b.progress > 0) return 1;
           return b.progress - a.progress;
         });
 
-        console.log('✅ [DEBUG] Produtos ordenados!');
-        console.log('🎨 [DEBUG] Setando produtos no state...');
-
         setProducts(productsWithProgress);
 
-        console.log('🎉 [DEBUG] Produtos setados com sucesso!');
-        console.log('📊 [DEBUG] Total final:', productsWithProgress.length);
-
       } catch (err) {
-        console.error('💥 [DEBUG] ERRO COMPLETO ao carregar home:', err);
-        console.error('💥 [DEBUG] Erro detalhado:', JSON.stringify(err, null, 2));
-        console.error('💥 [DEBUG] Stack trace:', (err as Error).stack);
+        console.error('Erro ao carregar home:', err);
       } finally {
-        console.log('🏁 [DEBUG] Finalizando carregamento...');
         setLoading(false);
       }
     };
@@ -291,15 +271,19 @@ export default function PwaHomePage() {
     );
   }
 
+  // Cor primária com fallback
+  const primaryColor = appData.primary_color || '#f59e0b';
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center">
-      <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['inter'] text-white pb-24">
+      <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['Inter'] text-white pb-24">
 
-        <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+        {/* HEADER */}
+        <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-lg border-b border-slate-800/50 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
-              style={{ backgroundColor: appData.primary_color }}
+              className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white shadow-lg"
+              style={{ backgroundColor: primaryColor }}
             >
               {client?.full_name?.charAt(0) || client?.email?.charAt(0).toUpperCase()}
             </div>
@@ -307,84 +291,100 @@ export default function PwaHomePage() {
               <h1 className="text-sm font-bold text-white leading-tight">
                 Olá, {client?.full_name?.split(' ')[0] || 'Aluno'}
               </h1>
-              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                 Bem-vindo de volta
               </p>
             </div>
           </div>
           <div className="flex gap-2">
-            <button className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-              <Search size={16} />
+            <button className="w-10 h-10 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 transition-all">
+              <Search size={18} />
             </button>
-            <button className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors relative">
-              <Bell size={16} />
-              <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-slate-900" />
+            <button className="w-10 h-10 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 transition-all relative">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-950" />
             </button>
           </div>
         </header>
 
-        <main className="p-6 space-y-8 animate-fade-in">
+        <main className="p-5 space-y-6">
 
-          <section className="relative group">
+          {/* ✅ BANNER CAROUSEL - CORRIGIDO */}
+          <section className="relative">
             <div
               ref={bannerScrollRef}
-              className="flex overflow-x-auto snap-x snap-mandatory pb-4 no-scrollbar scroll-smooth"
-              style={{ scrollbarWidth: 'none' }}
+              className="flex overflow-x-hidden snap-x snap-mandatory scroll-smooth"
             >
               {banners.map((banner: any) => (
-                <a
+                <div
                   key={banner.id}
-                  href={banner.link}
-                  target={banner.link.startsWith('http') ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  className="snap-center shrink-0 w-full relative h-48 rounded-2xl overflow-hidden cursor-pointer shadow-lg shadow-black/40 mr-4 last:mr-0"
+                  className="snap-center shrink-0 w-full relative h-44 rounded-2xl overflow-hidden cursor-pointer shadow-lg"
+                  onClick={() => handleBannerClick(banner.link)}
                 >
                   <img
                     src={banner.image}
                     alt={banner.title}
-                    className="absolute inset-0 w-full h-full object-cover opacity-70 transition-transform duration-700 hover:scale-105"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                  <div className="absolute bottom-0 left-0 p-6 w-full">
+                  <div className="absolute bottom-0 left-0 p-5 w-full">
                     <span
-                      className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded mb-2 inline-block shadow-sm"
-                      style={{ backgroundColor: appData.primary_color, color: 'white' }}
+                      className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md mb-2 inline-block"
+                      style={{ backgroundColor: primaryColor }}
                     >
                       {banner.badge}
                     </span>
-                    <h3 className="text-xl font-black text-white leading-tight mb-1">
+                    <h3 className="text-lg font-bold text-white leading-tight mb-1">
                       {banner.title}
                     </h3>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-slate-300 font-medium">{banner.subtitle}</p>
-                      <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors">
-                        <ChevronRight size={16} />
-                      </div>
-                    </div>
+                    <p className="text-xs text-white/70">{banner.subtitle}</p>
                   </div>
-                </a>
+                </div>
               ))}
             </div>
 
-            <div className="flex justify-center gap-1.5 mt-[-10px] relative z-10">
+            {/* ✅ BOTÕES DE NAVEGAÇÃO DO BANNER */}
+            {banners.length > 1 && (
+              <>
+                <button
+                  onClick={goToPrevBanner}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-black/60 transition-all z-10"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={goToNextBanner}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-black/60 transition-all z-10"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </>
+            )}
+
+            {/* Indicadores */}
+            <div className="flex justify-center gap-1.5 mt-3">
               {banners.map((_: any, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentBannerIndex(idx)}
                   className={cn(
-                    "w-1.5 h-1.5 rounded-full transition-all duration-300",
-                    idx === currentBannerIndex ? "w-4 bg-white" : "bg-slate-700 hover:bg-slate-600"
+                    "h-1.5 rounded-full transition-all duration-300",
+                    idx === currentBannerIndex
+                      ? "w-6"
+                      : "w-1.5 bg-slate-700 hover:bg-slate-600"
                   )}
+                  style={idx === currentBannerIndex ? { backgroundColor: primaryColor } : {}}
                 />
               ))}
             </div>
           </section>
 
+          {/* MEUS CURSOS */}
           <section>
-            <div className="flex items-center justify-between mb-4 px-1">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Play size={14} className="text-slate-500" /> Meus Cursos
+                <Play size={14} style={{ color: primaryColor }} /> Meus Cursos
               </h2>
               <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                 {products.length} Disponíveis
@@ -393,81 +393,160 @@ export default function PwaHomePage() {
 
             <div className="space-y-3">
               {products.length === 0 ? (
-                <div className="text-center py-10 bg-slate-900/50 rounded-2xl border border-slate-800 border-dashed">
-                  <p className="text-slate-500 text-xs">Você ainda não tem cursos liberados.</p>
+                <div className="text-center py-12 bg-slate-900/50 rounded-2xl border border-slate-800 border-dashed">
+                  <p className="text-slate-500 text-sm">Você ainda não tem cursos liberados.</p>
                 </div>
               ) : (
                 products.map((product) => {
                   const isBonus = product.offer_type === 'bonus';
+                  const isUpsell = product.offer_type === 'upsell';
+                  const isDownsell = product.offer_type === 'downsell';
+                  const isOrderBump = product.offer_type === 'order_bump';
+
+                  // Define badge baseado no tipo
+                  const getBadge = () => {
+                    if (isBonus) return { text: 'BÔNUS', color: 'emerald', icon: Gift };
+                    if (isUpsell) return { text: 'PREMIUM', color: 'amber', icon: Lock };
+                    if (isDownsell) return { text: 'OFERTA', color: 'blue', icon: Star };
+                    if (isOrderBump) return { text: 'EXTRA', color: 'purple', icon: Star };
+                    return null;
+                  };
+
+                  const badge = getBadge();
+                  const isLocked = isUpsell || isDownsell;
 
                   return (
                     <div
                       key={product.id}
-                      onClick={() => navigate(`/${appSlug}/product/${product.id}`)}
-                      className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center gap-4 hover:border-slate-700 transition-all cursor-pointer group active:scale-[0.98] shadow-sm relative overflow-hidden"
+                      onClick={() => !isLocked && navigate(`/${appSlug}/product/${product.id}`)}
+                      className={cn(
+                        "bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex items-center gap-4 transition-all cursor-pointer group relative overflow-hidden",
+                        isLocked
+                          ? "opacity-70 cursor-not-allowed"
+                          : "hover:border-slate-700 active:scale-[0.98]"
+                      )}
                     >
-                      {isBonus && (
-                        <div className="absolute top-0 right-0 bg-green-500/10 text-green-500 text-[8px] font-black px-2 py-1 rounded-bl-xl border-l border-b border-green-500/20">
-                          BÔNUS
+                      {/* Badge de tipo */}
+                      {badge && (
+                        <div
+                          className={cn(
+                            "absolute top-0 right-0 text-[8px] font-bold px-2.5 py-1 rounded-bl-xl border-l border-b flex items-center gap-1",
+                            badge.color === 'emerald' && "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+                            badge.color === 'amber' && "bg-amber-500/20 text-amber-400 border-amber-500/30",
+                            badge.color === 'blue' && "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                            badge.color === 'purple' && "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                          )}
+                        >
+                          <badge.icon size={10} />
+                          {badge.text}
                         </div>
                       )}
 
+                      {/* THUMBNAIL DO PRODUTO */}
                       <div className="w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-slate-800 relative">
                         {product.thumbnail_url ? (
                           <img
                             src={product.thumbnail_url}
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div
-                            className="w-full h-full flex items-center justify-center text-slate-600 font-bold text-xl"
-                            style={{
-                              backgroundColor: `${appData.primary_color}15`,
-                              color: appData.primary_color
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.classList.remove('hidden');
                             }}
-                          >
-                            {product.name.charAt(0)}
+                          />
+                        ) : null}
+                        <div
+                          className={cn(
+                            "w-full h-full flex items-center justify-center text-2xl font-bold absolute inset-0",
+                            product.thumbnail_url ? "hidden" : ""
+                          )}
+                          style={{
+                            backgroundColor: `${primaryColor}20`,
+                            color: primaryColor
+                          }}
+                        >
+                          {product.name.charAt(0)}
+                        </div>
+
+                        {/* Overlay de play */}
+                        {!isLocked && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: primaryColor }}
+                            >
+                              <Play size={16} fill="white" className="text-white ml-0.5" />
+                            </div>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                            <Play size={12} fill="white" className="text-white ml-0.5" />
+
+                        {/* Overlay de bloqueado */}
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Lock size={24} className="text-white/60" />
                           </div>
-                        </div>
+                        )}
                       </div>
 
+                      {/* Info do produto */}
                       <div className="flex-1 min-w-0 py-1">
-                        <h3 className="text-sm font-bold text-white leading-tight mb-1 truncate pr-6">
+                        <h3 className="text-sm font-bold text-white leading-tight mb-1 truncate pr-8">
                           {product.name}
                         </h3>
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                        <p className="text-xs text-slate-500 line-clamp-1 mb-3">
                           {product.description || "Toque para acessar o conteúdo."}
                         </p>
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{
-                                backgroundColor: appData.primary_color,
-                                width: `${product.progress}%`
-                              }}
-                            />
-                          </div>
-                          <span className="text-[9px] font-bold text-slate-600">
-                            {product.progress}%
-                          </span>
-                        </div>
+                        {/* Barra de progresso */}
+                        {!isLocked && (
+                          <>
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    backgroundColor: primaryColor,
+                                    width: `${product.progress}%`
+                                  }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500">
+                                {product.progress}%
+                              </span>
+                            </div>
 
-                        {product.total_lessons > 0 && (
-                          <p className="text-[9px] text-slate-600 mt-1">
-                            {product.completed_lessons}/{product.total_lessons} aulas
-                          </p>
+                            {product.total_lessons > 0 && (
+                              <p className="text-[10px] text-slate-600 mt-1.5">
+                                {product.completed_lessons}/{product.total_lessons} aulas
+                              </p>
+                            )}
+                          </>
+                        )}
+
+                        {/* CTA para produtos bloqueados */}
+                        {isLocked && (
+                          <button
+                            className="mt-2 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors"
+                            style={{
+                              backgroundColor: `${primaryColor}20`,
+                              color: primaryColor
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // TODO: Abrir checkout
+                              alert('Abrir checkout do produto');
+                            }}
+                          >
+                            Desbloquear Agora
+                          </button>
                         )}
                       </div>
 
-                      <ChevronRight size={16} className="text-slate-700 group-hover:text-slate-400 transition-colors" />
+                      {!isLocked && (
+                        <ChevronRight size={18} className="text-slate-700 group-hover:text-slate-500 transition-colors" />
+                      )}
                     </div>
                   );
                 })
@@ -475,47 +554,101 @@ export default function PwaHomePage() {
             </div>
           </section>
 
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-5 border border-slate-700/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-3 opacity-10">
-              <Trophy size={80} />
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap size={14} className="text-amber-400" />
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">
-                  Nível 1
-                </span>
+          {/* CARD DE UPSELL/UPGRADE */}
+          <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-900/50">
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}40 0%, transparent 50%)`
+              }}
+            />
+
+            <div className="relative p-6">
+              <div className="flex items-start gap-4">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${primaryColor}20` }}
+                >
+                  <Star size={24} style={{ color: primaryColor }} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
+                      style={{ backgroundColor: primaryColor, color: 'white' }}
+                    >
+                      Upgrade
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-1">
+                    Desbloqueie o Acesso Premium
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-4 line-clamp-2">
+                    Tenha acesso a conteúdos exclusivos, mentorias e muito mais.
+                  </p>
+
+                  <button
+                    className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                    style={{ backgroundColor: primaryColor }}
+                    onClick={() => {
+                      // TODO: Abrir checkout premium
+                      alert('Abrir checkout premium');
+                    }}
+                  >
+                    Ver Planos Premium
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-white mb-1">Iniciante</h3>
-              <p className="text-xs text-slate-400 mb-4 max-w-[200px]">
-                Assista às aulas para subir de nível.
-              </p>
-              <button className="text-[10px] font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg transition-colors">
-                Ver Conquistas
+            </div>
+          </section>
+
+          {/* Card de Gamificação */}
+          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Trophy size={20} className="text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Zap size={12} className="text-amber-400" />
+                  <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
+                    Nível 1
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white">Iniciante</h3>
+                <p className="text-[10px] text-slate-500">
+                  Assista às aulas para subir de nível
+                </p>
+              </div>
+              <button className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors">
+                Ver Conquistas →
               </button>
             </div>
-          </div>
+          </section>
 
         </main>
 
+        {/* Botão de Suporte Flutuante */}
         {appData.support_type && appData.support_value && (
           <button
             onClick={handleSupport}
-            className="fixed bottom-24 right-6 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 z-40"
+            className="fixed bottom-24 right-6 w-14 h-14 rounded-xl shadow-2xl flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 z-40"
             style={{
-              backgroundColor: appData.primary_color,
-              boxShadow: `0 10px 30px ${appData.primary_color}40`
+              backgroundColor: primaryColor,
+              boxShadow: `0 10px 30px ${primaryColor}40`
             }}
           >
             {appData.support_type === 'email' ? (
-              <MailIcon size={20} />
+              <MailIcon size={22} />
             ) : (
-              <MessageCircle size={20} />
+              <MessageCircle size={22} />
             )}
           </button>
         )}
 
-        <BottomNavigation primaryColor={appData.primary_color} />
+        {/* ✅ SEM PROPS - Usa o BottomNavigation existente */}
+        <BottomNavigation primaryColor={primaryColor} />
       </div>
     </div>
   );

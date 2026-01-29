@@ -8,8 +8,6 @@ import {
   CheckCircle2,
   Lock,
   Clock,
-  FileText,
-  Download,
   BookOpen,
   Sparkles,
   Loader2
@@ -24,7 +22,8 @@ interface Lesson {
   name: string;
   duration: string | null;
   video_url: string | null;
-  content: string | null;
+  content_type: string | null;
+  embed_code: string | null;
   order_index: number;
   completed?: boolean;
 }
@@ -40,7 +39,7 @@ interface Product {
   id: string;
   name: string;
   description: string | null;
-  image_url: string | null;
+  thumbnail_url: string | null;
   modules: Module[];
 }
 
@@ -174,39 +173,24 @@ export default function PwaProductPage() {
   };
 
   const isModuleComplete = (module: Module) => {
-    return module.lessons.every(l => l.completed);
+    return module.lessons.length > 0 && module.lessons.every(l => l.completed);
   };
 
-  const goToLesson = async (lesson: Lesson) => {
-    if (!lesson.video_url) {
-      alert('Esta aula ainda não tem vídeo disponível.');
-      return;
-    }
-
-    // Navegar para player (você pode criar uma página separada)
-    alert(`Player: ${lesson.name}\n\nVídeo URL: ${lesson.video_url}`);
-
-    // Marcar como concluída (exemplo simples)
-    if (client && !lesson.completed) {
-      await supabase.from('client_progress').upsert({
-        client_id: client.id,
-        lesson_id: lesson.id,
-        completed: true,
-        completed_at: new Date().toISOString()
-      });
-
-      // Recarregar página para atualizar progresso
-      window.location.reload();
-    }
+  const goToLesson = (lesson: Lesson) => {
+    // Navegar para a página da aula
+    navigate(`/${appSlug}/lesson/${lesson.id}`);
   };
 
   if (loading || !appData || !product) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
       </div>
     );
   }
+
+  // Cor primária com fallback
+  const primaryColor = appData.primary_color || '#f59e0b';
 
   // Calcular progresso total
   const totalLessons = product.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
@@ -217,225 +201,237 @@ export default function PwaProductPage() {
   const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      {/* HEADER */}
-      <header
-        className="sticky top-0 z-30 px-6 py-4 flex items-center gap-4 shadow-lg transition-all"
-        style={{
-          backgroundColor: appData.primary_color,
-          boxShadow: `0 4px 20px ${appData.primary_color}20`
-        }}
-      >
-        <button
-          onClick={() => navigate(`/${appSlug}/home`)}
-          className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl flex items-center justify-center transition-all active:scale-90 border border-white/10"
-        >
-          <ArrowLeft className="w-5 h-5 text-white" />
-        </button>
-        <div className="min-w-0">
-          <h1 className="text-white font-black text-base tracking-tight truncate leading-tight">
-            {product.name}
-          </h1>
-          <p className="text-white/60 text-[8px] font-black uppercase tracking-widest mt-0.5">
-            Conteúdo do Curso
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center">
+      <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['Inter'] text-white pb-24">
+
+        {/* HEADER - Tema Dark */}
+        <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-lg border-b border-slate-800/50 px-5 py-4 flex items-center gap-4">
+          <button
+            onClick={() => navigate(`/${appSlug}/home`)}
+            className="w-10 h-10 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl flex items-center justify-center transition-all active:scale-90"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-white font-bold text-sm truncate leading-tight">
+              {product.name}
+            </h1>
+            <p className="text-slate-500 text-[10px] font-medium uppercase tracking-wider mt-0.5">
+              Conteúdo do Curso
+            </p>
+          </div>
+        </header>
+
+        <main className="p-5 space-y-6">
+
+          {/* CARD DE PROGRESSO - Tema Dark com cor primária */}
+          <div
+            className="rounded-2xl p-6 text-white relative overflow-hidden"
+            style={{
+              backgroundColor: primaryColor,
+              boxShadow: `0 15px 30px -10px ${primaryColor}50`
+            }}
+          >
+            {/* Decorações de fundo */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                  Seu Progresso Atual
+                </span>
+              </div>
+
+              <div className="flex items-end justify-between mb-4">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black tracking-tighter">{progressPercent}</span>
+                  <span className="text-xl font-bold opacity-60">%</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+                  {completedLessons} de {totalLessons} aulas
+                </span>
+              </div>
+
+              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-1000"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <Sparkles className="w-3 h-3 text-white/60" />
+                <span className="text-[9px] font-medium text-white/60 uppercase tracking-wider">
+                  Continue sua jornada de aprendizado
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* MÓDULOS E AULAS */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: primaryColor }}
+              />
+              <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Trilha de Aprendizado
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              {product.modules.map((module, mIdx) => {
+                const isOpen = openModules.includes(module.id);
+                const isComplete = isModuleComplete(module);
+
+                return (
+                  <div
+                    key={module.id}
+                    className={cn(
+                      "bg-slate-900/80 rounded-2xl border transition-all duration-300 overflow-hidden",
+                      isOpen ? "border-slate-700" : "border-slate-800"
+                    )}
+                  >
+                    {/* Cabeçalho do Módulo */}
+                    <button
+                      onClick={() => toggleModule(module.id)}
+                      className="w-full flex items-center justify-between p-5 hover:bg-slate-800/50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                            isComplete
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-slate-800 text-slate-400"
+                          )}
+                        >
+                          {isComplete ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : (
+                            <span className="text-sm font-bold">{mIdx + 1}</span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="block font-bold text-white text-sm leading-tight">
+                            {module.name}
+                          </span>
+                          <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-1 block">
+                            {module.lessons.length} aulas • {getModuleProgress(module)} concluídas
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                        isOpen
+                          ? "text-white"
+                          : "bg-slate-800 text-slate-500"
+                      )}
+                        style={isOpen ? { backgroundColor: primaryColor } : {}}
+                      >
+                        {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </div>
+                    </button>
+
+                    {/* Lista de Aulas */}
+                    {isOpen && (
+                      <div className="px-4 pb-4">
+                        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 divide-y divide-slate-700/50">
+                          {module.lessons.map((lesson) => {
+                            const isLocked = !lesson.video_url && !lesson.embed_code;
+                            const isCompleted = lesson.completed;
+
+                            return (
+                              <button
+                                key={lesson.id}
+                                onClick={() => !isLocked && goToLesson(lesson)}
+                                disabled={isLocked}
+                                className={cn(
+                                  "w-full flex items-center gap-4 p-4 text-left transition-all active:scale-[0.98]",
+                                  isLocked
+                                    ? 'opacity-40 cursor-not-allowed'
+                                    : 'hover:bg-slate-700/30 cursor-pointer'
+                                )}
+                              >
+                                {/* Ícone de status */}
+                                <div className="relative flex-shrink-0">
+                                  {isCompleted ? (
+                                    <div className="w-7 h-7 bg-emerald-500 text-white rounded-lg flex items-center justify-center">
+                                      <CheckCircle2 size={14} />
+                                    </div>
+                                  ) : isLocked ? (
+                                    <div className="w-7 h-7 bg-slate-700 text-slate-500 rounded-lg flex items-center justify-center">
+                                      <Lock size={14} />
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center border-2"
+                                      style={{ borderColor: `${primaryColor}50` }}
+                                    >
+                                      <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: primaryColor }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Info da aula */}
+                                <div className="flex-1 min-w-0">
+                                  <p className={cn(
+                                    "text-sm font-semibold truncate leading-tight",
+                                    isLocked ? 'text-slate-500' : 'text-white'
+                                  )}>
+                                    {lesson.name}
+                                  </p>
+                                  {lesson.duration && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Clock size={10} className="text-slate-500" />
+                                      <span className="text-[10px] font-medium text-slate-500">
+                                        {lesson.duration}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Botão de play */}
+                                {!isLocked && !isCompleted && (
+                                  <div
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-90"
+                                    style={{ backgroundColor: primaryColor }}
+                                  >
+                                    <Play size={14} className="text-white fill-current ml-0.5" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </main>
+
+        {/* Rodapé */}
+        <div className="text-center pb-8 pt-4">
+          <p className="text-[9px] font-medium text-slate-700 uppercase tracking-widest">
+            Tecnologia TribeBuild • PWA
           </p>
         </div>
-      </header>
 
-      <main className="p-6 space-y-8 animate-slide-up">
-
-        {/* CARD DE PROGRESSO */}
-        <div
-          className="rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl"
-          style={{
-            backgroundColor: appData.primary_color,
-            boxShadow: `0 20px 40px -10px ${appData.primary_color}40`
-          }}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center border border-white/20 backdrop-blur-md">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
-                Seu Progresso Atual
-              </span>
-            </div>
-
-            <div className="flex items-end justify-between mb-4">
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black tracking-tighter">{progressPercent}</span>
-                <span className="text-lg font-black opacity-60">%</span>
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/70">
-                {completedLessons} de {totalLessons} aulas finalizadas
-              </span>
-            </div>
-
-            <div className="h-3 bg-white/20 rounded-full overflow-hidden border border-white/10 p-0.5">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(255,255,255,0.5)]"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-
-            <div className="mt-6 flex items-center gap-2">
-              <Sparkles className="w-3 h-3 text-white/60" />
-              <span className="text-[9px] font-bold text-white/50 uppercase tracking-[0.15em]">
-                Continue sua jornada de aprendizado
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* MÓDULOS E AULAS */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-2 h-2 rounded-full bg-blue-400" />
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Trilha de Aprendizado
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {product.modules.map((module, mIdx) => {
-              const isOpen = openModules.includes(module.id);
-              const isComplete = isModuleComplete(module);
-
-              return (
-                <div
-                  key={module.id}
-                  className={cn(
-                    "bg-white rounded-[2rem] border-2 transition-all duration-300 overflow-hidden",
-                    isOpen ? "border-slate-100 shadow-xl ring-4 ring-slate-50" : "border-transparent shadow-sm"
-                  )}
-                >
-                  {/* Cabeçalho do Módulo */}
-                  <button
-                    onClick={() => toggleModule(module.id)}
-                    className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-5">
-                      <div
-                        className={cn(
-                          "w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-sm",
-                          isComplete
-                            ? "bg-green-50 text-green-500 border border-green-100"
-                            : "bg-slate-50 text-slate-400 border border-slate-100"
-                        )}
-                      >
-                        {isComplete ? (
-                          <CheckCircle2 className="w-5 h-5 stroke-[3px]" />
-                        ) : (
-                          <span className="text-xs font-black">{mIdx + 1}</span>
-                        )}
-                      </div>
-                      <div>
-                        <span className="block font-black text-slate-900 tracking-tight leading-none text-base">
-                          {module.name}
-                        </span>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 block">
-                          {module.lessons.length} aulas • {getModuleProgress(module)} concluídas
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                      isOpen ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-300"
-                    )}>
-                      {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </div>
-                  </button>
-
-                  {/* Lista de Aulas */}
-                  {isOpen && (
-                    <div className="px-4 pb-4 animate-fade-in">
-                      <div className="bg-slate-50 rounded-[1.5rem] border border-slate-100 divide-y divide-slate-200/50">
-                        {module.lessons.map((lesson) => {
-                          const isLocked = !lesson.video_url;
-                          const isCompleted = lesson.completed;
-
-                          return (
-                            <button
-                              key={lesson.id}
-                              onClick={() => !isLocked && goToLesson(lesson)}
-                              disabled={isLocked}
-                              className={cn(
-                                "w-full flex items-center gap-4 p-5 text-left transition-all active:scale-[0.98]",
-                                isLocked ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:bg-white/60 cursor-pointer'
-                              )}
-                            >
-                              <div className="relative flex-shrink-0">
-                                {isCompleted ? (
-                                  <div className="w-6 h-6 bg-green-500 text-white rounded-lg flex items-center justify-center shadow-lg shadow-green-500/20">
-                                    <CheckCircle2 size={12} strokeWidth={4} />
-                                  </div>
-                                ) : isLocked ? (
-                                  <div className="w-6 h-6 bg-slate-200 text-slate-400 rounded-lg flex items-center justify-center">
-                                    <Lock size={12} />
-                                  </div>
-                                ) : (
-                                  <div
-                                    className="w-6 h-6 rounded-lg flex items-center justify-center border-2 border-slate-300"
-                                    style={{ borderColor: appData.primary_color + '40' }}
-                                  >
-                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: appData.primary_color }} />
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                  "text-sm font-bold truncate leading-tight",
-                                  isLocked ? 'text-slate-400' : 'text-slate-800'
-                                )}>
-                                  {lesson.name}
-                                </p>
-                                {lesson.duration && (
-                                  <div className="flex items-center gap-2 mt-1 opacity-60">
-                                    <Clock size={10} className="text-slate-400" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                                      {lesson.duration}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {!isLocked && !isCompleted && (
-                                <div
-                                  className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-90"
-                                  style={{
-                                    backgroundColor: appData.primary_color,
-                                    boxShadow: `0 8px 15px -5px ${appData.primary_color}40`
-                                  }}
-                                >
-                                  <Play size={14} className="text-white fill-current ml-0.5" />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </main>
-
-      <div className="text-center pb-12 pt-4 opacity-30">
-        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">
-          Tecnologia TribeBuild • PWA de Alta Performance
-        </p>
+        {/* ✅ SEM PROPS appSlug - Usa o BottomNavigation existente */}
+        <BottomNavigation primaryColor={primaryColor} />
       </div>
-
-      <BottomNavigation primaryColor={appData.primary_color} />
     </div>
   );
 }

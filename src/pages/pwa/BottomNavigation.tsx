@@ -1,71 +1,116 @@
 import React from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Home, BookOpen, Users, User } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Home, Newspaper, Users, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-interface BottomNavProps {
-    primaryColor?: string;
+interface BottomNavigationProps {
+  primaryColor?: string;
 }
 
-export default function BottomNavigation({ primaryColor = '#0066FF' }: BottomNavProps) {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { appSlug } = useParams();
+const BottomNavigation: React.FC<BottomNavigationProps> = ({
+  primaryColor = '#f59e0b'
+}) => {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    const navItems = [
-        { label: 'Início', icon: Home, path: `/${appSlug}/home` },
-        { label: 'Feed', icon: BookOpen, path: `/${appSlug}/feed` }, // Ajuste se a rota for 'products' ou 'feed'
-        { label: 'Comunidade', icon: Users, path: `/${appSlug}/community` },
-        { label: 'Perfil', icon: User, path: `/${appSlug}/profile` },
-    ];
+  // Extrair appSlug da URL automaticamente
+  const pathParts = location.pathname.split('/');
+  const slug = pathParts[1] || '';
 
-    return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center">
-            {/* Container Limitado para Desktop (para não esticar) */}
-            <div className="w-full max-w-md bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 pb-safe pt-2 px-6 shadow-2xl">
-                <div className="flex justify-between items-center h-16">
-                    {navItems.map((item) => {
-                        const isActive = location.pathname === item.path;
-                        const Icon = item.icon;
+  const navItems = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: Home,
+      path: `/${slug}/home`
+    },
+    {
+      id: 'feed',
+      label: 'Feed',
+      icon: Newspaper,
+      path: `/${slug}/feed`
+    },
+    {
+      id: 'community',
+      label: 'Comunidade',
+      icon: Users,
+      path: `/${slug}/community`
+    },
+    {
+      id: 'profile',
+      label: 'Perfil',
+      icon: User,
+      path: `/${slug}/profile`
+    },
+  ];
 
-                        return (
-                            <button
-                                key={item.label}
-                                onClick={() => navigate(item.path)}
-                                className="group flex flex-col items-center justify-center gap-1.5 w-16 relative"
-                            >
-                                {/* Indicador de Ativo (Glow) */}
-                                {isActive && (
-                                    <div
-                                        className="absolute -top-2 w-8 h-1 rounded-b-full shadow-[0_0_10px_currentColor] transition-all duration-300"
-                                        style={{ backgroundColor: primaryColor, color: primaryColor }}
-                                    />
-                                )}
+  const isActive = (itemId: string) => {
+    const currentPath = location.pathname;
 
-                                <Icon
-                                    size={22}
-                                    className={cn(
-                                        "transition-all duration-300",
-                                        isActive ? "scale-110" : "text-slate-500 group-hover:text-slate-300"
-                                    )}
-                                    style={{ color: isActive ? primaryColor : undefined }}
-                                    // Se não estiver ativo, usa cor padrão slate-500
-                                    strokeWidth={isActive ? 2.5 : 2}
-                                />
+    if (itemId === 'home') {
+      // Home é ativa na home, product e lesson pages
+      return currentPath.includes('/home') ||
+        currentPath.includes('/product/') ||
+        currentPath.includes('/lesson/');
+    }
+    if (itemId === 'feed') return currentPath.includes('/feed');
+    if (itemId === 'community') return currentPath.includes('/community');
+    if (itemId === 'profile') return currentPath.includes('/profile');
 
-                                <span
-                                    className={cn(
-                                        "text-[9px] font-bold uppercase tracking-wider transition-colors",
-                                        isActive ? "text-white" : "text-slate-600"
-                                    )}
-                                >
-                                    {item.label}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
+    return false;
+  };
+
+  const handleNavigation = (path: string, itemId: string) => {
+    // Páginas que ainda não existem mostram alerta
+    if (['feed', 'community', 'profile'].includes(itemId)) {
+      alert('Esta funcionalidade estará disponível em breve!');
+      return;
+    }
+    navigate(path);
+  };
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+      <div className="w-full max-w-md pointer-events-auto">
+        <div className="bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-2 flex items-center justify-around">
+          {navItems.map((item) => {
+            const active = isActive(item.id);
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavigation(item.path, item.id)}
+                className={cn(
+                  "flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all duration-200 min-w-[64px]",
+                  active
+                    ? "bg-slate-800"
+                    : "hover:bg-slate-800/50 active:scale-95"
+                )}
+              >
+                <Icon
+                  size={20}
+                  className="transition-colors mb-1"
+                  style={{ color: active ? primaryColor : '#64748b' }}
+                />
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold transition-colors",
+                    active ? "text-white" : "text-slate-500"
+                  )}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
-    );
-}
+
+        {/* Safe area para iPhone */}
+        <div className="h-safe-area-inset-bottom bg-slate-900/95" />
+      </div>
+    </nav>
+  );
+};
+
+export default BottomNavigation;
