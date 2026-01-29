@@ -20,7 +20,7 @@ type Product = {
   id: string;
   name: string;
   description: string | null;
-  image_url: string | null;
+  thumbnail_url: string | null;
   status: string;
   offer_type: string;
 };
@@ -148,7 +148,7 @@ export default function PwaHomePage() {
               id,
               name,
               description,
-              image_url,
+              thumbnail_url,
               status,
               offer_type
             )
@@ -357,9 +357,9 @@ export default function PwaHomePage() {
                       )}
 
                       <div className="w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-slate-800 relative">
-                        {product.image_url ? (
+                        {product.thumbnail_url ? (
                           <img
-                            src={product.image_url}
+                            src={product.thumbnail_url}
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
