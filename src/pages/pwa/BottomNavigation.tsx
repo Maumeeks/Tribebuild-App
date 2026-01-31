@@ -22,25 +22,29 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       id: 'home',
       label: 'Home',
       icon: Home,
-      path: `/${slug}/home`
+      path: `/${slug}/home`,
+      enabled: true
     },
     {
       id: 'feed',
       label: 'Feed',
       icon: Newspaper,
-      path: `/${slug}/feed`
+      path: `/${slug}/feed`,
+      enabled: false // Em breve
     },
     {
       id: 'community',
       label: 'Comunidade',
       icon: Users,
-      path: `/${slug}/community`
+      path: `/${slug}/community`,
+      enabled: false // Em breve
     },
     {
       id: 'profile',
       label: 'Perfil',
       icon: User,
-      path: `/${slug}/profile`
+      path: `/${slug}/profile`,
+      enabled: true // ✅ ATIVADO
     },
   ];
 
@@ -59,9 +63,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
     return false;
   };
 
-  const handleNavigation = (path: string, itemId: string) => {
-    // Páginas que ainda não existem
-    if (['feed', 'community', 'profile'].includes(itemId)) {
+  const handleNavigation = (path: string, enabled: boolean) => {
+    if (!enabled) {
       alert('Esta funcionalidade estará disponível em breve!');
       return;
     }
@@ -79,12 +82,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => handleNavigation(item.path, item.id)}
+                onClick={() => handleNavigation(item.path, item.enabled)}
                 className={cn(
                   "flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all duration-200 min-w-[64px]",
                   active
                     ? "bg-slate-800"
-                    : "hover:bg-slate-800/50 active:scale-95"
+                    : "hover:bg-slate-800/50 active:scale-95",
+                  !item.enabled && "opacity-50"
                 )}
               >
                 <Icon

@@ -15,18 +15,18 @@ import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
 import { cn } from '../../lib/utils';
 
+// ✅ Interface atualizada para usar attachments (jsonb)
 interface Lesson {
   id: string;
   name: string;
   description: string | null;
-  duration: string | null;
+  video_duration: number | null;
   video_url: string | null;
   content_type: string | null;
   embed_code: string | null;
   file_url: string | null;
   thumbnail_url: string | null;
-  attachment_url: string | null;
-  attachment_name: string | null;
+  attachments: { url: string; name: string } | null; // ✅ JSONB
   module_id: string;
   order_index: number;
 }
@@ -125,7 +125,6 @@ const generateEmbed = (contentType: string | null, videoUrl: string | null, embe
         width="100%" 
         height="100%" 
         style="min-height: 500px; border: none;"
-        sandbox="allow-scripts allow-same-origin allow-forms"
       ></iframe>`;
     default:
       // Tentar detectar automaticamente
@@ -159,6 +158,14 @@ const generateEmbed = (contentType: string | null, videoUrl: string | null, embe
       }
       return null;
   }
+};
+
+// Formatar duração
+const formatDuration = (seconds: number | null): string | null => {
+  if (!seconds) return null;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 export default function PwaLessonPage() {
@@ -327,6 +334,11 @@ export default function PwaLessonPage() {
   const primaryColor = appData.primary_color || '#f59e0b';
   const embedHtml = generateEmbed(lesson.content_type, lesson.video_url, lesson.embed_code);
 
+  // ✅ Extrair anexo do campo jsonb
+  const attachment = lesson.attachments
+    ? (typeof lesson.attachments === 'string' ? JSON.parse(lesson.attachments) : lesson.attachments)
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center">
       <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['Inter'] text-white pb-24">
@@ -427,9 +439,9 @@ export default function PwaLessonPage() {
                 <h2 className="text-lg font-bold text-white leading-tight">
                   {lesson.name}
                 </h2>
-                {lesson.duration && (
+                {lesson.video_duration && (
                   <p className="text-xs text-slate-500 mt-1">
-                    Duração: {lesson.duration}
+                    Duração: {formatDuration(lesson.video_duration)}
                   </p>
                 )}
               </div>
@@ -454,20 +466,60 @@ export default function PwaLessonPage() {
               </button>
             </div>
 
-            {/* Descrição */}
+            {/* ✅ Descrição com CSS para bullets */}
             {lesson.description && (
               <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
                 <div
-                  className="text-sm text-slate-300 prose prose-invert prose-sm max-w-none"
+                  className="text-sm text-slate-300 lesson-description"
                   dangerouslySetInnerHTML={{ __html: lesson.description }}
                 />
+                {/* ✅ CSS para renderizar bullet points do Quill */}
+                <style>{`
+                  .lesson-description ul,
+                  .lesson-description ol {
+                    padding-left: 1.5rem;
+                    margin: 0.5rem 0;
+                  }
+                  .lesson-description ul {
+                    list-style-type: disc;
+                  }
+                  .lesson-description ol {
+                    list-style-type: decimal;
+                  }
+                  .lesson-description li {
+                    margin: 0.25rem 0;
+                    color: #cbd5e1;
+                  }
+                  .lesson-description p {
+                    margin: 0.5rem 0;
+                  }
+                  .lesson-description strong,
+                  .lesson-description b {
+                    font-weight: 700;
+                    color: #f1f5f9;
+                  }
+                  .lesson-description em,
+                  .lesson-description i {
+                    font-style: italic;
+                  }
+                  .lesson-description a {
+                    color: ${primaryColor};
+                    text-decoration: underline;
+                  }
+                  .lesson-description u {
+                    text-decoration: underline;
+                  }
+                  .lesson-description s {
+                    text-decoration: line-through;
+                  }
+                `}</style>
               </div>
             )}
 
-            {/* Anexo */}
-            {lesson.attachment_url && (
+            {/* ✅ Anexo usando campo jsonb */}
+            {attachment?.url && (
               <a
-                href={lesson.attachment_url}
+                href={attachment.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-slate-900/50 border border-slate-800 rounded-2xl p-4 hover:border-slate-700 transition-colors"
@@ -480,7 +532,7 @@ export default function PwaLessonPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">
-                    {lesson.attachment_name || 'Material Complementar'}
+                    {attachment.name || 'Material Complementar'}
                   </p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wider">
                     Clique para baixar

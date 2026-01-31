@@ -28,7 +28,7 @@ interface CreateLessonModalProps {
     lessonToEdit?: any;
 }
 
-// ✅ TIPOS DE CONTEÚDO EXPANDIDOS (igual ao HuskyApp)
+// ✅ TIPOS DE CONTEÚDO EXPANDIDOS
 const contentTypes = [
     {
         id: 'video_youtube',
@@ -116,7 +116,7 @@ const contentTypes = [
 const extractYouTubeId = (url: string): string | null => {
     const patterns = [
         /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\n?#]+)/,
-        /^([a-zA-Z0-9_-]{11})$/ // ID direto
+        /^([a-zA-Z0-9_-]{11})$/
     ];
 
     for (const pattern of patterns) {
@@ -200,7 +200,6 @@ const generateEmbedCode = (type: string, url: string): string | null => {
                 width="100%" 
                 height="100%" 
                 style="min-height: 600px; border: none;"
-                sandbox="allow-scripts allow-same-origin allow-forms"
             ></iframe>`;
         }
         default:
@@ -296,8 +295,14 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                 if (['pdf', 'audio', 'file_embed'].includes(lessonToEdit.content_type) && lessonToEdit.file_url) {
                     setContentFileName('Arquivo Atual');
                 }
-                if (lessonToEdit.attachment_url) {
-                    setAttachmentName('Anexo Atual');
+                // ✅ CARREGAR ANEXO DO CAMPO attachments (jsonb)
+                if (lessonToEdit.attachments) {
+                    const att = typeof lessonToEdit.attachments === 'string'
+                        ? JSON.parse(lessonToEdit.attachments)
+                        : lessonToEdit.attachments;
+                    if (att?.name) {
+                        setAttachmentName(att.name);
+                    }
                 }
             } else {
                 setFormData({ name: '', type: 'video_youtube', url: '', embedCode: '', description: '' });
@@ -384,30 +389,34 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                 }
             }
 
-            // Upload do anexo
-            let finalAttachmentUrl = lessonToEdit?.attachment_url || null;
+            // ✅ Upload do anexo e preparar objeto JSON
+            let finalAttachments: any = lessonToEdit?.attachments || null;
             if (attachmentFile) {
                 const fileName = `attachments/${Date.now()}_${attachmentFile.name}`;
                 const { error } = await supabase.storage.from('product-thumbnails').upload(fileName, attachmentFile);
                 if (!error) {
                     const { data } = supabase.storage.from('product-thumbnails').getPublicUrl(fileName);
-                    finalAttachmentUrl = data.publicUrl;
+                    // ✅ SALVAR COMO OBJETO JSON (não como colunas separadas)
+                    finalAttachments = {
+                        url: data.publicUrl,
+                        name: attachmentFile.name
+                    };
                 }
             }
 
-            // ✅ GERAR EMBED CODE AUTOMATICAMENTE PARA YOUTUBE/VIMEO/DRIVE
+            // ✅ GERAR EMBED CODE AUTOMATICAMENTE
             let finalEmbedCode = formData.embedCode;
             if (['video_youtube', 'video_vimeo', 'pdf_drive', 'website'].includes(formData.type)) {
                 finalEmbedCode = generateEmbedCode(formData.type, formData.url) || '';
             }
 
+            // ✅ PAYLOAD USANDO APENAS COLUNAS QUE EXISTEM
             const payload: any = {
                 name: formData.name,
                 content_type: formData.type,
                 description: formData.description,
                 thumbnail_url: finalCoverUrl,
-                attachment_url: finalAttachmentUrl,
-                attachment_name: attachmentName,
+                attachments: finalAttachments, // ✅ Campo jsonb correto
                 is_active: true
             };
 
@@ -569,8 +578,8 @@ const CreateLessonModal: React.FC<CreateLessonModalProps> = ({ isOpen, onClose, 
                                         value={formData.url}
                                         onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                                         className={`w-full px-4 py-3 pr-10 bg-white dark:bg-slate-900 border rounded-xl text-sm focus:ring-2 outline-none transition-all ${urlValid === true ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20' :
-                                                urlValid === false ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' :
-                                                    'border-slate-200 dark:border-slate-800 focus:border-blue-500 focus:ring-blue-500/20'
+                                            urlValid === false ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' :
+                                                'border-slate-200 dark:border-slate-800 focus:border-blue-500 focus:ring-blue-500/20'
                                             }`}
                                         placeholder={currentType.placeholder}
                                     />
