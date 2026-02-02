@@ -61,6 +61,9 @@ import AdminSecurityPage from './pages/admin/AdminSecurityPage';
 
 import DevToolsPage from './pages/DevToolsPage';
 
+// ✅ IMPORTAÇÃO NOVA DO LAYOUT DE IDENTIDADE (Ícones e Manifesto)
+import StudentLayout from './layouts/StudentLayout';
+
 // 🔄 COMPONENTE DE LIMPEZA DE URL (REMOVE O /app/ EXTRA)
 // Se cair em /app/01/profile, redireciona para /01/profile
 const RedirectStripAppPrefix = ({ targetPath }: { targetPath?: string }) => {
@@ -92,17 +95,23 @@ const AppRoutes: React.FC = () => {
       <Routes>
         {/* --- ROTAS CORRETAS (LIMPAS) --- */}
         <Route path="/:appSlug" element={<RedirectToLogin />} />
-        <Route path="/:appSlug/login" element={<PwaLoginPage />} />
-        <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
-        <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
-        <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
-        <Route path="/:appSlug/home" element={<PwaHomePage />} />
-        <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
-        <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
-        <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
-        <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
-        <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
+        {/* ✅ ENVOLVENDO AS ROTAS COM O STUDENTLAYOUT (Para Ícones e Nome Dinâmico) */}
+        <Route element={<StudentLayout />}>
+          {/* Auth */}
+          <Route path="/:appSlug/login" element={<PwaLoginPage />} />
+          <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
+          <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
+          <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
+
+          {/* App Logado */}
+          <Route path="/:appSlug/home" element={<PwaHomePage />} />
+          <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
+          <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
+          <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
+          <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
+          <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
+        </Route>
 
         {/* --- 🚨 CORREÇÃO DE SEGURANÇA: CAPTURA URLs COM /app/ E REDIRECIONA --- */}
         {/* Se o usuário acessar /app/01/profile, ele é jogado para /01/profile automaticamente */}
