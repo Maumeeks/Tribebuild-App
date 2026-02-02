@@ -471,7 +471,6 @@ export default function PwaHomePage() {
                   const isLocked = product.isLocked;
 
                   const getBadge = () => {
-                    if (isBonus) return { text: 'BÔNUS', color: 'emerald', icon: Gift };
                     if (isUpsell) return { text: 'PREMIUM', color: 'amber', icon: Lock };
                     if (isDownsell) return { text: 'OFERTA', color: 'blue', icon: Star };
                     if (isOrderBump) return { text: 'EXTRA', color: 'purple', icon: Star };
