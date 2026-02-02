@@ -1,106 +1,113 @@
-// src/layouts/StudentLayout.tsx
 import React, { useEffect, useState } from 'react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 export default function StudentLayout() {
     const { appSlug } = useParams<{ appSlug: string }>();
     const [loading, setLoading] = useState(true);
+    const location = useLocation();
 
     useEffect(() => {
         const updateAppIdentity = async () => {
-            if (!appSlug) return;
-
             try {
-                // 1. Busca os dados do App (Logo, Nome, Cor)
-                const { data: app } = await supabase
-                    .from('apps')
-                    .select('name, logo_url, primary_color, description')
-                    .eq('slug', appSlug)
-                    .single();
+                let query = supabase.from('apps').select('name, logo_url, primary_color, description, custom_domain, slug');
 
-                if (app) {
-                    // --- A. ATUALIZA TÍTULO DA ABA ---
-                    document.title = app.name;
+                // LÓGICA HÍBRIDA: Slug ou Domínio Personalizado
+                const hostname = window.location.hostname;
+                const isCustomDomain = !hostname.includes('tribebuild.pro') && !hostname.includes('localhost');
 
-                    // --- B. ATUALIZA ÍCONES (FAVICON E IOS) ---
-                    const iconUrl = app.logo_url || '/favicon.ico'; // Fallback
-
-                    // Atualiza Favicon (Navegador Desktop/Android)
-                    let linkIcon = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-                    if (!linkIcon) {
-                        linkIcon = document.createElement('link');
-                        linkIcon.rel = 'icon';
-                        document.head.appendChild(linkIcon);
-                    }
-                    linkIcon.href = iconUrl;
-
-                    // Atualiza Apple Touch Icon (iPhone - Tela Inicial)
-                    let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
-                    if (!appleLink) {
-                        appleLink = document.createElement('link');
-                        appleLink.rel = 'apple-touch-icon';
-                        document.head.appendChild(appleLink);
-                    }
-                    appleLink.href = iconUrl;
-
-                    // --- C. MANIFESTO DINÂMICO (ANDROID - TELA INICIAL) ---
-                    // Isso faz o Android instalar o app com o Nome e Ícone do SEU CLIENTE
-                    const dynamicManifest = {
-                        name: app.name,
-                        short_name: app.name,
-                        description: app.description || `App oficial ${app.name}`,
-                        start_url: `/${appSlug}/home`,
-                        display: "standalone",
-                        background_color: "#0f172a",
-                        theme_color: app.primary_color || "#f59e0b",
-                        icons: [
-                            {
-                                src: iconUrl,
-                                sizes: "192x192",
-                                type: "image/png"
-                            },
-                            {
-                                src: iconUrl,
-                                sizes: "512x512",
-                                type: "image/png"
-                            }
-                        ]
-                    };
-
-                    const stringManifest = JSON.stringify(dynamicManifest);
-                    const blob = new Blob([stringManifest], { type: 'application/json' });
-                    const manifestURL = URL.createObjectURL(blob);
-
-                    let linkManifest = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
-                    if (linkManifest) {
-                        linkManifest.setAttribute('href', manifestURL);
-                    } else {
-                        const newManifest = document.createElement('link');
-                        newManifest.rel = 'manifest';
-                        newManifest.href = manifestURL;
-                        document.head.appendChild(newManifest);
-                    }
-
-                    // Define a cor do tema na barra do navegador mobile
-                    let metaThemeColor = document.querySelector("meta[name='theme-color']");
-                    if (metaThemeColor) {
-                        metaThemeColor.setAttribute('content', app.primary_color || '#0f172a');
-                    }
+                if (appSlug) {
+                    // Cenário 1: Acesso via subdomínio (app.tribebuild.pro/janice)
+                    query = query.eq('slug', appSlug);
+                } else if (isCustomDomain) {
+                    // Cenário 2: Acesso via domínio próprio (docinhosdajanice.site)
+                    // O appSlug vem vazio, então buscamos pelo domínio
+                    query = query.eq('custom_domain', hostname);
+                } else {
+                    // Não é app de aluno (pode ser a home do tribebuild), não faz nada
+                    setLoading(false);
+                    return;
                 }
+
+                const { data: app, error } = await query.single();
+
+                if (error || !app) {
+                    // Se não achou app, segue a vida (usa o default do index.html)
+                    setLoading(false);
+                    return;
+                }
+
+                // --- MÁGICA DE IDENTIDADE ---
+                // 1. Título
+                document.title = app.name;
+
+                // 2. Ícones (Favicon + iPhone)
+                const iconUrl = app.logo_url || '/favicon.png';
+
+                // Remove ícones antigos (arranca o TribeBuild)
+                document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+
+                // Injeta Ícone do Cliente
+                const linkIcon = document.createElement('link');
+                linkIcon.rel = 'icon';
+                linkIcon.href = iconUrl;
+                document.head.appendChild(linkIcon);
+
+                const appleLink = document.createElement('link');
+                appleLink.rel = 'apple-touch-icon';
+                appleLink.href = iconUrl;
+                document.head.appendChild(appleLink);
+
+                // 3. Manifesto Android (Nome e Cor do Cliente na instalação)
+                const dynamicManifest = {
+                    name: app.name,
+                    short_name: app.name,
+                    description: app.description || `App oficial ${app.name}`,
+                    start_url: window.location.pathname, // Usa a rota atual para garantir
+                    display: "standalone",
+                    background_color: "#0f172a",
+                    theme_color: app.primary_color || "#0066FF",
+                    icons: [
+                        { src: iconUrl, sizes: "192x192", type: "image/png" },
+                        { src: iconUrl, sizes: "512x512", type: "image/png" }
+                    ]
+                };
+
+                const stringManifest = JSON.stringify(dynamicManifest);
+                const blob = new Blob([stringManifest], { type: 'application/json' });
+                const manifestURL = URL.createObjectURL(blob);
+
+                document.querySelector("link[rel='manifest']")?.remove();
+                const newManifest = document.createElement('link');
+                newManifest.rel = 'manifest';
+                newManifest.href = manifestURL;
+                document.head.appendChild(newManifest);
+
+                // 4. Cor do Tema (Mobile Status Bar)
+                let metaTheme = document.querySelector("meta[name='theme-color']");
+                if (metaTheme) {
+                    metaTheme.setAttribute('content', app.primary_color || '#0066FF');
+                }
+
             } catch (error) {
-                console.error("Erro ao carregar identidade do app:", error);
+                console.error("Erro identidade:", error);
             } finally {
                 setLoading(false);
             }
         };
 
         updateAppIdentity();
-    }, [appSlug]);
+    }, [appSlug, location.pathname]); // Executa sempre que mudar o slug ou a rota
 
-    // Enquanto carrega a identidade, mostra um loading simples ou nada (para não piscar o logo antigo)
-    if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>;
+    if (loading) {
+        // Tela preta limpa enquanto troca a identidade para não piscar o logo errado
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <Loader2 className="animate-spin text-white/20" />
+            </div>
+        );
+    }
 
     return <Outlet />;
 }
