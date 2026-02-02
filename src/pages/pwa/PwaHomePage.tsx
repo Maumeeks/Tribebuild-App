@@ -26,6 +26,7 @@ type Product = {
   thumbnail_url: string | null;
   status: string;
   offer_type: string;
+  checkout_url?: string | null;  // ✅ ADICIONADO - faltava no tipo
 };
 
 type ProductWithProgress = Product & {
@@ -141,7 +142,7 @@ export default function PwaHomePage() {
         setClient(clientData);
 
         // 1. Buscar produtos que o cliente TEM ACESSO
-        const { data: clientProducts } = await supabase
+        const { data: clientProducts, error: cpError } = await supabase
           .from('client_products')
           .select(`
             *,
@@ -151,20 +152,37 @@ export default function PwaHomePage() {
               description,
               thumbnail_url,
               status,
-              offer_type
+              offer_type,
+              checkout_url
             )
           `)
           .eq('client_id', clientData.id)
           .eq('status', 'active');
 
+        // ✅ DEBUG: Log para ver se a query funciona
+        if (cpError) {
+          console.error('[HOME] Erro client_products:', cpError.message);
+        } else {
+          console.log('[HOME] client_products:', clientProducts?.length, 'encontrados');
+        }
+
         const clientProductIds = clientProducts?.map(cp => cp.products?.id).filter(Boolean) || [];
 
         // 2. Buscar TODOS os produtos do app (para mostrar upsells bloqueados)
-        const { data: allAppProducts } = await supabase
+        // ✅ FIX: Usar is_active = true em vez de status = 'active'
+        //    Porque CreateProductModal salva status='published', não 'active'
+        //    is_active é BOOLEAN e é mais confiável
+        const { data: allAppProducts, error: allError } = await supabase
           .from('products')
           .select('*')
           .eq('app_id', app.id)
-          .eq('status', 'active');
+          .eq('is_active', true);
+
+        if (allError) {
+          console.error('[HOME] Erro allAppProducts:', allError.message);
+        } else {
+          console.log('[HOME] allAppProducts:', allAppProducts?.length, 'encontrados');
+        }
 
         const productsWithProgress: ProductWithProgress[] = [];
 
@@ -240,6 +258,13 @@ export default function PwaHomePage() {
           if (a.progress === 0 && b.progress > 0) return 1;
           return b.progress - a.progress;
         });
+
+        console.log('[HOME] Produtos finais:', productsWithProgress.length, productsWithProgress.map(p => ({
+          name: p.name,
+          offer_type: p.offer_type,
+          isLocked: p.isLocked,
+          thumbnail_url: p.thumbnail_url ? '✅ tem' : '❌ null'
+        })));
 
         setProducts(productsWithProgress);
 
@@ -517,6 +542,7 @@ export default function PwaHomePage() {
                           </>
                         )}
 
+                        {/* ✅ FIX: Botão abre checkout_url real em vez de alert() */}
                         {isLocked && (
                           <button
                             className="mt-1 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
@@ -526,7 +552,9 @@ export default function PwaHomePage() {
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert('Abrir checkout do produto');
+                              if (product.checkout_url) {
+                                window.open(product.checkout_url, '_blank');
+                              }
                             }}
                           >
                             <ShoppingCart size={12} />
