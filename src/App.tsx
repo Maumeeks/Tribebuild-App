@@ -61,51 +61,67 @@ import AdminSecurityPage from './pages/admin/AdminSecurityPage';
 
 import DevToolsPage from './pages/DevToolsPage';
 
-// 🔄 Componente Auxiliar para Redirecionamento
+// 🔄 COMPONENTE DE LIMPEZA DE URL (REMOVE O /app/ EXTRA)
+// Se cair em /app/01/profile, redireciona para /01/profile
+const RedirectStripAppPrefix = ({ targetPath }: { targetPath?: string }) => {
+  const { appSlug } = useParams<{ appSlug: string }>();
+  // Se veio path específico (ex: 'profile'), usa ele. Se não, tenta pegar do wildcard.
+  const finalPath = targetPath || '';
+
+  if (!appSlug) return <Navigate to="/" replace />;
+
+  // Redireciona para a URL limpa (sem /app)
+  return <Navigate to={`/${appSlug}/${finalPath}`} replace />;
+};
+
 const RedirectToLogin = () => {
-  const { appSlug } = useParams();
+  const { appSlug } = useParams<{ appSlug: string }>();
   if (!appSlug) return <Navigate to="/" replace />;
   return <Navigate to={`/${appSlug}/login`} replace />;
 };
 
 const AppRoutes: React.FC = () => {
   const hostname = window.location.hostname;
-  // Verifica se é subdomínio de aluno (produção)
   const isStudentSubdomain = hostname.startsWith('app.');
 
   // =========================================================
   // 1️⃣ ROTAS DE PRODUÇÃO (SUBDOMÍNIO app.tribebuild.pro)
-  // URL esperada: https://app.tribebuild.pro/slug-do-app/pagina
   // =========================================================
   if (isStudentSubdomain) {
     return (
       <Routes>
+        {/* --- ROTAS CORRETAS (LIMPAS) --- */}
         <Route path="/:appSlug" element={<RedirectToLogin />} />
-
-        {/* Auth */}
         <Route path="/:appSlug/login" element={<PwaLoginPage />} />
         <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
         <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
         <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
-        {/* App Logado */}
         <Route path="/:appSlug/home" element={<PwaHomePage />} />
         <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
         <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
         <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
         <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
-
-        {/* ✅ ROTA DO PERFIL (ESSENCIAL PARA FUNCIONAR NO SUBDOMÍNIO) */}
         <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
 
-        {/* Catch-all do aluno */}
+        {/* --- 🚨 CORREÇÃO DE SEGURANÇA: CAPTURA URLs COM /app/ E REDIRECIONA --- */}
+        {/* Se o usuário acessar /app/01/profile, ele é jogado para /01/profile automaticamente */}
+        <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
+        <Route path="/app/:appSlug/home" element={<RedirectStripAppPrefix targetPath="home" />} />
+        <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} />
+        <Route path="/app/:appSlug" element={<RedirectStripAppPrefix targetPath="" />} />
+
+        {/* Catch-all genérico para limpar qualquer outra rota /app/ */}
+        <Route path="/app/:appSlug/*" element={<RedirectStripAppPrefix targetPath="home" />} />
+
+        {/* Erro 404 final */}
         <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada no App.</div>} />
       </Routes>
     );
   }
 
   // =========================================================
-  // 2️⃣ ROTAS DO SITE / DASHBOARD / LOCALHOST
+  // 2️⃣ ROTAS DO SITE / DASHBOARD (tribebuild.pro)
   // =========================================================
   return (
     <Routes>
@@ -131,21 +147,7 @@ const AppRoutes: React.FC = () => {
         <Route path="security" element={<AdminSecurityPage />} />
       </Route>
 
-      {/* =========================================================
-          FALLBACK PARA TESTES (LOCALHOST ou sem subdomínio)
-          Permite acessar via /app/slug-do-app/pagina
-         ========================================================= */}
-      <Route path="/app/:appSlug" element={<RedirectToLogin />} />
-      <Route path="/app/:appSlug/login" element={<PwaLoginPage />} />
-      <Route path="/app/:appSlug/register" element={<PwaRegisterPage />} />
-      <Route path="/app/:appSlug/home" element={<PwaHomePage />} />
-      <Route path="/app/:appSlug/product/:productId" element={<PwaProductPage />} />
-      <Route path="/app/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
-
-      {/* ✅ AQUI ESTAVA FALTANDO A ROTA PARA QUANDO VOCÊ TESTA NO LOCALHOST OU /app/ */}
-      <Route path="/app/:appSlug/profile" element={<PwaProfilePage />} />
-
-      {/* Rotas Dashboard */}
+      {/* Dashboard */}
       <Route
         path="/dashboard"
         element={
@@ -172,6 +174,11 @@ const AppRoutes: React.FC = () => {
         <Route path="domains" element={<DomainsPage />} />
         <Route path="bonus" element={<BonusPage />} />
       </Route>
+
+      {/* Fallbacks legados para o domínio principal também, por precaução */}
+      <Route path="/app/:appSlug" element={<RedirectToLogin />} />
+      <Route path="/app/:appSlug/login" element={<PwaLoginPage />} />
+      <Route path="/app/:appSlug/profile" element={<PwaProfilePage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
