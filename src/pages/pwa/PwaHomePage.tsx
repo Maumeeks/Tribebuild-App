@@ -234,12 +234,57 @@ export default function PwaHomePage() {
           });
         }
 
-        // 3. Adicionar produtos UPSELL/DOWNSELL que o cliente NÃO TEM
+        // 3. Adicionar produtos que o cliente NÃO TEM:
+        //    - BONUS → acessível (gratuito para todos)
+        //    - UPSELL/DOWNSELL/ORDER_BUMP → bloqueado (precisa comprar)
         for (const product of allAppProducts || []) {
-          const isUpsellType = ['upsell', 'downsell', 'order_bump'].includes(product.offer_type);
           const clientAlreadyHas = clientProductIds.includes(product.id);
+          if (clientAlreadyHas) continue; // já foi adicionado acima
 
-          if (isUpsellType && !clientAlreadyHas) {
+          const isBonus = product.offer_type === 'bonus';
+          const isUpsellType = ['upsell', 'downsell', 'order_bump'].includes(product.offer_type);
+
+          if (isBonus) {
+            // Bônus é gratuito → mostra acessível sem precisar de client_products
+            // Buscar progresso também
+            const { data: modules } = await supabase
+              .from('modules')
+              .select('id')
+              .eq('product_id', product.id);
+
+            const moduleIds = modules?.map(m => m.id) || [];
+            let totalLessons = 0;
+            let completedLessons = 0;
+
+            if (moduleIds.length > 0) {
+              const { data: lessons } = await supabase
+                .from('lessons')
+                .select('id')
+                .in('module_id', moduleIds);
+
+              totalLessons = lessons?.length || 0;
+
+              if (lessons && lessons.length > 0) {
+                const { data: progress } = await supabase
+                  .from('client_progress')
+                  .select('id')
+                  .eq('client_id', clientData.id)
+                  .eq('completed', true)
+                  .in('lesson_id', lessons.map(l => l.id));
+
+                completedLessons = progress?.length || 0;
+              }
+            }
+
+            productsWithProgress.push({
+              ...product,
+              progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+              total_lessons: totalLessons,
+              completed_lessons: completedLessons,
+              isLocked: false
+            });
+          } else if (isUpsellType) {
+            // Upsell/Downsell/Order Bump → bloqueado
             productsWithProgress.push({
               ...product,
               progress: 0,
@@ -438,7 +483,15 @@ export default function PwaHomePage() {
                   return (
                     <div
                       key={product.id}
-                      onClick={() => !isLocked && navigate(`/${appSlug}/product/${product.id}`)}
+                      onClick={() => {
+                        if (isLocked) {
+                          if (product.checkout_url) {
+                            window.open(product.checkout_url, '_blank');
+                          }
+                        } else {
+                          navigate(`/${appSlug}/product/${product.id}`);
+                        }
+                      }}
                       className={cn(
                         "bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex items-center gap-4 transition-all cursor-pointer group relative overflow-hidden",
                         isLocked
