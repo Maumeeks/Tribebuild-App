@@ -23,7 +23,6 @@ import AuthCallback from './pages/AuthCallback';
 import PwaLoginPage from './pages/pwa/PwaLoginPage';
 import PwaRegisterPage from './pages/pwa/PwaRegisterPage';
 import PwaForgotPasswordPage from './pages/pwa/PwaForgotPasswordPage';
-// ✅ IMPORTAÇÃO NOVA
 import PwaUpdatePasswordPage from './pages/pwa/PwaUpdatePasswordPage';
 import PwaHomePage from './pages/pwa/PwaHomePage';
 import PwaProductPage from './pages/pwa/PwaProductPage';
@@ -62,11 +61,12 @@ import AdminSecurityPage from './pages/admin/AdminSecurityPage';
 
 import DevToolsPage from './pages/DevToolsPage';
 
-// 🔄 Componente Auxiliar para Redirecionamento Inteligente
+// 🔄 Componente Auxiliar Corrigido (Usa 'slug' agora)
 const RedirectToLogin = () => {
-  const { appSlug } = useParams();
-  if (!appSlug) return <Navigate to="/" replace />;
-  return <Navigate to={`/${appSlug}/login`} replace />;
+  // FIX: Alterado de appSlug para slug para manter consistência
+  const { slug } = useParams();
+  if (!slug) return <Navigate to="/" replace />;
+  return <Navigate to={`/${slug}/login`} replace />;
 };
 
 const AppRoutes: React.FC = () => {
@@ -74,24 +74,26 @@ const AppRoutes: React.FC = () => {
   const isStudentSubdomain = hostname.startsWith('app.');
 
   // 1️⃣ ROTAS DO ALUNO (SUBDOMÍNIO app.)
+  // FIX: Todas as rotas alteradas de :appSlug para :slug
   if (isStudentSubdomain) {
     return (
       <Routes>
         {/* Rota Raiz do Slug redireciona para Login */}
-        <Route path="/:appSlug" element={<RedirectToLogin />} />
+        <Route path="/:slug" element={<RedirectToLogin />} />
 
-        <Route path="/:appSlug/login" element={<PwaLoginPage />} />
-        <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
-        <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
-        {/* ✅ ROTA NOVA DE RECUPERAÇÃO DE SENHA */}
-        <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
+        <Route path="/:slug/login" element={<PwaLoginPage />} />
+        <Route path="/:slug/register" element={<PwaRegisterPage />} />
+        <Route path="/:slug/forgot-password" element={<PwaForgotPasswordPage />} />
+        <Route path="/:slug/update-password" element={<PwaUpdatePasswordPage />} />
 
-        <Route path="/:appSlug/home" element={<PwaHomePage />} />
-        <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
-        <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
-        <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
-        <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
-        <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
+        <Route path="/:slug/home" element={<PwaHomePage />} />
+        <Route path="/:slug/product/:productId" element={<PwaProductPage />} />
+        <Route path="/:slug/lesson/:lessonId" element={<PwaLessonPage />} />
+        <Route path="/:slug/feed" element={<PwaFeedPage />} />
+        <Route path="/:slug/community" element={<PwaCommunityPage />} />
+
+        {/* ESTA ERA A ROTA COM PROBLEMA - Agora padronizada com :slug */}
+        <Route path="/:slug/profile" element={<PwaProfilePage />} />
 
         {/* Catch-all para erro no subdomínio */}
         <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada no App.</div>} />
@@ -99,7 +101,7 @@ const AppRoutes: React.FC = () => {
     );
   }
 
-  // 2️⃣ ROTAS DO CRIADOR / SITE
+  // 2️⃣ ROTAS DO PRODUTOR / SITE / DASHBOARD
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -123,9 +125,9 @@ const AppRoutes: React.FC = () => {
         <Route path="security" element={<AdminSecurityPage />} />
       </Route>
 
-      {/* Fallback para testes locais antigos */}
-      <Route path="/app/:appSlug" element={<RedirectToLogin />} />
-      <Route path="/app/:appSlug/login" element={<PwaLoginPage />} />
+      {/* Fallback para testes locais (Mantive appSlug aqui pois pode ser legado, mas idealmente seria slug também) */}
+      <Route path="/app/:slug" element={<RedirectToLogin />} />
+      <Route path="/app/:slug/login" element={<PwaLoginPage />} />
 
       <Route
         path="/dashboard"
