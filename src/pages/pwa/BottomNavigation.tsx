@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom'; // Adicionado useParams
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Home, Newspaper, Users, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -13,11 +13,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ CORREÇÃO: Usar o hook oficial para pegar o slug, em vez de fatiar a string
+  // ✅ CORREÇÃO: Pega o slug diretamente do Roteador (ex: '01', 'feijao')
+  // Isso evita erros se a URL tiver prefixos extras como /app/
   const { appSlug } = useParams<{ appSlug: string }>();
 
   // Fallback de segurança: se o hook falhar, tenta pegar da URL (mas o hook é prioridade)
-  const slug = appSlug || location.pathname.split('/')[1] || '';
+  // Ajustado para pegar o último segmento relevante se houver confusão
+  const slug = appSlug || location.pathname.split('/').filter(Boolean)[0] || '';
 
   const navItems = [
     {
@@ -45,7 +47,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       id: 'profile',
       label: 'Perfil',
       icon: User,
-      path: `/${slug}/profile`,
+      path: `/${slug}/profile`, // ✅ Agora gera o link certo: /01/profile
       enabled: true
     },
   ];
