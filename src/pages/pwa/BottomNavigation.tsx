@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom'; // Adicionado useParams
 import { Home, Newspaper, Users, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -13,9 +13,11 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Extrair appSlug da URL automaticamente
-  const pathParts = location.pathname.split('/');
-  const slug = pathParts[1] || '';
+  // ✅ CORREÇÃO: Usar o hook oficial para pegar o slug, em vez de fatiar a string
+  const { appSlug } = useParams<{ appSlug: string }>();
+
+  // Fallback de segurança: se o hook falhar, tenta pegar da URL (mas o hook é prioridade)
+  const slug = appSlug || location.pathname.split('/')[1] || '';
 
   const navItems = [
     {
@@ -44,7 +46,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       label: 'Perfil',
       icon: User,
       path: `/${slug}/profile`,
-      enabled: true // ✅ ATIVADO
+      enabled: true
     },
   ];
 
@@ -70,6 +72,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
     }
     navigate(path);
   };
+
+  // Se não tiver slug, não renderiza o menu para evitar erros
+  if (!slug) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
