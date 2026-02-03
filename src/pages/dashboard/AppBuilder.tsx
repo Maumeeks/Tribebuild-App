@@ -14,7 +14,7 @@ import {
   Mail,
   Image as ImageIcon,
   Link as LinkIcon,
-  Loader2, // Adicionei ícone de loading
+  Loader2,
   AtSign,
   Phone
 } from 'lucide-react';
@@ -23,7 +23,7 @@ import MockupMobile from '../../components/MockupMobile';
 import { useApps } from '../../contexts/AppsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
-import { supabase } from '../../lib/supabase'; // ✅ IMPORTANTE: Importar Supabase
+import { supabase } from '../../lib/supabase';
 
 // Tipos
 type LoginType = 'email_password' | 'magic_link';
@@ -45,8 +45,6 @@ const AppBuilder: React.FC = () => {
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ✅ NOVO: Estado para controlar se está fazendo upload de imagem
   const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,16 +75,21 @@ const AppBuilder: React.FC = () => {
     support_value: ''
   });
 
+  // ✅ CORREÇÃO 1: Leitura dos dados (Bypass de Tipagem)
   useEffect(() => {
     if (editMode && appIdToEdit) {
       const app = apps.find(a => a.id === appIdToEdit);
       if (app) {
+        // Usamos 'as any' para acessar propriedades que o TS pode não estar vendo na interface padrão
+        const rawApp = app as any;
+
         setFormData({
           name: app.name,
           slug: app.slug,
           description: app.description || '',
-          primaryColor: app.primaryColor,
-          logo: app.logo || null,
+          // Tenta pegar do banco (snake_case) OU do cache local (camelCase)
+          primaryColor: rawApp.primary_color || app.primaryColor || '#0066FF',
+          logo: rawApp.logo_url || app.logo || null,
           language: app.language || 'PT',
           login_type: (app.login_type || 'email_password') as LoginType,
           banners: app.banners || [
@@ -129,16 +132,14 @@ const AppBuilder: React.FC = () => {
     setFormData(prev => ({ ...prev, banners: newBanners }));
   };
 
-  // ✅ NOVA FUNÇÃO: Upload para o Supabase Storage
   const uploadToStorage = async (file: File, folder: 'logos' | 'banners') => {
     try {
       const fileExt = file.name.split('.').pop();
-      // Nome único para evitar cache ou sobrescrever
       const fileName = `${formData.slug || 'app'}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('app-assets') // Seu bucket público
+        .from('app-assets')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -158,37 +159,23 @@ const AppBuilder: React.FC = () => {
     }
   };
 
-  // ✅ ATUALIZADO: Upload de Logo
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
-
-      // 1. Preview imediato (Base64) para UX rápida (opcional, mas bom)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Não salvamos o base64 no formData final, só usamos para preview se quisesse
-      };
-      reader.readAsDataURL(file);
-
-      // 2. Upload Real
       const publicUrl = await uploadToStorage(file, 'logos');
-
       if (publicUrl) {
-        updateField('logo', publicUrl); // Salva o LINK https://...
+        updateField('logo', publicUrl);
       }
-
       setIsUploading(false);
     }
   };
 
-  // ✅ ATUALIZADO: Upload de Banner
   const handleBannerUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
       const publicUrl = await uploadToStorage(file, 'banners');
-
       if (publicUrl) {
         updateBanner(index, 'image_url', publicUrl);
       }
@@ -209,25 +196,37 @@ const AppBuilder: React.FC = () => {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
+      // ✅ CORREÇÃO 2: Montamos o objeto com TODOS os campos necessários
       const appData = {
         name: formData.name,
         slug: formData.slug,
         description: formData.description,
-        logo: formData.logo, // Agora aqui vai o LINK https://...
+
+        // Enviamos 'logo_url' para o Supabase (snake_case)
+        logo_url: formData.logo,
+        // Enviamos 'logo' para manter compatibilidade com o Contexto (camelCase)
+        logo: formData.logo,
+
+        // Enviamos 'primary_color' para o Supabase
+        primary_color: formData.primaryColor,
+        // Enviamos 'primaryColor' para o Contexto
         primaryColor: formData.primaryColor,
+
         language: formData.language,
         login_type: formData.login_type,
         banners: formData.banners,
         support_type: formData.support_type,
         support_value: formData.support_value,
         status: 'published' as const,
-        customDomain: null
+        custom_domain: null
       };
 
       if (editMode && appIdToEdit) {
-        await updateApp(appIdToEdit, appData);
+        // Usamos 'as any' para evitar o erro de TypeScript, pois estamos enviando 
+        // propriedades extras (logo_url, primary_color) que a interface 'App' original não prevê.
+        await updateApp(appIdToEdit, appData as any);
       } else {
-        await addApp(appData);
+        await addApp(appData as any);
       }
 
       navigate('/dashboard/apps');
@@ -243,15 +242,31 @@ const AppBuilder: React.FC = () => {
     if (isUploading) return alert("Aguarde o upload das imagens terminar.");
 
     try {
+      // ✅ CORREÇÃO 3: Mesma correção para o Rascunho
       const appData = {
-        ...formData,
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+
+        logo_url: formData.logo,
+        logo: formData.logo,
+
+        primary_color: formData.primaryColor,
+        primaryColor: formData.primaryColor,
+
+        language: formData.language,
+        login_type: formData.login_type,
+        banners: formData.banners,
+        support_type: formData.support_type,
+        support_value: formData.support_value,
         status: 'draft' as const,
-        customDomain: null
+        custom_domain: null
       };
+
       if (editMode && appIdToEdit) {
-        await updateApp(appIdToEdit, appData);
+        await updateApp(appIdToEdit, appData as any);
       } else {
-        await addApp(appData);
+        await addApp(appData as any);
       }
       navigate('/dashboard/apps');
     } catch (error) {
