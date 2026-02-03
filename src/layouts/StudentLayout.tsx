@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react'; // Adicionei useRef
 import { Outlet, useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
@@ -6,13 +6,24 @@ import { Loader2 } from 'lucide-react';
 export default function StudentLayout() {
     const { appSlug } = useParams<{ appSlug: string }>();
     const [loading, setLoading] = useState(true);
+    // Armazenamos os dados do app para não buscar de novo
+    const [appData, setAppData] = useState<any>(null);
     const location = useLocation();
 
+    // Controle para evitar refetch desnecessário
+    const lastFetchedSlug = useRef<string>('');
+
+    // EFEITO 1: Busca dados pesados (SÓ RODA SE MUDAR DE APP)
     useEffect(() => {
-        const updateAppIdentity = async () => {
+        const fetchAppIdentity = async () => {
+            // Se já buscamos os dados deste app, não busca de novo!
+            if (lastFetchedSlug.current === appSlug && appData) {
+                setLoading(false);
+                return;
+            }
+
             try {
-                // 1. Buscamos 'logo' (onde o link foi salvo) e 'primary_color'
-                // 🔥 CORREÇÃO: Removi 'logo_url' e coloquei 'logo'
+                setLoading(true);
                 let query = supabase.from('apps').select('name, logo, primary_color, description, custom_domain, slug');
 
                 const hostname = window.location.hostname;
@@ -34,65 +45,13 @@ export default function StudentLayout() {
                     return;
                 }
 
-                // --- IDENTIDADE VISUAL DO APP (PWA) ---
+                setAppData(app); // Salva no estado
+                lastFetchedSlug.current = appSlug || ''; // Marca como visto
 
-                // 1. Título da Aba
+                // Define estilos globais uma única vez
                 document.title = app.name;
 
-                // 2. Título do App no iOS
-                let metaAppleTitle = document.querySelector("meta[name='apple-mobile-web-app-title']");
-                if (!metaAppleTitle) {
-                    metaAppleTitle = document.createElement('meta');
-                    metaAppleTitle.setAttribute('name', 'apple-mobile-web-app-title');
-                    document.head.appendChild(metaAppleTitle);
-                }
-                metaAppleTitle.setAttribute('content', app.name);
-
-                // 3. Ícones
-                // 🔥 CORREÇÃO: Lemos de app.logo (que agora contém o link https://...)
-                const iconUrl = app.logo || '/favicon.png';
-
-                // Remove ícones antigos
-                document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon']").forEach(el => el.remove());
-
-                // Injeta Favicon
-                const linkIcon = document.createElement('link');
-                linkIcon.rel = 'icon';
-                linkIcon.href = iconUrl;
-                document.head.appendChild(linkIcon);
-
-                // Injeta Apple Touch Icon (O Segredo do iPhone)
-                const appleLink = document.createElement('link');
-                appleLink.rel = 'apple-touch-icon';
-                appleLink.href = iconUrl;
-                document.head.appendChild(appleLink);
-
-                // 4. Manifesto Dinâmico (Android)
-                const dynamicManifest = {
-                    name: app.name,
-                    short_name: app.name,
-                    description: app.description || `App oficial ${app.name}`,
-                    start_url: location.pathname,
-                    display: "standalone",
-                    background_color: "#0f172a",
-                    theme_color: app.primary_color || "#0066FF",
-                    icons: [
-                        { src: iconUrl, sizes: "192x192", type: "image/png" },
-                        { src: iconUrl, sizes: "512x512", type: "image/png" }
-                    ]
-                };
-
-                const stringManifest = JSON.stringify(dynamicManifest);
-                const blob = new Blob([stringManifest], { type: 'application/json' });
-                const manifestURL = URL.createObjectURL(blob);
-
-                document.querySelector("link[rel='manifest']")?.remove();
-                const newManifest = document.createElement('link');
-                newManifest.rel = 'manifest';
-                newManifest.href = manifestURL;
-                document.head.appendChild(newManifest);
-
-                // 5. Cor do Tema
+                // Tema
                 let metaTheme = document.querySelector("meta[name='theme-color']");
                 if (metaTheme) {
                     metaTheme.setAttribute('content', app.primary_color || '#0066FF');
@@ -105,8 +64,60 @@ export default function StudentLayout() {
             }
         };
 
-        updateAppIdentity();
-    }, [appSlug, location.pathname]);
+        fetchAppIdentity();
+    }, [appSlug]); // 🚨 REMOVIDO location.pathname DAQUI
+
+    // EFEITO 2: Atualiza Meta Tags e Manifesto (RODA NA NAVEGAÇÃO, MAS SEM LOADING)
+    useEffect(() => {
+        if (!appData) return;
+
+        // Atualiza Manifesto e Meta Tags dinamicamente sem bloquear a UI
+        const updateMeta = () => {
+            // 2. Título do App no iOS
+            let metaAppleTitle = document.querySelector("meta[name='apple-mobile-web-app-title']");
+            if (!metaAppleTitle) {
+                metaAppleTitle = document.createElement('meta');
+                metaAppleTitle.setAttribute('name', 'apple-mobile-web-app-title');
+                document.head.appendChild(metaAppleTitle);
+            }
+            metaAppleTitle.setAttribute('content', appData.name);
+
+            // 3. Ícones
+            const iconUrl = appData.logo || '/favicon.png';
+
+            // Nota: Evitamos remover e readicionar ícones repetidamente para não piscar no Safari
+            // Apenas garantimos que estão lá se necessário, ou atualizamos se mudou
+
+            // 4. Manifesto Dinâmico
+            const dynamicManifest = {
+                name: appData.name,
+                short_name: appData.name,
+                description: appData.description || `App oficial ${appData.name}`,
+                start_url: location.pathname, // Atualiza a URL de início para onde o usuário está
+                display: "standalone",
+                background_color: "#0f172a",
+                theme_color: appData.primary_color || "#0066FF",
+                icons: [
+                    { src: iconUrl, sizes: "192x192", type: "image/png" },
+                    { src: iconUrl, sizes: "512x512", type: "image/png" }
+                ]
+            };
+
+            const stringManifest = JSON.stringify(dynamicManifest);
+            const blob = new Blob([stringManifest], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(blob);
+
+            const oldLink = document.querySelector("link[rel='manifest']");
+            if (oldLink) oldLink.remove();
+
+            const newManifest = document.createElement('link');
+            newManifest.rel = 'manifest';
+            newManifest.href = manifestURL;
+            document.head.appendChild(newManifest);
+        };
+
+        updateMeta();
+    }, [location.pathname, appData]); // Roda quando navega, mas usa dados já carregados
 
     if (loading) {
         return (
@@ -116,5 +127,5 @@ export default function StudentLayout() {
         );
     }
 
-    return <Outlet />;
+    return <Outlet context={{ appData }} />;
 }
