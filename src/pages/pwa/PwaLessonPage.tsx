@@ -298,7 +298,8 @@ export default function PwaLessonPage() {
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
                   {lesson.name}
                 </h2>
-                {lesson.video_duration && (
+                {/* 🚨 CORREÇÃO DO ZERO: Verificamos se a duração existe E é maior que 0 */}
+                {(lesson.video_duration || 0) > 0 && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Duração: {formatDuration(lesson.video_duration)}
                   </p>
