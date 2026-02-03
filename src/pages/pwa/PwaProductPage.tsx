@@ -173,8 +173,8 @@ export default function PwaProductPage() {
 
   if (loading || !appData || !product) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-300">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -189,22 +189,22 @@ export default function PwaProductPage() {
   const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center">
-      <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['Inter'] text-white pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center transition-colors duration-300">
+      <div className="w-full max-w-md bg-gray-50 dark:bg-slate-950 min-h-screen relative shadow-2xl border-x border-gray-200 dark:border-slate-800 text-slate-900 dark:text-white pb-24 transition-colors duration-300">
 
         {/* HEADER */}
-        <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-lg border-b border-slate-800/50 px-5 py-4 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-gray-200 dark:border-slate-800 px-5 py-4 flex items-center gap-4 transition-colors duration-300">
           <button
             onClick={() => navigate(`/${appSlug}/home`)}
-            className="w-10 h-10 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl flex items-center justify-center transition-all active:scale-90"
+            className="w-10 h-10 bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-800 rounded-xl flex items-center justify-center transition-all active:scale-90"
           >
-            <ArrowLeft className="w-5 h-5 text-white" />
+            <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-white" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-white font-bold text-sm truncate leading-tight">
+            <h1 className="text-slate-900 dark:text-white font-bold text-sm truncate leading-tight">
               {product.name}
             </h1>
-            <p className="text-slate-500 text-[10px] font-medium uppercase tracking-wider mt-0.5">
+            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-medium uppercase tracking-wider mt-0.5">
               Conteúdo do Curso
             </p>
           </div>
@@ -214,7 +214,7 @@ export default function PwaProductPage() {
 
           {/* CARD DE PROGRESSO */}
           <div
-            className="rounded-2xl p-6 text-white relative overflow-hidden"
+            className="rounded-2xl p-6 text-white relative overflow-hidden shadow-xl"
             style={{
               backgroundColor: primaryColor,
               boxShadow: `0 15px 30px -10px ${primaryColor}50`
@@ -266,7 +266,7 @@ export default function PwaProductPage() {
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: primaryColor }}
               />
-              <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <h2 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                 Trilha de Aprendizado
               </h2>
             </div>
@@ -280,21 +280,23 @@ export default function PwaProductPage() {
                   <div
                     key={module.id}
                     className={cn(
-                      "bg-slate-900/80 rounded-2xl border transition-all duration-300 overflow-hidden",
-                      isOpen ? "border-slate-700" : "border-slate-800"
+                      "bg-white dark:bg-slate-900/80 rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm",
+                      isOpen
+                        ? "border-gray-200 dark:border-slate-700"
+                        : "border-gray-100 dark:border-slate-800"
                     )}
                   >
                     <button
                       onClick={() => toggleModule(module.id)}
-                      className="w-full flex items-center justify-between p-5 hover:bg-slate-800/50 transition-colors text-left"
+                      className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors text-left"
                     >
                       <div className="flex items-center gap-4">
                         <div
                           className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all border border-transparent",
                             isComplete
-                              ? "bg-emerald-500/20 text-emerald-400"
-                              : "bg-slate-800 text-slate-400"
+                              ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : "bg-gray-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-gray-200 dark:border-slate-700"
                           )}
                         >
                           {isComplete ? (
@@ -304,10 +306,10 @@ export default function PwaProductPage() {
                           )}
                         </div>
                         <div>
-                          <span className="block font-bold text-white text-sm leading-tight">
+                          <span className="block font-bold text-slate-900 dark:text-white text-sm leading-tight">
                             {module.name}
                           </span>
-                          <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-1 block">
+                          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1 block">
                             {module.lessons.length} aulas • {getModuleProgress(module)} concluídas
                           </span>
                         </div>
@@ -317,7 +319,7 @@ export default function PwaProductPage() {
                         "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
                         isOpen
                           ? "text-white"
-                          : "bg-slate-800 text-slate-500"
+                          : "bg-gray-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
                       )}
                         style={isOpen ? { backgroundColor: primaryColor } : {}}
                       >
@@ -327,7 +329,7 @@ export default function PwaProductPage() {
 
                     {isOpen && (
                       <div className="px-4 pb-4">
-                        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 divide-y divide-slate-700/50">
+                        <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700/50 divide-y divide-gray-200 dark:divide-slate-700/50">
                           {module.lessons.map((lesson) => {
                             const hasContent = lesson.video_url || lesson.embed_code;
                             const isCompleted = lesson.completed;
@@ -336,15 +338,15 @@ export default function PwaProductPage() {
                               <button
                                 key={lesson.id}
                                 onClick={() => goToLesson(lesson)}
-                                className="w-full flex items-center gap-4 p-4 text-left transition-all active:scale-[0.98] hover:bg-slate-700/30 cursor-pointer"
+                                className="w-full flex items-center gap-4 p-4 text-left transition-all active:scale-[0.98] hover:bg-gray-200/50 dark:hover:bg-slate-700/30 cursor-pointer"
                               >
                                 <div className="relative flex-shrink-0">
                                   {isCompleted ? (
-                                    <div className="w-7 h-7 bg-emerald-500 text-white rounded-lg flex items-center justify-center">
+                                    <div className="w-7 h-7 bg-emerald-500 text-white rounded-lg flex items-center justify-center shadow-sm shadow-emerald-500/20">
                                       <CheckCircle2 size={14} />
                                     </div>
                                   ) : !hasContent ? (
-                                    <div className="w-7 h-7 bg-slate-700 text-slate-500 rounded-lg flex items-center justify-center">
+                                    <div className="w-7 h-7 bg-gray-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-lg flex items-center justify-center">
                                       <Lock size={14} />
                                     </div>
                                   ) : (
@@ -361,13 +363,13 @@ export default function PwaProductPage() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold truncate leading-tight text-white">
+                                  <p className="text-sm font-semibold truncate leading-tight text-slate-700 dark:text-white">
                                     {lesson.name}
                                   </p>
                                   {lesson.duration && (
                                     <div className="flex items-center gap-2 mt-1">
-                                      <Clock size={10} className="text-slate-500" />
-                                      <span className="text-[10px] font-medium text-slate-500">
+                                      <Clock size={10} className="text-slate-400 dark:text-slate-500" />
+                                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-500">
                                         {lesson.duration}
                                       </span>
                                     </div>
@@ -376,7 +378,7 @@ export default function PwaProductPage() {
 
                                 {hasContent && !isCompleted && (
                                   <div
-                                    className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-90"
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-90 shadow-sm"
                                     style={{ backgroundColor: primaryColor }}
                                   >
                                     <Play size={14} className="text-white fill-current ml-0.5" />
@@ -396,7 +398,7 @@ export default function PwaProductPage() {
         </main>
 
         <div className="text-center pb-8 pt-4">
-          <p className="text-[9px] font-medium text-slate-700 uppercase tracking-widest">
+          <p className="text-[10px] font-medium text-slate-400 dark:text-slate-600 uppercase tracking-widest">
             Tecnologia TribeBuild • PWA
           </p>
         </div>
