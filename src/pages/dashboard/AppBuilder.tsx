@@ -14,7 +14,7 @@ import {
   Mail,
   Image as ImageIcon,
   Link as LinkIcon,
-  MessageCircle,
+  Loader2, // Adicionei ícone de loading
   AtSign,
   Phone
 } from 'lucide-react';
@@ -23,6 +23,7 @@ import MockupMobile from '../../components/MockupMobile';
 import { useApps } from '../../contexts/AppsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
+import { supabase } from '../../lib/supabase'; // ✅ IMPORTANTE: Importar Supabase
 
 // Tipos
 type LoginType = 'email_password' | 'magic_link';
@@ -44,6 +45,10 @@ const AppBuilder: React.FC = () => {
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ✅ NOVO: Estado para controlar se está fazendo upload de imagem
+  const [isUploading, setIsUploading] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRefs = [
     useRef<HTMLInputElement>(null),
@@ -124,26 +129,70 @@ const AppBuilder: React.FC = () => {
     setFormData(prev => ({ ...prev, banners: newBanners }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateField('logo', reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  // ✅ NOVA FUNÇÃO: Upload para o Supabase Storage
+  const uploadToStorage = async (file: File, folder: 'logos' | 'banners') => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      // Nome único para evitar cache ou sobrescrever
+      const fileName = `${formData.slug || 'app'}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('app-assets') // Seu bucket público
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      alert('Erro ao fazer upload da imagem. Tente novamente.');
+      return null;
     }
   };
 
-  const handleBannerUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ ATUALIZADO: Upload de Logo
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar proporção 16:9 (opcional)
+      setIsUploading(true);
+
+      // 1. Preview imediato (Base64) para UX rápida (opcional, mas bom)
       const reader = new FileReader();
       reader.onloadend = () => {
-        updateBanner(index, 'image_url', reader.result as string);
+        // Não salvamos o base64 no formData final, só usamos para preview se quisesse
       };
       reader.readAsDataURL(file);
+
+      // 2. Upload Real
+      const publicUrl = await uploadToStorage(file, 'logos');
+
+      if (publicUrl) {
+        updateField('logo', publicUrl); // Salva o LINK https://...
+      }
+
+      setIsUploading(false);
+    }
+  };
+
+  // ✅ ATUALIZADO: Upload de Banner
+  const handleBannerUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      const publicUrl = await uploadToStorage(file, 'banners');
+
+      if (publicUrl) {
+        updateBanner(index, 'image_url', publicUrl);
+      }
+      setIsUploading(false);
     }
   };
 
@@ -154,6 +203,7 @@ const AppBuilder: React.FC = () => {
 
   const handlePublish = async () => {
     if (!editMode && isLimitReached) return alert(`Limite atingido.`);
+    if (isUploading) return alert("Aguarde o upload das imagens terminar.");
 
     setIsSubmitting(true);
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -163,7 +213,7 @@ const AppBuilder: React.FC = () => {
         name: formData.name,
         slug: formData.slug,
         description: formData.description,
-        logo: formData.logo,
+        logo: formData.logo, // Agora aqui vai o LINK https://...
         primaryColor: formData.primaryColor,
         language: formData.language,
         login_type: formData.login_type,
@@ -190,6 +240,8 @@ const AppBuilder: React.FC = () => {
 
   const handleSaveDraft = async () => {
     if (!formData.name) return alert('Defina um nome para salvar rascunho.');
+    if (isUploading) return alert("Aguarde o upload das imagens terminar.");
+
     try {
       const appData = {
         ...formData,
@@ -230,9 +282,10 @@ const AppBuilder: React.FC = () => {
           </div>
           <button
             onClick={handleSaveDraft}
-            className="text-xs font-bold text-slate-500 hover:text-brand-blue px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            disabled={isUploading}
+            className="text-xs font-bold text-slate-500 hover:text-brand-blue px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
-            Salvar Rascunho
+            {isUploading ? 'Enviando...' : 'Salvar Rascunho'}
           </button>
         </div>
 
@@ -416,8 +469,11 @@ const AppBuilder: React.FC = () => {
               <div>
                 <label className={labelStyle}>Logotipo</label>
                 <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 flex flex-col items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer transition-colors group relative overflow-hidden"
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
+                  className={cn(
+                    "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-colors group relative overflow-hidden",
+                    isUploading ? "cursor-wait bg-slate-50 dark:bg-slate-900" : "cursor-pointer border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900"
+                  )}
                 >
                   <input
                     ref={fileInputRef}
@@ -425,8 +481,14 @@ const AppBuilder: React.FC = () => {
                     className="hidden"
                     accept="image/*"
                     onChange={handleImageUpload}
+                    disabled={isUploading}
                   />
-                  {formData.logo ? (
+                  {isUploading ? (
+                    <div className="flex flex-col items-center animate-pulse">
+                      <Loader2 className="w-8 h-8 text-brand-blue animate-spin mb-2" />
+                      <span className="text-xs text-slate-500 font-bold">Enviando...</span>
+                    </div>
+                  ) : formData.logo ? (
                     <div className="relative z-10 text-center">
                       <img
                         src={formData.logo}
@@ -452,7 +514,7 @@ const AppBuilder: React.FC = () => {
                 </div>
               </div>
 
-              {/* BANNERS (NOVO!) */}
+              {/* BANNERS */}
               <div>
                 <label className={labelStyle}>Banners Rotativos (Máx 3)</label>
                 <p className="text-[10px] text-slate-400 mb-4 font-medium">
@@ -474,8 +536,11 @@ const AppBuilder: React.FC = () => {
 
                       {/* Upload de Imagem */}
                       <div
-                        onClick={() => bannerInputRefs[index].current?.click()}
-                        className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-white dark:hover:bg-slate-800 cursor-pointer transition-colors mb-3 relative overflow-hidden"
+                        onClick={() => !isUploading && bannerInputRefs[index].current?.click()}
+                        className={cn(
+                          "border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center transition-colors mb-3 relative overflow-hidden",
+                          isUploading ? "cursor-wait opacity-70" : "cursor-pointer hover:bg-white dark:hover:bg-slate-800"
+                        )}
                       >
                         <input
                           ref={bannerInputRefs[index]}
@@ -483,8 +548,13 @@ const AppBuilder: React.FC = () => {
                           className="hidden"
                           accept="image/*"
                           onChange={(e) => handleBannerUpload(index, e)}
+                          disabled={isUploading}
                         />
-                        {banner.image_url ? (
+                        {isUploading && !banner.image_url ? (
+                          <div className="flex flex-col items-center animate-pulse">
+                            <Loader2 className="w-6 h-6 text-brand-blue animate-spin mb-2" />
+                          </div>
+                        ) : banner.image_url ? (
                           <div className="relative w-full">
                             <img
                               src={banner.image_url}
@@ -574,7 +644,7 @@ const AppBuilder: React.FC = () => {
                 </div>
               </div>
 
-              {/* CANAL DE SUPORTE (NOVO!) */}
+              {/* CANAL DE SUPORTE */}
               <div>
                 <label className={labelStyle}>Canal de Suporte para Alunos</label>
                 <p className="text-[10px] text-slate-400 mb-4 font-medium">
@@ -712,6 +782,7 @@ const AppBuilder: React.FC = () => {
               <Button
                 onClick={handlePublish}
                 isLoading={isSubmitting}
+                disabled={isUploading}
                 className="w-full py-4 text-xs font-bold uppercase tracking-widest shadow-lg shadow-brand-blue/20"
               >
                 {editMode ? "Salvar Alterações" : "Publicar Agora"}
@@ -724,14 +795,14 @@ const AppBuilder: React.FC = () => {
           <Button
             variant="ghost"
             onClick={prevStep}
-            disabled={step === 1}
+            disabled={step === 1 || isUploading}
             className="text-xs font-bold uppercase text-slate-500"
           >
             Anterior
           </Button>
           <Button
             onClick={nextStep}
-            disabled={step === 4}
+            disabled={step === 4 || isUploading}
             className="text-xs font-bold uppercase px-6"
           >
             Próximo
