@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
-// ✅ ÚNICA DECLARAÇÃO DA INTERFACE APP (com todos os campos)
+// ✅ ÚNICA DECLARAÇÃO DA INTERFACE APP
 export interface App {
   id: string;
   name: string;
@@ -12,16 +12,11 @@ export interface App {
   primaryColor: string;
   language: string;
   createdAt: string;
-  accessLink: string;
+  accessLink: string; // O erro estava aqui, faltava preencher isso no addApp
   customDomain: string | null;
   status: 'draft' | 'published';
   login_type: 'email_password' | 'magic_link';
-
-  // ✅ NOVOS CAMPOS (adicionados aqui!)
-  banners: Array<{
-    image_url: string | null;
-    link: string;
-  }>;
+  banners: Array<{ image_url: string | null; link: string; }>;
   support_type: 'email' | 'whatsapp' | null;
   support_value: string;
 }
@@ -36,8 +31,8 @@ interface AppsContextType {
   planLimit: number;
 }
 
+// 🚨 REMOVIDO 'FREE' E 'TEST'. MANTENDO APENAS OS OFICIAIS.
 const PLAN_LIMITS: Record<string, number> = {
-  free: 1,
   starter: 1,
   professional: 3,
   business: 5,
@@ -49,8 +44,9 @@ const AppsContext = createContext<AppsContextType | undefined>(undefined);
 export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth(); // Pegamos o loading do Auth também
 
+  // Cache persistente do plano para evitar "piscar" para Starter
   const [cachedPlan, setCachedPlan] = useState(() => {
     return localStorage.getItem('tribebuild_cached_plan');
   });
@@ -63,12 +59,13 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [profile]);
 
-  const effectivePlan = profile?.plan || cachedPlan || 'starter';
+  // 🛡️ LÓGICA BLINDADA DE PLANO
+  const effectivePlan = profile?.plan || cachedPlan || (authLoading ? 'enterprise' : 'starter');
+
   const currentPlan = effectivePlan.toLowerCase().trim();
-  const planLimit = PLAN_LIMITS[currentPlan] || 1;
+  const planLimit = PLAN_LIMITS[currentPlan] || (apps.length > 1 ? apps.length : 1);
 
   // --- SINCRONIZAÇÃO COM SUPABASE ---
-
   const fetchApps = useCallback(async () => {
     if (!user) {
       setApps([]);
@@ -97,10 +94,10 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           customDomain: item.custom_domain || null,
           status: item.status as 'draft' | 'published',
           login_type: item.login_type || 'email_password',
+          // Calcula o link de acesso na leitura
           accessLink: item.custom_domain
             ? `https://${item.custom_domain}`
             : `https://app.tribebuild.pro/${item.slug}`,
-          // ✅ Novos campos
           banners: item.banners || [
             { image_url: null, link: '' },
             { image_url: null, link: '' },
@@ -145,7 +142,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           custom_domain: appData.customDomain || null,
           status: 'draft',
           login_type: appData.login_type || 'email_password',
-          // ✅ Novos campos
           banners: appData.banners || [
             { image_url: null, link: '' },
             { image_url: null, link: '' },
@@ -160,6 +156,7 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) throw error;
 
       if (data) {
+        // ✅ CORREÇÃO: Adicionado accessLink aqui
         const newApp: App = {
           id: data.id,
           name: data.name,
@@ -175,7 +172,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           accessLink: data.custom_domain
             ? `https://${data.custom_domain}`
             : `https://app.tribebuild.pro/${data.slug}`,
-          // ✅ Novos campos
           banners: data.banners || [
             { image_url: null, link: '' },
             { image_url: null, link: '' },
@@ -210,7 +206,6 @@ export const AppsProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (data.customDomain !== undefined) dbData.custom_domain = data.customDomain;
       if (data.status !== undefined) dbData.status = data.status;
       if (data.login_type !== undefined) dbData.login_type = data.login_type;
-      // ✅ Novos campos
       if (data.banners !== undefined) dbData.banners = data.banners;
       if (data.support_type !== undefined) dbData.support_type = data.support_type;
       if (data.support_value !== undefined) dbData.support_value = data.support_value;

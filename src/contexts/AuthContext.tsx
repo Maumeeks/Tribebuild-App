@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, Profile } from '../lib/supabase'; // Certifique-se que Profile está exportado corretamente
+import { supabase, Profile } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -27,36 +27,34 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🛡️ PROTEÇÃO 1: Busca de perfil robusta com Timeout e Auto-Criação
+  // 🛡️ PROTEÇÃO: Tenta iniciar com o cache do LocalStorage para evitar "piscar"
+  const [profile, setProfile] = useState<Profile | null>(() => {
+    const cached = localStorage.getItem('tribebuild_cached_profile');
+    return cached ? JSON.parse(cached) : null;
+  });
+
   const fetchProfile = useCallback(async (userId: string, userEmail?: string): Promise<Profile | null> => {
     try {
-      // Timeout Promise: Rejeita se demorar mais de 6s (margem de segurança)
       const timeoutPromise = new Promise<{ data: null; error: { code: string; message: string } }>((_, reject) =>
         setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 6000)
       );
 
-      // Busca do Supabase
       const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      // Corrida: Banco de Dados vs Timeout
-      // @ts-ignore - Supabase types compatibility
+      // @ts-ignore
       const result = await Promise.race([fetchPromise, timeoutPromise]);
       const { data, error } = result;
 
       if (error) {
-        // 🛡️ PROTEÇÃO 3: Auto-Healing (Se não achar, cria!)
-        // PGRST116: JSON object requested, multiple (or no) rows returned
         if (error.code === 'PGRST116') {
           console.warn('[Auth] Perfil não encontrado. Criando perfil de emergência...');
-
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([{
@@ -65,26 +63,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               full_name: 'Usuário',
               plan: 'starter',
               plan_status: 'active',
-              // Adicione aqui outros campos obrigatórios do seu banco com valores default
             }])
             .select()
             .single();
 
           if (!createError && newProfile) {
-            console.log('[Auth] Perfil de emergência criado.');
+            // 🔥 ATUALIZA CACHE
+            localStorage.setItem('tribebuild_cached_profile', JSON.stringify(newProfile));
             return newProfile as Profile;
           }
-
-          console.error('[Auth] Falha ao criar perfil de emergência:', createError);
-        }
-
-        // Se for outro erro, apenas loga e retorna null
-        if (error.code !== 'PGRST116') {
-          console.error('[Auth] Erro ao buscar profile:', error.message);
         }
         return null;
       }
 
+      // 🔥 ATUALIZA CACHE COM O DADO FRESCO
+      localStorage.setItem('tribebuild_cached_profile', JSON.stringify(data));
       return data as Profile;
 
     } catch (err) {
@@ -98,15 +91,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initializeAuth = async () => {
       try {
-        // 1. Verificar sessão atual imediatamente
         const { data: { session: initialSession } } = await supabase.auth.getSession();
 
         if (mounted) {
           if (initialSession?.user) {
             setSession(initialSession);
             setUser(initialSession.user);
+            // Busca o perfil atualizado, mas já temos o cache para mostrar algo
             const userProfile = await fetchProfile(initialSession.user.id, initialSession.user.email);
-            if (mounted) setProfile(userProfile);
+            if (mounted && userProfile) setProfile(userProfile);
           }
         }
       } catch (error) {
@@ -118,28 +111,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // 2. Configurar Listener para mudanças futuras
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
-
-        console.log(`[Auth] Evento: ${event}`);
 
         if (event === 'SIGNED_OUT' || !newSession) {
           setSession(null);
           setUser(null);
           setProfile(null);
           setLoading(false);
+          // 🔥 LIMPEZA DE CACHE CRÍTICA
+          localStorage.removeItem('tribebuild_cached_profile');
+          localStorage.removeItem('tribebuild_cached_plan');
         } else if (newSession?.user) {
-          // Apenas atualiza se a sessão for diferente ou se o usuário mudou
           setSession(newSession);
           setUser(newSession.user);
 
-          // Se for login ou token refresh, garantimos o perfil atualizado
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-            // Opcional: Só busca se ainda não tiver profile carregado ou se for um evento crítico
             const userProfile = await fetchProfile(newSession.user.id, newSession.user.email);
-            if (mounted) setProfile(userProfile);
+            if (mounted && userProfile) setProfile(userProfile);
           }
           setLoading(false);
         }
@@ -153,21 +143,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [fetchProfile]);
 
   const signUp = async (email: string, password: string, fullName: string, cpf?: string, phone?: string) => {
-    // 1. Cria usuário no Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-          cpf: cpf || null,
-          phone: phone || null
-        }
+        data: { full_name: fullName, cpf: cpf || null, phone: phone || null }
       },
     });
 
-    // 2. Se sucesso e auto-confirmado, força a criação do profile imediatamente
-    // Isso evita depender apenas do Auto-Healing no primeiro load
     if (!error && data.user) {
       const { error: profileError } = await supabase
         .from('profiles')
@@ -178,31 +161,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           plan: 'starter',
           plan_status: 'active'
         }]);
-
-      if (profileError) console.warn('[Auth] Aviso: Profile não criado no cadastro (será criado no healing).', profileError);
+      if (profileError) console.warn('[Auth] Aviso: Profile não criado no cadastro.', profileError);
     }
-
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      // Garante que o estado limpe se der erro
-      setLoading(false);
-    }
+    if (error) setLoading(false);
     return { error };
   };
 
   const signOut = async () => {
     setLoading(true);
+    // 🔥 LIMPEZA DE CACHE MANUAL (Redundância de segurança)
+    localStorage.removeItem('tribebuild_cached_profile');
+    localStorage.removeItem('tribebuild_cached_plan');
     await supabase.auth.signOut();
-    // O Listener (SIGNED_OUT) cuidará de limpar o estado e setar loading false
   };
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`, // Ajuste a rota conforme seu app
+      redirectTo: `${window.location.origin}/update-password`,
     });
     return { error };
   };
@@ -216,17 +196,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .eq('id', user.id);
 
     if (!error && profile) {
-      // Atualização otimista da UI
-      setProfile({ ...profile, ...updates });
+      const newProfile = { ...profile, ...updates };
+      setProfile(newProfile);
+      // 🔥 ATUALIZA CACHE
+      localStorage.setItem('tribebuild_cached_profile', JSON.stringify(newProfile));
     }
     return { error };
   };
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
-    setLoading(true); // Feedback visual opcional
+    setLoading(true);
     const userProfile = await fetchProfile(user.id, user.email);
-    setProfile(userProfile);
+    if (userProfile) setProfile(userProfile);
     setLoading(false);
   }, [user, fetchProfile]);
 
