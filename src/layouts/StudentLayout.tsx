@@ -32,28 +32,12 @@ export default function StudentLayout() {
                     return;
                 }
 
-                // --- TRATAMENTO DA IMAGEM (O PULO DO GATO) ---
-                let iconUrl = app.logo_url || '/favicon.png';
-
-                // Se a imagem for Base64 (data:image...), convertemos para URL de Arquivo (blob:)
-                // Isso engana o iPhone para ele achar que é um arquivo real
-                if (iconUrl.startsWith('data:')) {
-                    try {
-                        const res = await fetch(iconUrl);
-                        const blob = await res.blob();
-                        iconUrl = URL.createObjectURL(blob);
-                    } catch (e) {
-                        console.error("Erro ao converter imagem Base64", e);
-                        iconUrl = '/favicon.png'; // Fallback se falhar
-                    }
-                }
-
-                // --- APLICAÇÃO DA IDENTIDADE ---
+                // --- IDENTIDADE VISUAL ---
 
                 // 1. Título
                 document.title = app.name;
 
-                // 2. Meta Tag iOS (Nome do App)
+                // 2. Meta Title iOS (Nome do App)
                 let metaAppleTitle = document.querySelector("meta[name='apple-mobile-web-app-title']");
                 if (!metaAppleTitle) {
                     metaAppleTitle = document.createElement('meta');
@@ -62,22 +46,26 @@ export default function StudentLayout() {
                 }
                 metaAppleTitle.setAttribute('content', app.name);
 
-                // 3. Limpeza de ícones antigos
+                // 3. Ícones
+                // 🔥 AQUI ESTÁ A CORREÇÃO: Usamos o Base64 DIRETO, sem converter para blob.
+                const iconUrl = app.logo_url || '/favicon.png';
+
+                // Limpeza agressiva
                 document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon']").forEach(el => el.remove());
 
-                // 4. Injeção dos Novos Ícones (Agora com URL válida!)
+                // Injeta Favicon
                 const linkIcon = document.createElement('link');
                 linkIcon.rel = 'icon';
-                linkIcon.type = 'image/png';
                 linkIcon.href = iconUrl;
                 document.head.appendChild(linkIcon);
 
+                // Injeta Apple Touch Icon
                 const appleLink = document.createElement('link');
                 appleLink.rel = 'apple-touch-icon';
-                appleLink.href = iconUrl;
+                appleLink.href = iconUrl; // O iPhone vai ler o código da imagem direto daqui
                 document.head.appendChild(appleLink);
 
-                // 5. Manifesto Android
+                // 4. Manifesto Android
                 const dynamicManifest = {
                     name: app.name,
                     short_name: app.name,
@@ -93,8 +81,8 @@ export default function StudentLayout() {
                 };
 
                 const stringManifest = JSON.stringify(dynamicManifest);
-                const blobManifest = new Blob([stringManifest], { type: 'application/json' });
-                const manifestURL = URL.createObjectURL(blobManifest);
+                const blob = new Blob([stringManifest], { type: 'application/json' });
+                const manifestURL = URL.createObjectURL(blob);
 
                 document.querySelector("link[rel='manifest']")?.remove();
                 const newManifest = document.createElement('link');
@@ -102,7 +90,7 @@ export default function StudentLayout() {
                 newManifest.href = manifestURL;
                 document.head.appendChild(newManifest);
 
-                // 6. Cor do Tema
+                // 5. Cor do Tema
                 let metaTheme = document.querySelector("meta[name='theme-color']");
                 if (metaTheme) {
                     metaTheme.setAttribute('content', app.primary_color || '#0066FF');
