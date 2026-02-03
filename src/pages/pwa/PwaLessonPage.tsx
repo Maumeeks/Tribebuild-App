@@ -325,8 +325,8 @@ export default function PwaLessonPage() {
 
   if (loading || !appData || !lesson) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-300">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -334,18 +334,17 @@ export default function PwaLessonPage() {
   const primaryColor = appData.primary_color || '#f59e0b';
   const embedHtml = generateEmbed(lesson.content_type, lesson.video_url, lesson.embed_code);
 
-  // ✅ Extrair anexo do campo jsonb
   const attachment = lesson.attachments
     ? (typeof lesson.attachments === 'string' ? JSON.parse(lesson.attachments) : lesson.attachments)
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center">
-      <div className="w-full max-w-md bg-slate-950 min-h-screen relative shadow-2xl border-x border-slate-900/50 font-['Inter'] text-white pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center transition-colors duration-300">
+      <div className="w-full max-w-md bg-gray-50 dark:bg-slate-950 min-h-screen relative shadow-2xl border-x border-gray-200 dark:border-slate-800 text-slate-900 dark:text-white pb-24 transition-colors duration-300">
 
         {/* HEADER */}
         <header
-          className="sticky top-0 z-30 px-5 py-4 flex items-center gap-4"
+          className="sticky top-0 z-30 px-5 py-4 flex items-center gap-4 transition-colors duration-300"
           style={{ backgroundColor: primaryColor }}
         >
           <button
@@ -366,8 +365,8 @@ export default function PwaLessonPage() {
 
         <main className="flex flex-col">
 
-          {/* PLAYER DE VÍDEO */}
-          <div className="relative bg-black">
+          {/* PLAYER DE VÍDEO - Mantido dark para melhor visualização */}
+          <div className="relative bg-black border-b border-gray-200 dark:border-slate-800">
             {embedHtml ? (
               <div
                 className="relative w-full"
@@ -379,7 +378,7 @@ export default function PwaLessonPage() {
                 />
               </div>
             ) : lesson.content_type === 'audio' && lesson.file_url ? (
-              <div className="p-8 flex flex-col items-center justify-center bg-slate-900">
+              <div className="p-8 flex flex-col items-center justify-center bg-gray-100 dark:bg-slate-900">
                 <div
                   className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4"
                   style={{ backgroundColor: `${primaryColor}20` }}
@@ -402,18 +401,18 @@ export default function PwaLessonPage() {
                   title={lesson.name}
                 />
               ) : (
-                <div className="p-8 text-center bg-slate-900">
-                  <FileText size={48} className="mx-auto mb-4 text-slate-600" />
+                <div className="p-8 text-center bg-gray-100 dark:bg-slate-900">
+                  <FileText size={48} className="mx-auto mb-4 text-slate-400 dark:text-slate-600" />
                   <p className="text-slate-500">Arquivo não disponível</p>
                 </div>
               )
             ) : lesson.content_type === 'link' && lesson.video_url ? (
-              <div className="p-8 text-center bg-slate-900">
+              <div className="p-8 text-center bg-gray-100 dark:bg-slate-900">
                 <a
                   href={lesson.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all hover:opacity-90"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 shadow-lg shadow-blue-500/20"
                   style={{ backgroundColor: primaryColor }}
                 >
                   <Share2 size={18} />
@@ -421,10 +420,10 @@ export default function PwaLessonPage() {
                 </a>
               </div>
             ) : (
-              <div className="aspect-video bg-slate-900 flex items-center justify-center">
+              <div className="aspect-video bg-gray-100 dark:bg-slate-900 flex items-center justify-center">
                 <div className="text-center">
-                  <Play size={48} className="mx-auto mb-4 text-slate-700" />
-                  <p className="text-slate-500 text-sm">Conteúdo em breve</p>
+                  <Play size={48} className="mx-auto mb-4 text-slate-300 dark:text-slate-700" />
+                  <p className="text-slate-400 dark:text-slate-500 text-sm">Conteúdo em breve</p>
                 </div>
               </div>
             )}
@@ -436,11 +435,11 @@ export default function PwaLessonPage() {
             {/* Título e ações */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold text-white leading-tight">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
                   {lesson.name}
                 </h2>
                 {lesson.video_duration && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Duração: {formatDuration(lesson.video_duration)}
                   </p>
                 )}
@@ -451,10 +450,10 @@ export default function PwaLessonPage() {
                 onClick={handleMarkComplete}
                 disabled={marking}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95",
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm",
                   isCompleted
-                    ? "bg-emerald-500/20 text-emerald-400"
-                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                    ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30"
+                    : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700"
                 )}
               >
                 {marking ? (
@@ -466,15 +465,21 @@ export default function PwaLessonPage() {
               </button>
             </div>
 
-            {/* ✅ Descrição com CSS para bullets */}
+            {/* Descrição com CSS para bullets adaptável */}
             {lesson.description && (
-              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
+              <div className="bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
                 <div
-                  className="text-sm text-slate-300 lesson-description"
+                  className="text-sm lesson-description"
                   dangerouslySetInnerHTML={{ __html: lesson.description }}
                 />
-                {/* ✅ CSS para renderizar bullet points do Quill */}
+                {/* CSS Injetado Dinâmico para Temas */}
                 <style>{`
+                  .lesson-description {
+                    color: ${isCompleted ? '#64748b' : '#334155'}; 
+                  }
+                  .dark .lesson-description {
+                    color: #cbd5e1;
+                  }
                   .lesson-description ul,
                   .lesson-description ol {
                     padding-left: 1.5rem;
@@ -488,7 +493,6 @@ export default function PwaLessonPage() {
                   }
                   .lesson-description li {
                     margin: 0.25rem 0;
-                    color: #cbd5e1;
                   }
                   .lesson-description p {
                     margin: 0.5rem 0;
@@ -496,6 +500,10 @@ export default function PwaLessonPage() {
                   .lesson-description strong,
                   .lesson-description b {
                     font-weight: 700;
+                    color: #0f172a;
+                  }
+                  .dark .lesson-description strong,
+                  .dark .lesson-description b {
                     color: #f1f5f9;
                   }
                   .lesson-description em,
@@ -506,23 +514,17 @@ export default function PwaLessonPage() {
                     color: ${primaryColor};
                     text-decoration: underline;
                   }
-                  .lesson-description u {
-                    text-decoration: underline;
-                  }
-                  .lesson-description s {
-                    text-decoration: line-through;
-                  }
                 `}</style>
               </div>
             )}
 
-            {/* ✅ Anexo usando campo jsonb */}
+            {/* Anexo */}
             {attachment?.url && (
               <a
                 href={attachment.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-slate-900/50 border border-slate-800 rounded-2xl p-4 hover:border-slate-700 transition-colors"
+                className="flex items-center gap-3 bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-colors shadow-sm"
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -531,10 +533,10 @@ export default function PwaLessonPage() {
                   <Download size={18} style={{ color: primaryColor }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                     {attachment.name || 'Material Complementar'}
                   </p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Clique para baixar
                   </p>
                 </div>
@@ -543,22 +545,22 @@ export default function PwaLessonPage() {
 
             {/* Navegação entre aulas */}
             {moduleLessons.length > 1 && (
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-800">
                 <button
                   onClick={goToPrevLesson}
                   disabled={currentIndex === 0}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
                     currentIndex === 0
-                      ? "text-slate-600 cursor-not-allowed"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800"
+                      ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800"
                   )}
                 >
                   <ChevronLeft size={16} />
                   Anterior
                 </button>
 
-                <span className="text-[10px] text-slate-600 font-medium">
+                <span className="text-[10px] text-slate-400 dark:text-slate-600 font-medium">
                   {currentIndex + 1} / {moduleLessons.length}
                 </span>
 
@@ -568,8 +570,8 @@ export default function PwaLessonPage() {
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
                     currentIndex === moduleLessons.length - 1
-                      ? "text-slate-600 cursor-not-allowed"
-                      : "hover:bg-slate-800"
+                      ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                      : "hover:bg-gray-100 dark:hover:bg-slate-800"
                   )}
                   style={currentIndex < moduleLessons.length - 1 ? { color: primaryColor } : {}}
                 >

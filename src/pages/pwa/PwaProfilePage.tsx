@@ -21,17 +21,12 @@ import BottomNavigation from '../../components/pwa/BottomNavigation';
 // URL do GIF de instalação (Deixe vazio '' se não tiver ainda)
 const INSTALL_TUTORIAL_GIF = '';
 
-interface ClientStats {
-  totalCourses: number;
-}
-
 export default function PwaProfilePage() {
   const { appSlug } = useParams<{ appSlug: string }>();
   const navigate = useNavigate();
 
   const [appData, setAppData] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
-  const [stats, setStats] = useState<ClientStats>({ totalCourses: 0 });
 
   // Estados de UI
   const [loading, setLoading] = useState(true);
@@ -100,14 +95,7 @@ export default function PwaProfilePage() {
         setClient(clientData);
         setNewName(clientData.full_name || '');
 
-        // Buscar estatísticas (Apenas Cursos)
-        const { count } = await supabase
-          .from('client_products')
-          .select('*', { count: 'exact', head: true })
-          .eq('client_id', clientData.id)
-          .eq('status', 'active');
-
-        setStats({ totalCourses: count || 0 });
+        // Estatísticas removidas conforme solicitado
 
       } catch (err) {
         console.error('Erro ao carregar perfil:', err);
@@ -347,28 +335,6 @@ export default function PwaProfilePage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full mt-2 inline-block">
               {client?.email}
             </p>
-          </section>
-
-          {/* ESTATÍSTICAS (Apenas Cursos) */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                Suas Estatísticas
-              </h3>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${primaryColor}15` }}
-                >
-                  <User size={16} style={{ color: primaryColor }} />
-                </div>
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Cursos Matriculados</span>
-              </div>
-              <p className="text-3xl font-black text-slate-900 dark:text-white">{stats.totalCourses}</p>
-            </div>
           </section>
 
           {/* MENU DE OPÇÕES (Clean Style) */}
