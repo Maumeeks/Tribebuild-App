@@ -13,17 +13,16 @@ export default function StudentLayout() {
             try {
                 let query = supabase.from('apps').select('name, logo_url, primary_color, description, custom_domain, slug');
 
-                // LÓGICA HÍBRIDA: Slug ou Domínio Personalizado
+                // Detecta se é acesso por domínio próprio ou subdomínio
                 const hostname = window.location.hostname;
                 const isCustomDomain = !hostname.includes('tribebuild.pro') && !hostname.includes('localhost');
 
                 if (appSlug) {
-                    // Cenário 1: Acesso via subdomínio (app.tribebuild.pro/aviao)
                     query = query.eq('slug', appSlug);
                 } else if (isCustomDomain) {
-                    // Cenário 2: Acesso via domínio próprio
                     query = query.eq('custom_domain', hostname);
                 } else {
+                    // Se não tiver slug nem domínio próprio, não faz nada (home do sistema)
                     setLoading(false);
                     return;
                 }
@@ -35,46 +34,46 @@ export default function StudentLayout() {
                     return;
                 }
 
-                // --- MÁGICA DE IDENTIDADE ---
+                // --- INÍCIO DA IDENTIDADE VISUAL DINÂMICA ---
 
-                // 1. Título da Aba
-                document.title = app.name;
+                // 1. Título da Aba do Navegador
+                document.title = app.name; // Vai aparecer "Zootopia" na aba
 
-                // 2. Título do App no iOS (IMPORTANTE: Isso define o nome ao salvar na tela de início)
+                // 2. Título do App no iOS (A tag mágica para o nome ao salvar)
                 let metaAppleTitle = document.querySelector("meta[name='apple-mobile-web-app-title']");
                 if (!metaAppleTitle) {
                     metaAppleTitle = document.createElement('meta');
                     metaAppleTitle.setAttribute('name', 'apple-mobile-web-app-title');
                     document.head.appendChild(metaAppleTitle);
                 }
-                metaAppleTitle.setAttribute('content', app.name);
+                metaAppleTitle.setAttribute('content', app.name); // Define "Zootopia"
 
-                // 3. Ícones (Favicon + iPhone)
+                // 3. Ícones (Favicon + iPhone Touch Icon)
                 const iconUrl = app.logo_url || '/favicon.png';
 
-                // Remove TODOS os ícones antigos para evitar cache ou duplicação
-                document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-                document.querySelectorAll("link[rel='apple-touch-icon']").forEach(el => el.remove());
+                // Remove TODOS os ícones antigos para garantir que não use o cache
+                document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon']").forEach(el => el.remove());
 
-                // Injeta Novo Favicon (Navegador)
+                // Cria o Favicon novo (Navegador PC)
                 const linkIcon = document.createElement('link');
                 linkIcon.rel = 'icon';
                 linkIcon.type = 'image/png';
                 linkIcon.href = iconUrl;
                 document.head.appendChild(linkIcon);
 
-                // Injeta Novo Ícone Apple (Tela de Início)
+                // Cria o Ícone da Apple (Tela de Início iOS)
                 const appleLink = document.createElement('link');
                 appleLink.rel = 'apple-touch-icon';
                 appleLink.href = iconUrl;
                 document.head.appendChild(appleLink);
 
-                // 4. Manifesto Android (Nome e Cor do Cliente na instalação)
+                // 4. Manifesto Dinâmico (Para instalação Android)
+                // Criamos um arquivo JSON virtual com os dados do cliente
                 const dynamicManifest = {
                     name: app.name,
                     short_name: app.name,
-                    description: app.description || `App oficial ${app.name}`,
-                    start_url: location.pathname, // Usa a rota atual exata (ex: /aviao/login)
+                    description: app.description || `Acesse o app ${app.name}`,
+                    start_url: location.pathname, // Salva a URL exata onde o usuário está (ex: /01/login)
                     display: "standalone",
                     background_color: "#0f172a",
                     theme_color: app.primary_color || "#0066FF",
@@ -88,20 +87,21 @@ export default function StudentLayout() {
                 const blob = new Blob([stringManifest], { type: 'application/json' });
                 const manifestURL = URL.createObjectURL(blob);
 
+                // Remove manifesto antigo e insere o novo
                 document.querySelector("link[rel='manifest']")?.remove();
                 const newManifest = document.createElement('link');
                 newManifest.rel = 'manifest';
                 newManifest.href = manifestURL;
                 document.head.appendChild(newManifest);
 
-                // 5. Cor do Tema (Mobile Status Bar)
+                // 5. Cor da Barra de Status (Mobile)
                 let metaTheme = document.querySelector("meta[name='theme-color']");
                 if (metaTheme) {
                     metaTheme.setAttribute('content', app.primary_color || '#0066FF');
                 }
 
             } catch (error) {
-                console.error("Erro identidade:", error);
+                console.error("Erro ao carregar identidade do app:", error);
             } finally {
                 setLoading(false);
             }
@@ -111,6 +111,7 @@ export default function StudentLayout() {
     }, [appSlug, location.pathname]);
 
     if (loading) {
+        // Tela de carregamento enquanto troca o ícone/nome
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <Loader2 className="animate-spin text-white/20" />
