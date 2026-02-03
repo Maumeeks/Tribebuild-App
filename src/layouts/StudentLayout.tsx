@@ -18,14 +18,12 @@ export default function StudentLayout() {
                 const isCustomDomain = !hostname.includes('tribebuild.pro') && !hostname.includes('localhost');
 
                 if (appSlug) {
-                    // Cenário 1: Acesso via subdomínio (app.tribebuild.pro/janice)
+                    // Cenário 1: Acesso via subdomínio (app.tribebuild.pro/aviao)
                     query = query.eq('slug', appSlug);
                 } else if (isCustomDomain) {
-                    // Cenário 2: Acesso via domínio próprio (docinhosdajanice.site)
-                    // O appSlug vem vazio, então buscamos pelo domínio
+                    // Cenário 2: Acesso via domínio próprio
                     query = query.eq('custom_domain', hostname);
                 } else {
-                    // Não é app de aluno (pode ser a home do tribebuild), não faz nada
                     setLoading(false);
                     return;
                 }
@@ -33,38 +31,50 @@ export default function StudentLayout() {
                 const { data: app, error } = await query.single();
 
                 if (error || !app) {
-                    // Se não achou app, segue a vida (usa o default do index.html)
                     setLoading(false);
                     return;
                 }
 
                 // --- MÁGICA DE IDENTIDADE ---
-                // 1. Título
+
+                // 1. Título da Aba
                 document.title = app.name;
 
-                // 2. Ícones (Favicon + iPhone)
+                // 2. Título do App no iOS (IMPORTANTE: Isso define o nome ao salvar na tela de início)
+                let metaAppleTitle = document.querySelector("meta[name='apple-mobile-web-app-title']");
+                if (!metaAppleTitle) {
+                    metaAppleTitle = document.createElement('meta');
+                    metaAppleTitle.setAttribute('name', 'apple-mobile-web-app-title');
+                    document.head.appendChild(metaAppleTitle);
+                }
+                metaAppleTitle.setAttribute('content', app.name);
+
+                // 3. Ícones (Favicon + iPhone)
                 const iconUrl = app.logo_url || '/favicon.png';
 
-                // Remove ícones antigos (arranca o TribeBuild)
+                // Remove TODOS os ícones antigos para evitar cache ou duplicação
                 document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+                document.querySelectorAll("link[rel='apple-touch-icon']").forEach(el => el.remove());
 
-                // Injeta Ícone do Cliente
+                // Injeta Novo Favicon (Navegador)
                 const linkIcon = document.createElement('link');
                 linkIcon.rel = 'icon';
+                linkIcon.type = 'image/png';
                 linkIcon.href = iconUrl;
                 document.head.appendChild(linkIcon);
 
+                // Injeta Novo Ícone Apple (Tela de Início)
                 const appleLink = document.createElement('link');
                 appleLink.rel = 'apple-touch-icon';
                 appleLink.href = iconUrl;
                 document.head.appendChild(appleLink);
 
-                // 3. Manifesto Android (Nome e Cor do Cliente na instalação)
+                // 4. Manifesto Android (Nome e Cor do Cliente na instalação)
                 const dynamicManifest = {
                     name: app.name,
                     short_name: app.name,
                     description: app.description || `App oficial ${app.name}`,
-                    start_url: window.location.pathname, // Usa a rota atual para garantir
+                    start_url: location.pathname, // Usa a rota atual exata (ex: /aviao/login)
                     display: "standalone",
                     background_color: "#0f172a",
                     theme_color: app.primary_color || "#0066FF",
@@ -84,7 +94,7 @@ export default function StudentLayout() {
                 newManifest.href = manifestURL;
                 document.head.appendChild(newManifest);
 
-                // 4. Cor do Tema (Mobile Status Bar)
+                // 5. Cor do Tema (Mobile Status Bar)
                 let metaTheme = document.querySelector("meta[name='theme-color']");
                 if (metaTheme) {
                     metaTheme.setAttribute('content', app.primary_color || '#0066FF');
@@ -98,10 +108,9 @@ export default function StudentLayout() {
         };
 
         updateAppIdentity();
-    }, [appSlug, location.pathname]); // Executa sempre que mudar o slug ou a rota
+    }, [appSlug, location.pathname]);
 
     if (loading) {
-        // Tela preta limpa enquanto troca a identidade para não piscar o logo errado
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <Loader2 className="animate-spin text-white/20" />
