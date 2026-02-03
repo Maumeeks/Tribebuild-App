@@ -7,7 +7,6 @@
   <title>TribeBuild - Crie sua Tribo</title>
 
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/favicon.png">
 
   <link rel="manifest" href="/site.webmanifest">
 
@@ -37,23 +36,12 @@
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      /* Previne scroll elástico indesejado no iOS */
       overscroll-behavior-y: none;
     }
   </style>
-</head>
 
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white antialiased">
-  <div id="root"></div>
-  <script type="module" src="/src/index.tsx"></script>
-</body>
-
-</html>
-
-<head>
   <script>
     (function () {
-      // Verifica se tem tema salvo ou se o sistema do usuário é dark
       const savedTheme = localStorage.getItem('theme');
       const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -65,3 +53,10 @@
     })();
   </script>
 </head>
+
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white antialiased">
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+
+</html>
