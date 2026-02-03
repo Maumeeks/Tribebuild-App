@@ -11,7 +11,9 @@ export default function StudentLayout() {
     useEffect(() => {
         const updateAppIdentity = async () => {
             try {
-                let query = supabase.from('apps').select('name, logo_url, primary_color, description, custom_domain, slug');
+                // 1. Buscamos 'logo' (onde o link foi salvo) e 'primary_color'
+                // 🔥 CORREÇÃO: Removi 'logo_url' e coloquei 'logo'
+                let query = supabase.from('apps').select('name, logo, primary_color, description, custom_domain, slug');
 
                 const hostname = window.location.hostname;
                 const isCustomDomain = !hostname.includes('tribebuild.pro') && !hostname.includes('localhost');
@@ -37,7 +39,7 @@ export default function StudentLayout() {
                 // 1. Título da Aba
                 document.title = app.name;
 
-                // 2. Título do App no iOS (Nome que aparece embaixo do ícone)
+                // 2. Título do App no iOS
                 let metaAppleTitle = document.querySelector("meta[name='apple-mobile-web-app-title']");
                 if (!metaAppleTitle) {
                     metaAppleTitle = document.createElement('meta');
@@ -46,33 +48,33 @@ export default function StudentLayout() {
                 }
                 metaAppleTitle.setAttribute('content', app.name);
 
-                // 3. Ícones (Agora usamos o Link direto do Storage, igual ao concorrente)
-                const iconUrl = app.logo_url || '/favicon.png';
+                // 3. Ícones
+                // 🔥 CORREÇÃO: Lemos de app.logo (que agora contém o link https://...)
+                const iconUrl = app.logo || '/favicon.png';
 
-                // Remove ícones antigos para evitar cache
+                // Remove ícones antigos
                 document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon']").forEach(el => el.remove());
 
-                // Injeta Favicon (Navegador PC)
+                // Injeta Favicon
                 const linkIcon = document.createElement('link');
                 linkIcon.rel = 'icon';
                 linkIcon.href = iconUrl;
                 document.head.appendChild(linkIcon);
 
-                // Injeta Apple Touch Icon (iPhone/iPad)
+                // Injeta Apple Touch Icon (O Segredo do iPhone)
                 const appleLink = document.createElement('link');
                 appleLink.rel = 'apple-touch-icon';
                 appleLink.href = iconUrl;
                 document.head.appendChild(appleLink);
 
                 // 4. Manifesto Dinâmico (Android)
-                // Cria um arquivo JSON virtual com as configurações do app
                 const dynamicManifest = {
                     name: app.name,
                     short_name: app.name,
                     description: app.description || `App oficial ${app.name}`,
-                    start_url: location.pathname, // Salva a URL exata onde o usuário está
+                    start_url: location.pathname,
                     display: "standalone",
-                    background_color: "#0f172a", // Cor de fundo ao abrir (Dark mode default)
+                    background_color: "#0f172a",
                     theme_color: app.primary_color || "#0066FF",
                     icons: [
                         { src: iconUrl, sizes: "192x192", type: "image/png" },
@@ -84,14 +86,13 @@ export default function StudentLayout() {
                 const blob = new Blob([stringManifest], { type: 'application/json' });
                 const manifestURL = URL.createObjectURL(blob);
 
-                // Substitui o manifesto antigo pelo novo
                 document.querySelector("link[rel='manifest']")?.remove();
                 const newManifest = document.createElement('link');
                 newManifest.rel = 'manifest';
                 newManifest.href = manifestURL;
                 document.head.appendChild(newManifest);
 
-                // 5. Cor do Tema (Barra de status do celular)
+                // 5. Cor do Tema
                 let metaTheme = document.querySelector("meta[name='theme-color']");
                 if (metaTheme) {
                     metaTheme.setAttribute('content', app.primary_color || '#0066FF');
@@ -108,7 +109,6 @@ export default function StudentLayout() {
     }, [appSlug, location.pathname]);
 
     if (loading) {
-        // Tela preta limpa enquanto carrega a identidade
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <Loader2 className="animate-spin text-white/20" />
