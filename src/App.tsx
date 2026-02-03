@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { Suspense } from 'react'; // ✅ Adicionado Suspense
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppsProvider } from './contexts/AppsContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Loader2 } from 'lucide-react'; // ✅ Importado para o Loading
 
-// Páginas públicas
+// Páginas públicas (Mantive estáticas pois são leves e críticas)
 import PlansPage from './pages/PlansPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -19,19 +20,20 @@ import SubscriptionCancelPage from './pages/SubscriptionCancelPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AuthCallback from './pages/AuthCallback';
 
-// PWA (Área do Aluno)
-import PwaLoginPage from './pages/pwa/PwaLoginPage';
-import PwaRegisterPage from './pages/pwa/PwaRegisterPage';
-import PwaForgotPasswordPage from './pages/pwa/PwaForgotPasswordPage';
-import PwaUpdatePasswordPage from './pages/pwa/PwaUpdatePasswordPage';
-import PwaHomePage from './pages/pwa/PwaHomePage';
-import PwaProductPage from './pages/pwa/PwaProductPage';
-import PwaLessonPage from './pages/pwa/PwaLessonPage';
-import PwaFeedPage from './pages/pwa/PwaFeedPage';
-import PwaCommunityPage from './pages/pwa/PwaCommunityPage';
-import PwaProfilePage from './pages/pwa/PwaProfilePage';
+// ✅ OTIMIZAÇÃO: Importações Dinâmicas (Lazy Loading) para o PWA
+// O navegador só vai baixar esses arquivos quando o usuário clicar neles
+const PwaLoginPage = React.lazy(() => import('./pages/pwa/PwaLoginPage'));
+const PwaRegisterPage = React.lazy(() => import('./pages/pwa/PwaRegisterPage'));
+const PwaForgotPasswordPage = React.lazy(() => import('./pages/pwa/PwaForgotPasswordPage'));
+const PwaUpdatePasswordPage = React.lazy(() => import('./pages/pwa/PwaUpdatePasswordPage'));
+const PwaHomePage = React.lazy(() => import('./pages/pwa/PwaHomePage'));
+const PwaProductPage = React.lazy(() => import('./pages/pwa/PwaProductPage'));
+const PwaLessonPage = React.lazy(() => import('./pages/pwa/PwaLessonPage'));
+const PwaFeedPage = React.lazy(() => import('./pages/pwa/PwaFeedPage'));
+const PwaCommunityPage = React.lazy(() => import('./pages/pwa/PwaCommunityPage'));
+const PwaProfilePage = React.lazy(() => import('./pages/pwa/PwaProfilePage'));
 
-// Dashboard
+// Dashboard (Também podemos otimizar, mas o foco agora é o PWA)
 import DashboardLayout from './layout/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import AppsPage from './pages/dashboard/AppsPage';
@@ -64,16 +66,19 @@ import DevToolsPage from './pages/DevToolsPage';
 // ✅ IMPORTAÇÃO NOVA DO LAYOUT DE IDENTIDADE (Ícones e Manifesto)
 import StudentLayout from './layouts/StudentLayout';
 
+// ✅ COMPONENTE DE LOADING OTIMIZADO
+const PageLoader = () => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+    <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
+  </div>
+);
+
 // 🔄 COMPONENTE DE LIMPEZA DE URL (REMOVE O /app/ EXTRA)
-// Se cair em /app/01/profile, redireciona para /01/profile
 const RedirectStripAppPrefix = ({ targetPath }: { targetPath?: string }) => {
   const { appSlug } = useParams<{ appSlug: string }>();
-  // Se veio path específico (ex: 'profile'), usa ele. Se não, tenta pegar do wildcard.
   const finalPath = targetPath || '';
 
   if (!appSlug) return <Navigate to="/" replace />;
-
-  // Redireciona para a URL limpa (sem /app)
   return <Navigate to={`/${appSlug}/${finalPath}`} replace />;
 };
 
@@ -92,40 +97,42 @@ const AppRoutes: React.FC = () => {
   // =========================================================
   if (isStudentSubdomain) {
     return (
-      <Routes>
-        {/* --- ROTAS CORRETAS (LIMPAS) --- */}
-        <Route path="/:appSlug" element={<RedirectToLogin />} />
+      // ✅ Suspense envolve as rotas PWA para mostrar o loading enquanto baixa o código
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* --- ROTAS CORRETAS (LIMPAS) --- */}
+          <Route path="/:appSlug" element={<RedirectToLogin />} />
 
-        {/* ✅ ENVOLVENDO AS ROTAS COM O STUDENTLAYOUT (Para Ícones e Nome Dinâmico) */}
-        <Route element={<StudentLayout />}>
-          {/* Auth */}
-          <Route path="/:appSlug/login" element={<PwaLoginPage />} />
-          <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
-          <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
-          <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
+          {/* ✅ ENVOLVENDO AS ROTAS COM O STUDENTLAYOUT */}
+          <Route element={<StudentLayout />}>
+            {/* Auth */}
+            <Route path="/:appSlug/login" element={<PwaLoginPage />} />
+            <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
+            <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
+            <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
-          {/* App Logado */}
-          <Route path="/:appSlug/home" element={<PwaHomePage />} />
-          <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
-          <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
-          <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
-          <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
-          <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
-        </Route>
+            {/* App Logado */}
+            <Route path="/:appSlug/home" element={<PwaHomePage />} />
+            <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
+            <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
+            <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
+            <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
+            <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
+          </Route>
 
-        {/* --- 🚨 CORREÇÃO DE SEGURANÇA: CAPTURA URLs COM /app/ E REDIRECIONA --- */}
-        {/* Se o usuário acessar /app/01/profile, ele é jogado para /01/profile automaticamente */}
-        <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
-        <Route path="/app/:appSlug/home" element={<RedirectStripAppPrefix targetPath="home" />} />
-        <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} />
-        <Route path="/app/:appSlug" element={<RedirectStripAppPrefix targetPath="" />} />
+          {/* --- 🚨 CORREÇÃO DE SEGURANÇA: CAPTURA URLs COM /app/ E REDIRECIONA --- */}
+          <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
+          <Route path="/app/:appSlug/home" element={<RedirectStripAppPrefix targetPath="home" />} />
+          <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} />
+          <Route path="/app/:appSlug" element={<RedirectStripAppPrefix targetPath="" />} />
 
-        {/* Catch-all genérico para limpar qualquer outra rota /app/ */}
-        <Route path="/app/:appSlug/*" element={<RedirectStripAppPrefix targetPath="home" />} />
+          {/* Catch-all genérico para limpar qualquer outra rota /app/ */}
+          <Route path="/app/:appSlug/*" element={<RedirectStripAppPrefix targetPath="home" />} />
 
-        {/* Erro 404 final */}
-        <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada no App.</div>} />
-      </Routes>
+          {/* Erro 404 final */}
+          <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada no App.</div>} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -186,8 +193,8 @@ const AppRoutes: React.FC = () => {
 
       {/* Fallbacks legados para o domínio principal também, por precaução */}
       <Route path="/app/:appSlug" element={<RedirectToLogin />} />
-      <Route path="/app/:appSlug/login" element={<PwaLoginPage />} />
-      <Route path="/app/:appSlug/profile" element={<PwaProfilePage />} />
+      <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} /> {/* Corrigido aqui para usar o componente */}
+      <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
