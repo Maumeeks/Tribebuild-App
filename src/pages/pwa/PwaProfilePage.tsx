@@ -41,15 +41,26 @@ export default function PwaProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
 
-  // Estado do Tema (Dark/Light)
+  // Estado do Tema (Dark/Light) com inicialização robusta
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Verifica preferência salva ou do sistema
     if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark') ||
-        localStorage.getItem('theme') === 'dark';
+      const saved = localStorage.getItem('theme');
+      // Se tiver salvo 'dark' OU (não tiver salvo nada E o sistema for dark)
+      return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
     return false;
   });
+
+  // Efeito para aplicar o tema sempre que o estado mudar
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     const initPage = async () => {
@@ -108,18 +119,8 @@ export default function PwaProfilePage() {
     if (appSlug) initPage();
   }, [appSlug, navigate]);
 
-  // Função para Alternar Tema
   const toggleTheme = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
+    setIsDarkMode(prev => !prev);
   };
 
   const handleUpdateName = async () => {
@@ -149,22 +150,22 @@ export default function PwaProfilePage() {
       setUploadingPhoto(true);
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${client.id}-${Math.random()}.${fileExt}`;
+      const fileName = `${client.id}-${Date.now()}.${fileExt}`; // Usar timestamp para evitar cache
       const filePath = `${fileName}`;
 
-      // 1. Upload para o Storage (Bucket 'avatars')
+      // 1. Upload
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // 2. Pegar URL Pública
+      // 2. URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 3. Salvar URL no Cliente
+      // 3. Salvar
       const { error: updateError } = await supabase
         .from('clients')
         .update({ avatar_url: publicUrl })
@@ -176,7 +177,7 @@ export default function PwaProfilePage() {
 
     } catch (error) {
       console.error('Erro no upload:', error);
-      alert('Erro ao enviar foto. Verifique se a imagem é menor que 2MB.');
+      alert('Erro ao enviar foto. Tente uma imagem menor.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -191,7 +192,7 @@ export default function PwaProfilePage() {
 
   if (loading || !appData) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-300">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
@@ -201,10 +202,10 @@ export default function PwaProfilePage() {
 
   const menuItems = [
     {
-      icon: isDarkMode ? Sun : Moon, // Ícone muda conforme o tema
+      icon: isDarkMode ? Sun : Moon,
       label: 'Tema do App',
       description: isDarkMode ? 'Mudar para modo claro' : 'Mudar para modo escuro',
-      action: toggleTheme // Ação de alternar tema
+      action: toggleTheme
     },
     {
       icon: HelpCircle,
