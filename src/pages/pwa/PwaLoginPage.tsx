@@ -1,13 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mail, Loader2, ArrowRight, Download, CheckCircle2, AlertCircle, X, Share, PlusSquare, PlayCircle } from 'lucide-react';
+import {
+  Mail,
+  Loader2,
+  ArrowRight,
+  Download,
+  AlertCircle,
+  X,
+  Share,
+  PlusSquare
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-// Definindo tipo simples para o aluno
+// --- COMPONENTE DO MODAL (INCLUÍDO AQUI PARA EVITAR ERRO DE IMPORT) ---
+
+const translations: Record<string, any> = {
+  PT: {
+    title: 'Como instalar o app no seu iPhone',
+    step1: <>Toque no ícone de <strong>compartilhar</strong> <Share className="inline w-4 h-4 mx-1" /> na parte inferior da tela.</>,
+    step2: <>Role para baixo e selecione a opção <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
+    step3: 'Toque em "Adicionar" no canto superior direito.'
+  },
+  ES: {
+    title: 'Cómo instalar la app en tu iPhone',
+    step1: <>Toca el ícono de <strong>compartir</strong> <Share className="inline w-4 h-4 mx-1" /> en la parte inferior de la pantalla.</>,
+    step2: <>Desliza hacia abajo y selecciona la opción <strong>"Agregar a Pantalla de Inicio"</strong> <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
+    step3: 'Presiona "Agregar" en la esquina superior derecha.'
+  },
+  EN: {
+    title: 'How to install the app on your iPhone',
+    step1: <>Tap the <strong>share</strong> icon <Share className="inline w-4 h-4 mx-1" /> at the bottom of the screen.</>,
+    step2: <>Scroll down and select the <strong>"Add to Home Screen"</strong> option <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
+    step3: 'Tap "Add" in the top right corner.'
+  }
+};
+
+interface InstallTutorialModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  language?: string;
+  primaryColor: string;
+}
+
+const InstallTutorialModal: React.FC<InstallTutorialModalProps> = ({ isOpen, onClose, language = 'PT', primaryColor }) => {
+  if (!isOpen) return null;
+
+  const t = translations[language?.toUpperCase()] || translations['PT'];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
+
+      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-slide-up border border-slate-800">
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10">
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 text-center leading-tight">
+            {t.title}
+          </h2>
+
+          <div className="space-y-4 mb-6">
+            {[t.step1, t.step2, t.step3].map((step, idx) => (
+              <div key={idx} className="flex gap-4 items-start">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5" style={{ backgroundColor: primaryColor }}>
+                  {idx + 1}
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">{step}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative aspect-[9/19] bg-slate-100 dark:bg-slate-800">
+            {/* Certifique-se que o GIF está na pasta public */}
+            <img src="/install-tutorial.gif" alt="Tutorial" className="w-full h-full object-cover" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- PÁGINA DE LOGIN ---
+
 type StudentSession = {
   email: string;
   app_id: string;
   name?: string;
+};
+
+const isIOS = () => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 };
 
 export default function PwaLoginPage() {
@@ -21,13 +105,10 @@ export default function PwaLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Modal de Instalação
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-
   const [emailFocused, setEmailFocused] = useState(false);
 
-  // 1. Busca App COM DEBUG COMPLETO
+  // 1. Busca App
   useEffect(() => {
     const fetchApp = async () => {
       try {
@@ -35,7 +116,7 @@ export default function PwaLoginPage() {
 
         const { data, error } = await supabase
           .from('apps')
-          .select('*')
+          .select('*, language')
           .eq('slug', appSlug)
           .single();
 
@@ -44,14 +125,7 @@ export default function PwaLoginPage() {
           throw error;
         }
 
-        // ✅ DEBUG COMPLETO DO APP
-        console.log('✅ [DEBUG] App encontrado!');
-        console.log('📦 [DEBUG] App completo:', data);
-        console.log('🔑 [DEBUG] App ID:', data.id);
-        console.log('📏 [DEBUG] App ID length:', data.id.length);
-        console.log('🔤 [DEBUG] App ID typeof:', typeof data.id);
-        console.log('🎨 [DEBUG] Primary color:', data.primary_color);
-
+        console.log('✅ [DEBUG] App encontrado:', data.name);
         setAppData(data);
       } catch (err) {
         console.error('💥 [DEBUG] App não encontrado:', err);
@@ -62,43 +136,24 @@ export default function PwaLoginPage() {
     if (appSlug) fetchApp();
   }, [appSlug]);
 
-  // 2. Instalação
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
-
-  const handleInstallClick = () => setShowInstallModal(true);
-
-  const triggerNativeInstall = () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-      setShowInstallModal(false);
+  const handleInstallClick = () => {
+    if (isIOS() || true) { // Mantido true para testes no PC
+      setShowInstallModal(true);
+    } else {
+      alert("Para instalar no Android, toque no menu do navegador e escolha 'Instalar aplicativo'.");
     }
   };
 
-  // --- LÓGICA DE LOGIN COM DEBUG E QUERY ALTERNATIVA ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!email) return setError('Digite seu e-mail de compra.');
 
-    console.log('🚀 [DEBUG] Iniciando login...');
-    console.log('📧 [DEBUG] Email:', email.trim().toLowerCase());
-    console.log('🏢 [DEBUG] App data:', appData);
-    console.log('🔑 [DEBUG] App ID que será usado:', appData.id);
-
     setIsLoading(true);
 
     try {
-      // ESTRATÉGIA 1: Query direta com app_id
-      console.log('🔄 [DEBUG] Tentando query com app_id...');
-
+      // Tenta buscar direto pelo app_id
       const { data: student, error: studentError } = await supabase
         .from('clients')
         .select('*')
@@ -106,67 +161,39 @@ export default function PwaLoginPage() {
         .eq('email', email.trim().toLowerCase())
         .single();
 
-      console.log('📊 [DEBUG] Resultado da query:', { student, studentError });
-
       if (studentError || !student) {
-        console.log('⚠️ [DEBUG] Cliente não encontrado com app_id');
-        console.log('🔄 [DEBUG] Tentando query alternativa com JOIN...');
-
-        // ESTRATÉGIA 2: Query com JOIN pelo slug (mais confiável)
+        // Tenta buscar via JOIN se falhar
         const { data: studentAlt, error: errorAlt } = await supabase
           .from('clients')
-          .select(`
-            *,
-            apps!inner (
-              id,
-              slug,
-              name
-            )
-          `)
+          .select(`*, apps!inner ( id, slug )`)
           .eq('email', email.trim().toLowerCase())
           .eq('apps.slug', appSlug)
           .single();
 
-        console.log('📊 [DEBUG] Resultado da query alternativa:', { studentAlt, errorAlt });
-
         if (errorAlt || !studentAlt) {
-          console.error('❌ [DEBUG] Cliente não encontrado em nenhuma estratégia');
           throw new Error('Acesso não encontrado. Verifique se é o mesmo e-mail da compra.');
         }
-
-        console.log('✅ [DEBUG] Cliente encontrado via JOIN!');
         doLogin(studentAlt);
         return;
       }
 
-      console.log('✅ [DEBUG] Cliente encontrado via app_id!');
       doLogin(student);
 
     } catch (err: any) {
       console.error('💥 [DEBUG] Erro no login:', err);
-      setError(err.message || 'E-mail não encontrado na base de alunos deste app.');
+      setError(err.message || 'E-mail não encontrado.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const doLogin = (student: any) => {
-    console.log('🎉 [DEBUG] Login bem-sucedido!');
-    console.log('👤 [DEBUG] Dados do aluno:', student);
-
-    // Salva sessão no LocalStorage
     const session: StudentSession = {
       email: student.email,
       app_id: student.app_id,
       name: student.full_name
     };
-
-    console.log('💾 [DEBUG] Salvando sessão:', session);
     localStorage.setItem(`@tribebuild:student:${appSlug}`, JSON.stringify(session));
-
-    console.log('🚀 [DEBUG] Redirecionando para home...');
-
-    // Redireciona
     navigate(`/${appSlug}/home`);
   };
 
@@ -291,64 +318,14 @@ export default function PwaLoginPage() {
         </span>
       </div>
 
-      {/* MODAL DE INSTALAÇÃO */}
-      {showInstallModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-            onClick={() => setShowInstallModal(false)}
-          />
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-slide-up">
-            <div className="p-6 pb-0 flex justify-between items-start">
-              <div>
-                <h3 className="text-white font-bold text-lg">Instalar Aplicativo</h3>
-                <p className="text-slate-400 text-xs mt-1">Tenha acesso rápido direto da tela inicial.</p>
-              </div>
-              <button
-                onClick={() => setShowInstallModal(false)}
-                className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="m-6 aspect-video bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 group cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 to-transparent opacity-50" />
-              <PlayCircle className="w-12 h-12 text-white/50 group-hover:text-white transition-colors z-10" />
-              <p className="absolute bottom-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest z-10">
-                Ver Tutorial
-              </p>
-            </div>
-            <div className="px-6 pb-6 space-y-4">
-              <div className="flex gap-4 items-center">
-                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shrink-0">
-                  <Share className="w-5 h-5 text-blue-400" />
-                </div>
-                <p className="text-sm text-slate-300">
-                  1. Toque em <strong>Compartilhar</strong> (iOS) ou <strong>Menu</strong> (Android).
-                </p>
-              </div>
-              <div className="flex gap-4 items-center">
-                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shrink-0">
-                  <PlusSquare className="w-5 h-5 text-emerald-400" />
-                </div>
-                <p className="text-sm text-slate-300">
-                  2. Selecione <strong>Adicionar à Tela de Início</strong>.
-                </p>
-              </div>
-            </div>
-            {installPrompt && (
-              <div className="p-6 pt-0">
-                <button
-                  onClick={triggerNativeInstall}
-                  className="w-full py-4 bg-white text-slate-900 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors"
-                >
-                  Instalar Agora
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ✅ USO DO MODAL (Sem importação externa) */}
+      <InstallTutorialModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        language={appData.language || 'PT'}
+        primaryColor={appData.primary_color}
+      />
+
     </div>
   );
 }

@@ -7,19 +7,89 @@ import {
   Loader2,
   LogOut,
   Smartphone,
-  User,
   Pencil,
   Check,
   X,
   Camera,
   Moon,
-  Sun
+  Sun,
+  Share,
+  PlusSquare
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
 
-// URL do GIF de instalação (Deixe vazio '' se não tiver ainda)
-const INSTALL_TUTORIAL_GIF = '';
+// --- COMPONENTE DO MODAL UNIFICADO (Mesmo da Login Page) ---
+
+const translations: Record<string, any> = {
+  PT: {
+    title: 'Como instalar o app no seu iPhone',
+    step1: <>Toque no ícone de <strong>compartilhar</strong> <Share className="inline w-4 h-4 mx-1" /> na parte inferior da tela.</>,
+    step2: <>Role para baixo e selecione a opção <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
+    step3: 'Toque em "Adicionar" no canto superior direito.'
+  },
+  ES: {
+    title: 'Cómo instalar la app en tu iPhone',
+    step1: <>Toca el ícono de <strong>compartir</strong> <Share className="inline w-4 h-4 mx-1" /> en la parte inferior de la pantalla.</>,
+    step2: <>Desliza hacia abajo y selecciona la opción <strong>"Agregar a Pantalla de Inicio"</strong> <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
+    step3: 'Presiona "Agregar" en la esquina superior derecha.'
+  },
+  EN: {
+    title: 'How to install the app on your iPhone',
+    step1: <>Tap the <strong>share</strong> icon <Share className="inline w-4 h-4 mx-1" /> at the bottom of the screen.</>,
+    step2: <>Scroll down and select the <strong>"Add to Home Screen"</strong> option <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
+    step3: 'Tap "Add" in the top right corner.'
+  }
+};
+
+interface InstallTutorialModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  language?: string;
+  primaryColor: string;
+}
+
+const InstallTutorialModal: React.FC<InstallTutorialModalProps> = ({ isOpen, onClose, language = 'PT', primaryColor }) => {
+  if (!isOpen) return null;
+
+  const t = translations[language?.toUpperCase()] || translations['PT'];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
+
+      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-slide-up border border-slate-800">
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10">
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 text-center leading-tight">
+            {t.title}
+          </h2>
+
+          <div className="space-y-4 mb-6">
+            {[t.step1, t.step2, t.step3].map((step, idx) => (
+              <div key={idx} className="flex gap-4 items-start">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5" style={{ backgroundColor: primaryColor }}>
+                  {idx + 1}
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">{step}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative aspect-[9/19] bg-slate-100 dark:bg-slate-800">
+            {/* Certifique-se que o GIF está na pasta public */}
+            <img src="/install-tutorial.gif" alt="Tutorial" className="w-full h-full object-cover" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- PÁGINA DE PERFIL ---
 
 export default function PwaProfilePage() {
   const { appSlug } = useParams<{ appSlug: string }>();
@@ -34,19 +104,19 @@ export default function PwaProfilePage() {
   const [newName, setNewName] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // ✅ Estado do Modal Unificado
   const [showInstallModal, setShowInstallModal] = useState(false);
 
-  // Estado do Tema (Dark/Light) com inicialização robusta
+  // Estado do Tema
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
-      // Se tiver salvo 'dark' OU (não tiver salvo nada E o sistema for dark)
       return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
     return false;
   });
 
-  // Efeito para aplicar o tema sempre que o estado mudar
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -62,7 +132,6 @@ export default function PwaProfilePage() {
       try {
         setLoading(true);
 
-        // Sessão
         const sessionJson = localStorage.getItem(`@tribebuild:student:${appSlug}`);
         if (!sessionJson) {
           navigate(`/${appSlug}/login`);
@@ -70,17 +139,15 @@ export default function PwaProfilePage() {
         }
         const session = JSON.parse(sessionJson);
 
-        // App
         const { data: app } = await supabase
           .from('apps')
-          .select('*')
+          .select('*, language') // ✅ Adicionado language
           .eq('slug', appSlug)
           .single();
 
         if (!app) throw new Error('App não encontrado');
         setAppData(app);
 
-        // Cliente
         const { data: clientData } = await supabase
           .from('clients')
           .select('*')
@@ -94,8 +161,6 @@ export default function PwaProfilePage() {
         }
         setClient(clientData);
         setNewName(clientData.full_name || '');
-
-        // Estatísticas removidas conforme solicitado
 
       } catch (err) {
         console.error('Erro ao carregar perfil:', err);
@@ -138,22 +203,19 @@ export default function PwaProfilePage() {
       setUploadingPhoto(true);
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${client.id}-${Date.now()}.${fileExt}`; // Usar timestamp para evitar cache
+      const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // 1. Upload
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // 2. URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 3. Salvar
       const { error: updateError } = await supabase
         .from('clients')
         .update({ avatar_url: publicUrl })
@@ -188,6 +250,9 @@ export default function PwaProfilePage() {
 
   const primaryColor = appData.primary_color || '#f59e0b';
 
+  // Detecção simples de iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
   const menuItems = [
     {
       icon: isDarkMode ? Sun : Moon,
@@ -215,15 +280,11 @@ export default function PwaProfilePage() {
       label: 'Instalar App',
       description: 'Adicionar à tela inicial',
       action: () => {
-        if (INSTALL_TUTORIAL_GIF) {
+        // ✅ Agora abrimos o modal novo (mesmo comportamento da login page)
+        if (isIOS || true) { // True para testes
           setShowInstallModal(true);
         } else {
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-          if (isIOS) {
-            alert('No iPhone/iPad:\n1. Toque no botão "Compartilhar" (quadrado com seta pra cima)\n2. Procure e toque em "Adicionar à Tela de Início"');
-          } else {
-            alert('No Android/Chrome:\n1. Toque nos três pontinhos do navegador\n2. Toque em "Instalar aplicativo" ou "Adicionar à tela inicial"');
-          }
+          alert('No Android: Toque no menu do navegador e escolha "Instalar aplicativo".');
         }
       }
     },
@@ -253,10 +314,9 @@ export default function PwaProfilePage() {
 
         <main className="p-5 space-y-6">
 
-          {/* CARD PERFIL / AVATAR GRANDE */}
+          {/* CARD PERFIL */}
           <section className="flex flex-col items-center text-center">
             <div className="relative group cursor-pointer">
-              {/* Input Invisível para Upload */}
               <input
                 type="file"
                 accept="image/*"
@@ -265,7 +325,6 @@ export default function PwaProfilePage() {
                 className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
               />
 
-              {/* Container da Foto */}
               <div
                 className="w-32 h-32 rounded-3xl flex items-center justify-center text-5xl font-bold text-white shadow-xl mb-4 relative overflow-hidden transition-all group-active:scale-95"
                 style={{
@@ -281,14 +340,12 @@ export default function PwaProfilePage() {
                   client?.full_name?.charAt(0) || client?.email?.charAt(0).toUpperCase()
                 )}
 
-                {/* Overlay com Ícone de Câmera */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center z-10 pointer-events-none">
                   <Camera size={24} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
                 </div>
               </div>
             </div>
 
-            {/* Nome Editável */}
             <div className="w-full flex justify-center items-center gap-2 min-h-[40px]">
               {isEditingName ? (
                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
@@ -299,20 +356,10 @@ export default function PwaProfilePage() {
                     onChange={(e) => setNewName(e.target.value)}
                     className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-white text-lg font-bold rounded-lg px-3 py-1 outline-none focus:border-blue-500 w-full max-w-[200px]"
                   />
-                  <button
-                    onClick={handleUpdateName}
-                    disabled={savingName}
-                    className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                  >
+                  <button onClick={handleUpdateName} disabled={savingName} className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600">
                     {savingName ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
                   </button>
-                  <button
-                    onClick={() => {
-                      setIsEditingName(false);
-                      setNewName(client.full_name);
-                    }}
-                    className="p-1.5 bg-gray-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-gray-300"
-                  >
+                  <button onClick={() => { setIsEditingName(false); setNewName(client.full_name); }} className="p-1.5 bg-gray-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-gray-300">
                     <X size={18} />
                   </button>
                 </div>
@@ -321,23 +368,19 @@ export default function PwaProfilePage() {
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                     {client?.full_name || 'Aluno'}
                   </h2>
-                  <button
-                    onClick={() => setIsEditingName(true)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
+                  <button onClick={() => setIsEditingName(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                     <Pencil size={14} />
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Email (Não Editável) */}
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full mt-2 inline-block">
               {client?.email}
             </p>
           </section>
 
-          {/* MENU DE OPÇÕES (Clean Style) */}
+          {/* MENU DE OPÇÕES */}
           <section>
             <h3 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-widest mb-3">
               Configurações
@@ -363,7 +406,7 @@ export default function PwaProfilePage() {
             </div>
           </section>
 
-          {/* BOTÃO DE LOGOUT */}
+          {/* LOGOUT */}
           <section>
             <button
               onClick={handleLogout}
@@ -374,7 +417,6 @@ export default function PwaProfilePage() {
             </button>
           </section>
 
-          {/* RODAPÉ */}
           <div className="text-center pt-4">
             <p className="text-[10px] font-medium text-slate-400 dark:text-slate-600 uppercase tracking-widest">
               Powered by TribeBuild
@@ -386,33 +428,13 @@ export default function PwaProfilePage() {
         <BottomNavigation primaryColor={primaryColor} />
       </div>
 
-      {/* MODAL DE INSTALAÇÃO */}
-      {showInstallModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="font-bold text-slate-900 dark:text-white">Como Instalar o App</h3>
-              <button onClick={() => setShowInstallModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full">
-                <X size={20} className="text-slate-500 dark:text-slate-400" />
-              </button>
-            </div>
-            <div className="p-6 flex flex-col items-center">
-              <div className="w-full aspect-[9/16] bg-gray-100 dark:bg-slate-800 rounded-xl mb-4 overflow-hidden border border-gray-200 dark:border-slate-700">
-                {INSTALL_TUTORIAL_GIF ? (
-                  <img src={INSTALL_TUTORIAL_GIF} alt="Tutorial" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                    GIF Tutorial Aqui
-                  </div>
-                )}
-              </div>
-              <p className="text-center text-sm text-slate-600 dark:text-slate-300">
-                Siga as instruções acima para adicionar o app à sua tela inicial.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ✅ USO DO NOVO MODAL */}
+      <InstallTutorialModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        language={appData.language || 'PT'}
+        primaryColor={primaryColor}
+      />
     </div>
   );
 }
