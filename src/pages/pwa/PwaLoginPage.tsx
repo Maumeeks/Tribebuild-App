@@ -13,25 +13,26 @@ import {
 import { supabase } from '../../lib/supabase';
 
 // --- COMPONENTE DO MODAL (INCLUÍDO AQUI PARA EVITAR ERRO DE IMPORT) ---
+// Ajustei paddings e tamanhos para ficar mais "popup" compacto
 
 const translations: Record<string, any> = {
   PT: {
-    title: 'Como instalar o app no seu iPhone',
-    step1: <>Toque no ícone de <strong>compartilhar</strong> <Share className="inline w-4 h-4 mx-1" /> na parte inferior da tela.</>,
-    step2: <>Role para baixo e selecione a opção <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
-    step3: 'Toque em "Adicionar" no canto superior direito.'
+    title: 'Instalar App', // Título mais curto
+    step1: <>Toque em <strong>compartilhar</strong> <Share className="inline w-3 h-3 mx-1" /></>,
+    step2: <>Selecione <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
+    step3: 'Toque em "Adicionar"'
   },
   ES: {
-    title: 'Cómo instalar la app en tu iPhone',
-    step1: <>Toca el ícono de <strong>compartir</strong> <Share className="inline w-4 h-4 mx-1" /> en la parte inferior de la pantalla.</>,
-    step2: <>Desliza hacia abajo y selecciona la opción <strong>"Agregar a Pantalla de Inicio"</strong> <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
-    step3: 'Presiona "Agregar" en la esquina superior derecha.'
+    title: 'Instalar App',
+    step1: <>Toca en <strong>compartir</strong> <Share className="inline w-3 h-3 mx-1" /></>,
+    step2: <>Selecciona <strong>"Agregar a Inicio"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
+    step3: 'Presiona "Agregar"'
   },
   EN: {
-    title: 'How to install the app on your iPhone',
-    step1: <>Tap the <strong>share</strong> icon <Share className="inline w-4 h-4 mx-1" /> at the bottom of the screen.</>,
-    step2: <>Scroll down and select the <strong>"Add to Home Screen"</strong> option <PlusSquare className="inline w-4 h-4 mx-1" />.</>,
-    step3: 'Tap "Add" in the top right corner.'
+    title: 'Install App',
+    step1: <>Tap <strong>share</strong> <Share className="inline w-3 h-3 mx-1" /></>,
+    step2: <>Select <strong>"Add to Home Screen"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
+    step3: 'Tap "Add"'
   }
 };
 
@@ -48,31 +49,32 @@ const InstallTutorialModal: React.FC<InstallTutorialModalProps> = ({ isOpen, onC
   const t = translations[language?.toUpperCase()] || translations['PT'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
+      <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-slide-up border border-slate-800">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10">
-          <X className="w-5 h-5" />
+      {/* Modal Compacto */}
+      <div className="relative w-full max-w-[320px] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-slide-up border border-slate-800">
+        <button onClick={onClose} className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10">
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 text-center leading-tight">
+        <div className="p-5 pt-4">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 text-center">
             {t.title}
           </h2>
 
-          <div className="space-y-4 mb-6">
+          <div className="space-y-3 mb-5">
             {[t.step1, t.step2, t.step3].map((step, idx) => (
-              <div key={idx} className="flex gap-4 items-start">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5" style={{ backgroundColor: primaryColor }}>
+              <div key={idx} className="flex gap-3 items-center">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
                   {idx + 1}
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">{step}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">{step}</p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative aspect-[9/19] bg-slate-100 dark:bg-slate-800">
+          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative aspect-[9/19] bg-slate-100 dark:bg-slate-800 max-h-[350px]">
             {/* Certifique-se que o GIF está na pasta public */}
             <img src="/install-tutorial.gif" alt="Tutorial" className="w-full h-full object-cover" />
           </div>
@@ -108,7 +110,6 @@ export default function PwaLoginPage() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
 
-  // 1. Busca App
   useEffect(() => {
     const fetchApp = async () => {
       try {
@@ -137,7 +138,7 @@ export default function PwaLoginPage() {
   }, [appSlug]);
 
   const handleInstallClick = () => {
-    if (isIOS() || true) { // Mantido true para testes no PC
+    if (isIOS() || true) {
       setShowInstallModal(true);
     } else {
       alert("Para instalar no Android, toque no menu do navegador e escolha 'Instalar aplicativo'.");
@@ -153,7 +154,6 @@ export default function PwaLoginPage() {
     setIsLoading(true);
 
     try {
-      // Tenta buscar direto pelo app_id
       const { data: student, error: studentError } = await supabase
         .from('clients')
         .select('*')
@@ -162,7 +162,6 @@ export default function PwaLoginPage() {
         .single();
 
       if (studentError || !student) {
-        // Tenta buscar via JOIN se falhar
         const { data: studentAlt, error: errorAlt } = await supabase
           .from('clients')
           .select(`*, apps!inner ( id, slug )`)
