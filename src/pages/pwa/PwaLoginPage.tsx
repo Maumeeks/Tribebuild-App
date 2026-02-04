@@ -12,12 +12,11 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-// --- COMPONENTE DO MODAL (INCLUÍDO AQUI PARA EVITAR ERRO DE IMPORT) ---
-// Ajustei paddings e tamanhos para ficar mais "popup" compacto
+// --- COMPONENTE DO MODAL (ESTILO POPUP COMPACTO) ---
 
 const translations: Record<string, any> = {
   PT: {
-    title: 'Instalar App', // Título mais curto
+    title: 'Instalar App', // Título mais direto
     step1: <>Toque em <strong>compartilhar</strong> <Share className="inline w-3 h-3 mx-1" /></>,
     step2: <>Selecione <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
     step3: 'Toque em "Adicionar"'
@@ -49,33 +48,43 @@ const InstallTutorialModal: React.FC<InstallTutorialModalProps> = ({ isOpen, onC
   const t = translations[language?.toUpperCase()] || translations['PT'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      {/* Backdrop escuro */}
       <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      {/* Modal Compacto */}
+      {/* Modal Compacto (Largura reduzida para 320px) */}
       <div className="relative w-full max-w-[320px] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-slide-up border border-slate-800">
+
+        {/* Botão Fechar */}
         <button onClick={onClose} className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10">
           <X className="w-4 h-4" />
         </button>
 
         <div className="p-5 pt-4">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 text-center">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 text-center leading-tight">
             {t.title}
           </h2>
 
+          {/* Lista de Passos Compacta */}
           <div className="space-y-3 mb-5">
             {[t.step1, t.step2, t.step3].map((step, idx) => (
               <div key={idx} className="flex gap-3 items-center">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 shadow-sm"
+                  style={{ backgroundColor: primaryColor }}
+                >
                   {idx + 1}
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">{step}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug font-medium">
+                  {step}
+                </p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative aspect-[9/19] bg-slate-100 dark:bg-slate-800 max-h-[350px]">
-            {/* Certifique-se que o GIF está na pasta public */}
+          {/* GIF (Aspect Ratio Vertical) */}
+          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner relative aspect-[9/18] bg-slate-100 dark:bg-slate-800 max-h-[320px]">
+            {/* Certifique-se que 'install-tutorial.gif' está na pasta public */}
             <img src="/install-tutorial.gif" alt="Tutorial" className="w-full h-full object-cover" />
           </div>
         </div>
@@ -110,6 +119,7 @@ export default function PwaLoginPage() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
 
+  // 1. Busca App
   useEffect(() => {
     const fetchApp = async () => {
       try {
