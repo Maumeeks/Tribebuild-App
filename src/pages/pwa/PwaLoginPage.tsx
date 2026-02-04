@@ -12,26 +12,26 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-// --- COMPONENTE DO MODAL (ESTILO LARGO & LIMPO) ---
+// --- COMPONENTE DO MODAL (VERSÃO POPUP COMPACTO) ---
 
 const translations: Record<string, any> = {
   PT: {
-    title: 'Como instalar o app no seu iPhone',
-    step1: <>Toque no ícone de <strong>compartilhar</strong> <Share className="inline w-4 h-4 mx-1 align-text-bottom" /> (o quadrado com uma setinha para cima, na parte inferior da tela).</>,
-    step2: <>Role para baixo e selecione a opção <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-4 h-4 mx-1 align-text-bottom" />.</>,
-    step3: 'Toque em "Adicionar" no canto superior direito.'
+    title: 'Instalar App',
+    step1: <>Toque em <strong>compartilhar</strong> <Share className="inline w-3 h-3 mx-1" /></>,
+    step2: <>Selecione <strong>"Adicionar à Tela de Início"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
+    step3: 'Toque em "Adicionar"'
   },
   ES: {
-    title: 'Cómo instalar la app en tu iPhone',
-    step1: <>Toca el ícono de <strong>compartir</strong> <Share className="inline w-4 h-4 mx-1 align-text-bottom" /> (el cuadrado con una flechita hacia arriba, en la parte inferior de la pantalla).</>,
-    step2: <>Desliza hacia abajo y selecciona la opción <strong>"Agregar a Inicio"</strong> <PlusSquare className="inline w-4 h-4 mx-1 align-text-bottom" />.</>,
-    step3: 'Presiona "Agregar" en la esquina superior derecha.'
+    title: 'Instalar App',
+    step1: <>Toca en <strong>compartir</strong> <Share className="inline w-3 h-3 mx-1" /></>,
+    step2: <>Selecciona <strong>"Agregar a Inicio"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
+    step3: 'Presiona "Agregar"'
   },
   EN: {
-    title: 'How to install the app on your iPhone',
-    step1: <>Tap the <strong>share</strong> icon <Share className="inline w-4 h-4 mx-1 align-text-bottom" /> (the square with an arrow pointing up, at the bottom of the screen).</>,
-    step2: <>Scroll down and select the <strong>"Add to Home Screen"</strong> option <PlusSquare className="inline w-4 h-4 mx-1 align-text-bottom" />.</>,
-    step3: 'Tap "Add" in the top right corner.'
+    title: 'Install App',
+    step1: <>Tap <strong>share</strong> <Share className="inline w-3 h-3 mx-1" /></>,
+    step2: <>Select <strong>"Add to Home Screen"</strong> <PlusSquare className="inline w-3 h-3 mx-1" /></>,
+    step3: 'Tap "Add"'
   }
 };
 
@@ -45,62 +45,48 @@ interface InstallTutorialModalProps {
 const InstallTutorialModal: React.FC<InstallTutorialModalProps> = ({ isOpen, onClose, language = 'PT', primaryColor }) => {
   if (!isOpen) return null;
 
-  // Garante que pega a tradução certa ou cai para PT
   const t = translations[language?.toUpperCase()] || translations['PT'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in font-sans">
-      {/* Backdrop (Fundo Escuro com Blur) */}
-      <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      {/* Card do Modal (Estilo Husky: Branco, Arredondado, Largo) */}
-      <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden transform transition-all animate-slide-up">
+      {/* Modal Card - Largura travada em 320px para ficar compacto */}
+      <div className="relative w-full max-w-[320px] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-slide-up border border-slate-200 dark:border-slate-800">
 
         {/* Botão Fechar */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10"
-        >
-          <X className="w-6 h-6" />
+        <button onClick={onClose} className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10">
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="p-8 pt-10">
-          {/* Título (Alinhado à esquerda, grande e preto) */}
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 leading-tight pr-8">
+        <div className="p-5">
+          {/* Título Compacto */}
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 text-center leading-tight">
             {t.title}
           </h2>
 
-          {/* Lista de Passos */}
-          <div className="space-y-6 mb-8">
+          {/* Passos (Fonte menor e menos espaçamento) */}
+          <div className="space-y-3 mb-5">
             {[t.step1, t.step2, t.step3].map((step, idx) => (
-              <div key={idx} className="flex gap-4 items-start">
-                {/* Número do Passo (Bolinha colorida) */}
+              <div key={idx} className="flex gap-3 items-center">
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 mt-0.5 shadow-md"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 shadow-sm"
                   style={{ backgroundColor: primaryColor }}
                 >
                   {idx + 1}
                 </div>
-                {/* Texto do Passo */}
-                <p className="text-base text-gray-600 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug font-medium">
                   {step}
                 </p>
               </div>
             ))}
           </div>
 
-          {/* Imagem/GIF (Fundo cinza claro, cantos arredondados) */}
-          <div className="bg-gray-100 rounded-2xl p-4 flex justify-center items-center overflow-hidden border border-gray-200">
-            <div className="relative w-[180px] sm:w-[200px] aspect-[9/19] rounded-xl overflow-hidden shadow-lg bg-white">
-              {/* O GIF deve estar na pasta public com o nome 'install-tutorial.gif' */}
-              <img
-                src="/install-tutorial.gif"
-                alt="Tutorial Animation"
-                className="w-full h-full object-cover"
-              />
+          {/* GIF - Tamanho controlado */}
+          <div className="flex justify-center">
+            <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner relative w-[160px] aspect-[9/19] bg-slate-100 dark:bg-slate-800">
+              <img src="/install-tutorial.gif" alt="Tutorial" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
@@ -109,7 +95,7 @@ const InstallTutorialModal: React.FC<InstallTutorialModalProps> = ({ isOpen, onC
   );
 };
 
-// --- PÁGINA DE LOGIN (LÓGICA ORIGINAL MANTIDA) ---
+// --- PÁGINA DE LOGIN ---
 
 type StudentSession = {
   email: string;
@@ -118,7 +104,6 @@ type StudentSession = {
 };
 
 const isIOS = () => {
-  // Verificação básica de iOS
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 };
 
@@ -136,7 +121,6 @@ export default function PwaLoginPage() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
 
-  // 1. Busca App
   useEffect(() => {
     const fetchApp = async () => {
       try {
@@ -144,7 +128,7 @@ export default function PwaLoginPage() {
 
         const { data, error } = await supabase
           .from('apps')
-          .select('*, language') // Busca a língua para passar ao modal
+          .select('*, language')
           .eq('slug', appSlug)
           .single();
 
@@ -165,7 +149,6 @@ export default function PwaLoginPage() {
   }, [appSlug]);
 
   const handleInstallClick = () => {
-    // Abre o modal se for iOS ou Desktop (para testar)
     if (isIOS() || true) {
       setShowInstallModal(true);
     } else {
@@ -182,7 +165,6 @@ export default function PwaLoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Tenta buscar direto pelo app_id
       const { data: student, error: studentError } = await supabase
         .from('clients')
         .select('*')
@@ -191,7 +173,6 @@ export default function PwaLoginPage() {
         .single();
 
       if (studentError || !student) {
-        // 2. Tenta buscar via JOIN se falhar (Fallback)
         const { data: studentAlt, error: errorAlt } = await supabase
           .from('clients')
           .select(`*, apps!inner ( id, slug )`)
@@ -347,7 +328,7 @@ export default function PwaLoginPage() {
         </span>
       </div>
 
-      {/* ✅ USO DO MODAL (ESTILO HUSKY APP) */}
+      {/* ✅ USO DO MODAL (Versão Compacta) */}
       <InstallTutorialModal
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
