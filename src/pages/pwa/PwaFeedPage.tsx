@@ -3,16 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Heart,
   MessageCircle,
-  FileText,
-  Download,
-  Link as LinkIcon,
-  ExternalLink,
   Sparkles,
   MoreVertical,
   Bell,
   Share2,
-  Loader2,
-  Image as ImageIcon
+  Loader2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
@@ -22,7 +17,7 @@ import { cn } from '../../lib/utils';
 interface FeedPost {
   id: string;
   app_id: string;
-  content: string;
+  content: string; // HTML vindo do Dashboard
   image_url: string | null;
   created_at: string;
   scheduled_for: string | null;
@@ -78,56 +73,6 @@ export default function PwaFeedPage() {
 
     if (appSlug) fetchData();
   }, [appSlug]);
-
-  // --- RENDERIZADOR DE TEXTO INTELIGENTE ---
-  const parseInlineFormatting = (text: string) => {
-    // Regex para negrito (**), itálico (*), sublinhado (__) e links [text](url)
-    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|\[.*?\]\(.*?\))/g);
-
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index} className="font-black text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
-      }
-      if (part.startsWith('*') && part.endsWith('*')) {
-        return <em key={index} className="italic text-slate-600 dark:text-slate-400">{part.slice(1, -1)}</em>;
-      }
-      if (part.startsWith('__') && part.endsWith('__')) {
-        return <u key={index} className="underline decoration-slate-300 dark:decoration-slate-600 underline-offset-2">{part.slice(2, -2)}</u>;
-      }
-      if (part.startsWith('[') && part.includes('](')) {
-        const [label, url] = part.slice(1, -1).split('](');
-        return (
-          <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline font-bold break-all">
-            {label}
-          </a>
-        );
-      }
-      return part;
-    });
-  };
-
-  const renderFormattedText = (text: string) => {
-    if (!text) return null;
-
-    return text.split('\n').map((line, i) => {
-      // Lista com bolinha (•)
-      if (line.trim().startsWith('•') || line.trim().startsWith('- ')) {
-        const content = line.trim().substring(1).trim();
-        return (
-          <div key={i} className="flex gap-2 ml-1 my-1 items-start">
-            <span className="text-brand-blue font-bold mt-1.5">•</span>
-            <span className="flex-1">{parseInlineFormatting(content)}</span>
-          </div>
-        );
-      }
-      // Texto normal (parágrafo)
-      return (
-        <p key={i} className="min-h-[1.2em] mb-1 leading-relaxed">
-          {parseInlineFormatting(line)}
-        </p>
-      );
-    });
-  };
 
   const formatRelativeTime = (dateString: string): string => {
     if (!dateString) return '';
@@ -216,11 +161,11 @@ export default function PwaFeedPage() {
                   <div className="flex items-center gap-4">
                     {/* Avatar */}
                     <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg"
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg overflow-hidden"
                       style={{ backgroundColor: primaryColor, boxShadow: `0 8px 15px -4px ${primaryColor}40` }}
                     >
                       {appData.logo ? (
-                        <img src={appData.logo} alt={appData.name} className="w-full h-full object-cover rounded-2xl bg-white" />
+                        <img src={appData.logo} alt={appData.name} className="w-full h-full object-cover bg-white" />
                       ) : (
                         appData.name.charAt(0).toUpperCase()
                       )}
@@ -243,21 +188,22 @@ export default function PwaFeedPage() {
                 </div>
               </div>
 
-              {/* Conteúdo do Post (COM FORMATAÇÃO) */}
+              {/* Conteúdo do Post (Renderização de HTML) */}
               <div className="px-6 pb-6">
-                <div className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed">
-                  {renderFormattedText(post.content)}
-                </div>
+                <div
+                  className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 prose-strong:text-slate-900 dark:prose-strong:text-white prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline"
+                  dangerouslySetInnerHTML={{ __html: post.content }}
+                />
               </div>
 
               {/* Imagem */}
               {post.image_url && (
                 <div className="px-6 pb-6">
-                  <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group">
+                  <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group aspect-square">
                     <img
                       src={post.image_url}
                       alt="Anexo"
-                      className="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-700"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
