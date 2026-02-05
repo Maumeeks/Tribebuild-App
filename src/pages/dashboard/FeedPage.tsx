@@ -79,8 +79,16 @@ const FeedPage: React.FC = () => {
   const [publishing, setPublishing] = useState(false);
 
   // Estados do Editor
-  const [htmlContent, setHtmlContent] = useState(''); // HTML do editor
-  const editorRef = useRef<HTMLDivElement>(null); // Ref para a div editável
+  const [htmlContent, setHtmlContent] = useState('');
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // Estado para verificar formatação ativa (Negrito, Itálico, etc.)
+  const [activeFormats, setActiveFormats] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    unorderedList: false
+  });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -117,12 +125,30 @@ const FeedPage: React.FC = () => {
 
   useEffect(() => { fetchPosts(); }, [appId]);
 
-  // 2. LÓGICA DE EDITOR VISUAL (ExecCommand)
+  // 2. DETECTOR DE FORMATAÇÃO (Para iluminar os botões)
+  const checkFormats = () => {
+    if (!document) return;
+    setActiveFormats({
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      unorderedList: document.queryCommandState('insertUnorderedList'),
+    });
+  };
+
+  // Adiciona listener para verificar formatação sempre que o cursor mudar
+  useEffect(() => {
+    document.addEventListener('selectionchange', checkFormats);
+    return () => document.removeEventListener('selectionchange', checkFormats);
+  }, []);
+
+  // 3. LÓGICA DE EDITOR VISUAL (ExecCommand)
   const execCmd = (command: string, value: string | undefined = undefined) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
       setHtmlContent(editorRef.current.innerHTML);
       editorRef.current.focus();
+      checkFormats(); // Força verificação após clique
     }
   };
 
@@ -131,14 +157,13 @@ const FeedPage: React.FC = () => {
     if (url) execCmd('createLink', url);
   };
 
-  // 3. PROCESSAMENTO DE IMAGEM (Auto-Crop)
+  // 4. PROCESSAMENTO DE IMAGEM (Auto-Crop)
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const img = new Image();
       img.src = URL.createObjectURL(file);
       img.onload = async () => {
-        // Calcula o quadrado central
         const minSide = Math.min(img.width, img.height);
         const crop: PixelCrop = {
           unit: 'px',
@@ -147,8 +172,6 @@ const FeedPage: React.FC = () => {
           x: (img.width - minSide) / 2,
           y: (img.height - minSide) / 2
         };
-
-        // Corta e converte
         const croppedFile = await getCroppedImg(img, crop);
         if (croppedFile) {
           setImageFile(croppedFile);
@@ -158,11 +181,9 @@ const FeedPage: React.FC = () => {
     }
   };
 
-  // 4. PUBLICAR
+  // 5. PUBLICAR
   const handlePublish = async () => {
     if (!appId) return;
-
-    // Remove tags HTML para verificar se está vazio
     const plainText = htmlContent.replace(/<[^>]*>/g, '').trim();
     if (!plainText && !imageFile) {
       alert('O post precisa ter conteúdo.');
@@ -183,11 +204,7 @@ const FeedPage: React.FC = () => {
           .upload(filePath, imageFile);
 
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('feed-images')
-          .getPublicUrl(filePath);
-
+        const { data: { publicUrl } } = supabase.storage.from('feed-images').getPublicUrl(filePath);
         finalImageUrl = publicUrl;
       }
 
@@ -197,7 +214,7 @@ const FeedPage: React.FC = () => {
 
       const newPost = {
         app_id: appId,
-        content: htmlContent, // Salva o HTML
+        content: htmlContent,
         image_url: finalImageUrl,
         status: scheduledDateTime ? 'scheduled' : 'published',
         scheduled_for: scheduledDateTime,
@@ -210,7 +227,6 @@ const FeedPage: React.FC = () => {
 
       alert(scheduledDateTime ? 'Post agendado!' : 'Post publicado!');
 
-      // Reset
       setHtmlContent('');
       if (editorRef.current) editorRef.current.innerHTML = '';
       setImageFile(null);
@@ -247,7 +263,7 @@ const FeedPage: React.FC = () => {
   return (
     <div className="space-y-8 font-['inter'] pb-20 animate-fade-in">
 
-      {/* Header (Mantido Original) */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
           <button onClick={() => navigate('/dashboard/apps')} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold uppercase tracking-wide mb-2 transition-colors">
@@ -258,7 +274,7 @@ const FeedPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs (Mantido Original) */}
+      {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-1 overflow-x-auto">
         {['create', 'list', 'scheduled'].map(t => (
           <button
@@ -279,18 +295,34 @@ const FeedPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
 
-                {/* CONTAINER DO EDITOR (Design Premium Original) */}
+                {/* CONTAINER DO EDITOR */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[300px]">
 
-                  {/* Toolbar Funcional (estilizada igual a antiga decorativa) */}
+                  {/* Toolbar Funcional com Feedback Visual */}
                   <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 rounded-t-xl overflow-x-auto">
                     <div className="flex gap-1 pr-2 border-r border-slate-200 dark:border-slate-700">
-                      <ToolbarBtn onClick={() => execCmd('bold')} icon={<Bold className="w-4 h-4" />} />
-                      <ToolbarBtn onClick={() => execCmd('italic')} icon={<Italic className="w-4 h-4" />} />
-                      <ToolbarBtn onClick={() => execCmd('underline')} icon={<Underline className="w-4 h-4" />} />
+                      <ToolbarBtn
+                        isActive={activeFormats.bold}
+                        onClick={() => execCmd('bold')}
+                        icon={<Bold className="w-4 h-4" />}
+                      />
+                      <ToolbarBtn
+                        isActive={activeFormats.italic}
+                        onClick={() => execCmd('italic')}
+                        icon={<Italic className="w-4 h-4" />}
+                      />
+                      <ToolbarBtn
+                        isActive={activeFormats.underline}
+                        onClick={() => execCmd('underline')}
+                        icon={<Underline className="w-4 h-4" />}
+                      />
                     </div>
                     <div className="flex gap-1 px-2 border-r border-slate-200 dark:border-slate-700">
-                      <ToolbarBtn onClick={() => execCmd('insertUnorderedList')} icon={<List className="w-4 h-4" />} />
+                      <ToolbarBtn
+                        isActive={activeFormats.unorderedList}
+                        onClick={() => execCmd('insertUnorderedList')}
+                        icon={<List className="w-4 h-4" />}
+                      />
                     </div>
                     <div className="flex gap-1 pl-2">
                       <ToolbarBtn onClick={addLink} icon={<LinkIcon className="w-4 h-4" />} />
@@ -298,17 +330,19 @@ const FeedPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Área Editável (Substitui Textarea) */}
+                  {/* Área Editável - Corrigido para mostrar Bullets */}
                   <div
                     ref={editorRef}
                     contentEditable
                     onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)}
-                    className="w-full flex-1 p-6 bg-transparent text-slate-900 dark:text-white outline-none leading-relaxed text-sm prose prose-sm max-w-none dark:prose-invert"
+                    onKeyUp={checkFormats} // Atualiza status ao digitar
+                    onClick={checkFormats} // Atualiza status ao clicar
+                    className="w-full flex-1 p-6 bg-transparent text-slate-900 dark:text-white outline-none leading-relaxed text-sm prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                     data-placeholder="Escreva algo incrível..."
                     style={{ minHeight: '150px' }}
                   />
 
-                  {/* Preview Imagem (Mantido Original) */}
+                  {/* Preview Imagem */}
                   {imagePreview && (
                     <div className="px-6 pb-6">
                       <div className="relative group inline-block">
@@ -323,7 +357,7 @@ const FeedPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Footer com Anexo (Mantido Original) */}
+                  {/* Footer com Anexo */}
                   <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 rounded-b-xl flex justify-between items-center">
                     <button
                       onClick={() => fileInputRef.current?.click()}
@@ -336,7 +370,7 @@ const FeedPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Sidebar (Mantido Original) */}
+              {/* Sidebar */}
               <div className="space-y-6">
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
                   <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Publicação</h3>
@@ -362,7 +396,7 @@ const FeedPage: React.FC = () => {
             </div>
           )}
 
-          {/* LISTA DE POSTS (Atualizada para renderizar HTML) */}
+          {/* LISTA DE POSTS */}
           {(activeTab === 'list' || activeTab === 'scheduled') && (
             <div className="max-w-3xl mx-auto space-y-4">
               {(activeTab === 'list' ? posts : scheduled).length === 0 ? (
@@ -386,9 +420,9 @@ const FeedPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* RENDERIZADOR HTML (Mantendo o estilo do seu card) */}
+                      {/* RENDERIZADOR HTML */}
                       <div
-                        className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0"
+                        className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 [&_ul]:list-disc [&_ul]:pl-5"
                         dangerouslySetInnerHTML={{ __html: post.content }}
                       />
 
@@ -411,7 +445,7 @@ const FeedPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Exclusão (Mantido Original) */}
+      {/* Modal de Exclusão */}
       {deleteModal.open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setDeleteModal({ open: false, postId: null })} />
@@ -429,11 +463,16 @@ const FeedPage: React.FC = () => {
   );
 };
 
-// Componente botão da toolbar (para não repetir código)
-const ToolbarBtn = ({ onClick, icon }: { onClick: () => void, icon: React.ReactNode }) => (
+// Componente Botão Toolbar com Estado Ativo
+const ToolbarBtn = ({ onClick, icon, isActive }: { onClick: () => void, icon: React.ReactNode, isActive?: boolean }) => (
   <button
     onClick={(e) => { e.preventDefault(); onClick(); }}
-    className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-colors"
+    className={cn(
+      "p-1.5 rounded transition-all",
+      isActive
+        ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30" // Estado Ativo (Selecionado)
+        : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
+    )}
   >
     {icon}
   </button>
