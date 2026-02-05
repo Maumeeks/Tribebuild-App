@@ -29,7 +29,6 @@ interface FeedPost {
   status: 'published' | 'scheduled' | 'draft';
   likes_count: number;
   comments_count: number;
-  // Campos virtuais para UI
   liked?: boolean;
 }
 
@@ -47,7 +46,6 @@ export default function PwaFeedPage() {
       try {
         setLoading(true);
 
-        // A) Buscar dados do App
         const { data: app, error: appError } = await supabase
           .from('apps')
           .select('id, name, logo, primary_color')
@@ -57,18 +55,16 @@ export default function PwaFeedPage() {
         if (appError || !app) throw new Error('App não encontrado');
         setAppData(app);
 
-        // B) Buscar Posts do App
         const { data: feedData, error: feedError } = await supabase
           .from('feed_posts')
           .select('*')
           .eq('app_id', app.id)
-          .eq('status', 'published') // Apenas publicados
-          .order('created_at', { ascending: false }); // Mais recentes primeiro
+          .eq('status', 'published')
+          .order('created_at', { ascending: false });
 
         if (feedError) throw feedError;
 
         if (feedData) {
-          // Adiciona propriedade liked: false (futuro: verificar se o aluno curtiu)
           const postsWithLikes = feedData.map(post => ({ ...post, liked: false }));
           setPosts(postsWithLikes);
         }
@@ -82,6 +78,56 @@ export default function PwaFeedPage() {
 
     if (appSlug) fetchData();
   }, [appSlug]);
+
+  // --- RENDERIZADOR DE TEXTO INTELIGENTE ---
+  const parseInlineFormatting = (text: string) => {
+    // Regex para negrito (**), itálico (*), sublinhado (__) e links [text](url)
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|\[.*?\]\(.*?\))/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index} className="font-black text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <em key={index} className="italic text-slate-600 dark:text-slate-400">{part.slice(1, -1)}</em>;
+      }
+      if (part.startsWith('__') && part.endsWith('__')) {
+        return <u key={index} className="underline decoration-slate-300 dark:decoration-slate-600 underline-offset-2">{part.slice(2, -2)}</u>;
+      }
+      if (part.startsWith('[') && part.includes('](')) {
+        const [label, url] = part.slice(1, -1).split('](');
+        return (
+          <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline font-bold break-all">
+            {label}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  const renderFormattedText = (text: string) => {
+    if (!text) return null;
+
+    return text.split('\n').map((line, i) => {
+      // Lista com bolinha (•)
+      if (line.trim().startsWith('•') || line.trim().startsWith('- ')) {
+        const content = line.trim().substring(1).trim();
+        return (
+          <div key={i} className="flex gap-2 ml-1 my-1 items-start">
+            <span className="text-brand-blue font-bold mt-1.5">•</span>
+            <span className="flex-1">{parseInlineFormatting(content)}</span>
+          </div>
+        );
+      }
+      // Texto normal (parágrafo)
+      return (
+        <p key={i} className="min-h-[1.2em] mb-1 leading-relaxed">
+          {parseInlineFormatting(line)}
+        </p>
+      );
+    });
+  };
 
   const formatRelativeTime = (dateString: string): string => {
     if (!dateString) return '';
@@ -101,7 +147,6 @@ export default function PwaFeedPage() {
   };
 
   const handleLike = (postId: string) => {
-    // Simulação visual de like (Futuro: conectar com tabela feed_likes)
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return {
@@ -169,7 +214,7 @@ export default function PwaFeedPage() {
               <div className="p-6 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Avatar do Autor (Usa logo do App se não tiver avatar) */}
+                    {/* Avatar */}
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg"
                       style={{ backgroundColor: primaryColor, boxShadow: `0 8px 15px -4px ${primaryColor}40` }}
@@ -198,14 +243,14 @@ export default function PwaFeedPage() {
                 </div>
               </div>
 
-              {/* Conteúdo do Post */}
+              {/* Conteúdo do Post (COM FORMATAÇÃO) */}
               <div className="px-6 pb-6">
-                <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed whitespace-pre-line">
-                  {post.content}
-                </p>
+                <div className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed">
+                  {renderFormattedText(post.content)}
+                </div>
               </div>
 
-              {/* Imagem (Se houver) */}
+              {/* Imagem */}
               {post.image_url && (
                 <div className="px-6 pb-6">
                   <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group">
@@ -263,7 +308,7 @@ export default function PwaFeedPage() {
           ))
         )}
 
-        {/* Fim do Feed - Visual Clean */}
+        {/* Fim do Feed */}
         <div className="text-center py-12 px-6">
           <div className="w-16 h-16 bg-blue-50 dark:bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100 dark:border-slate-800 shadow-inner">
             <Sparkles className="w-6 h-6 text-blue-400 dark:text-blue-500" />
@@ -275,7 +320,7 @@ export default function PwaFeedPage() {
         </div>
       </main>
 
-      {/* Footer Branding sutil */}
+      {/* Footer Branding */}
       <div className="text-center pb-12 opacity-30">
         <p className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em]">
           Tecnologia TribeBuild • Feed do Aluno

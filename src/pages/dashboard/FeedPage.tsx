@@ -56,7 +56,9 @@ const FeedPage: React.FC = () => {
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
 
+  // Refs para manipulação do DOM
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Modal de Exclusão
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; postId: string | null }>({
@@ -64,12 +66,57 @@ const FeedPage: React.FC = () => {
     postId: null
   });
 
+  // --- LÓGICA DE FORMATAÇÃO DE TEXTO ---
+  const applyFormat = (type: 'bold' | 'italic' | 'underline' | 'list' | 'link') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    let formatted = '';
+    let cursorOffset = 0;
+
+    switch (type) {
+      case 'bold':
+        formatted = `**${selectedText || 'texto'}**`;
+        cursorOffset = 2;
+        break;
+      case 'italic':
+        formatted = `*${selectedText || 'texto'}*`;
+        cursorOffset = 1;
+        break;
+      case 'underline':
+        formatted = `__${selectedText || 'texto'}__`;
+        cursorOffset = 2;
+        break;
+      case 'list':
+        formatted = `\n• ${selectedText || 'item'}`;
+        cursorOffset = 3;
+        break;
+      case 'link':
+        formatted = `[${selectedText || 'texto do link'}](https://)`;
+        cursorOffset = 1;
+        break;
+    }
+
+    const newContent = text.substring(0, start) + formatted + text.substring(end);
+    setContent(newContent);
+
+    // Devolve o foco e seleciona o texto inserido para facilitar edição
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset + (selectedText.length || (type === 'link' ? 13 : 4)));
+    }, 0);
+  };
+
   // 1. CARREGAR POSTS DO SUPABASE
   const fetchPosts = async () => {
     if (!appId) return;
     try {
       setLoading(true);
-      // Busca posts apenas deste App específico
       const { data, error } = await supabase
         .from('feed_posts')
         .select('*')
@@ -98,7 +145,6 @@ const FeedPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      // Cria preview local
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
@@ -118,23 +164,18 @@ const FeedPage: React.FC = () => {
       setPublishing(true);
       let finalImageUrl = null;
 
-      // A) Upload da Imagem (se houver)
+      // A) Upload da Imagem
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${appId}-${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Upload para o bucket 'feed-images'
         const { error: uploadError } = await supabase.storage
-          .from('feed-images')
+          .from('feed-images') // Certifique-se de ter criado este bucket
           .upload(filePath, imageFile);
 
-        if (uploadError) {
-          console.error('Erro no upload:', uploadError);
-          throw new Error('Falha ao enviar imagem. Verifique se o bucket "feed-images" existe e é público.');
-        }
+        if (uploadError) throw new Error('Falha ao enviar imagem. Verifique o bucket "feed-images".');
 
-        // Pega URL pública
         const { data: { publicUrl } } = supabase.storage
           .from('feed-images')
           .getPublicUrl(filePath);
@@ -155,7 +196,6 @@ const FeedPage: React.FC = () => {
         scheduled_for: scheduledDateTime,
         likes_count: 0,
         comments_count: 0,
-        // created_at é automático no banco
       };
 
       // C) Salvar no Banco
@@ -197,7 +237,6 @@ const FeedPage: React.FC = () => {
 
       if (error) throw error;
 
-      // Remove da lista local para ser rápido
       setPosts(prev => prev.filter(p => p.id !== deleteModal.postId));
       setScheduled(prev => prev.filter(p => p.id !== deleteModal.postId));
       setDeleteModal({ open: false, postId: null });
@@ -233,31 +272,12 @@ const FeedPage: React.FC = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-1 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('create')}
-          className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap", activeTab === 'create' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white")}
-        >
-          Criar Post
-        </button>
-        <button
-          onClick={() => setActiveTab('list')}
-          className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap", activeTab === 'list' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white")}
-        >
-          Publicados ({posts.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('scheduled')}
-          className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap", activeTab === 'scheduled' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white")}
-        >
-          Agendados ({scheduled.length})
-        </button>
+        <button onClick={() => setActiveTab('create')} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap", activeTab === 'create' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white")}>Criar Post</button>
+        <button onClick={() => setActiveTab('list')} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap", activeTab === 'list' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white")}>Publicados ({posts.length})</button>
+        <button onClick={() => setActiveTab('scheduled')} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap", activeTab === 'scheduled' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-white")}>Agendados ({scheduled.length})</button>
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-        </div>
-      )}
+      {loading && <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>}
 
       {!loading && (
         <div className="animate-slide-up">
@@ -268,19 +288,24 @@ const FeedPage: React.FC = () => {
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[300px]">
 
-                  {/* Toolbar Decorativa */}
+                  {/* BARRA DE FERRAMENTAS FUNCIONAL */}
                   <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 rounded-t-xl">
-                    <div className="flex gap-1 pr-2">
-                      <button className="p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"><Bold className="w-4 h-4" /></button>
-                      <button className="p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"><Italic className="w-4 h-4" /></button>
-                      <button className="p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"><List className="w-4 h-4" /></button>
+                    <div className="flex gap-1 pr-2 border-r border-slate-200 dark:border-slate-700">
+                      <button onClick={() => applyFormat('bold')} className="p-1.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-all" title="Negrito"><Bold className="w-4 h-4" /></button>
+                      <button onClick={() => applyFormat('italic')} className="p-1.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-all" title="Itálico"><Italic className="w-4 h-4" /></button>
+                      <button onClick={() => applyFormat('underline')} className="p-1.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-all" title="Sublinhado"><Underline className="w-4 h-4" /></button>
+                    </div>
+                    <div className="flex gap-1 pl-2">
+                      <button onClick={() => applyFormat('list')} className="p-1.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-all" title="Lista"><List className="w-4 h-4" /></button>
+                      <button onClick={() => applyFormat('link')} className="p-1.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition-all" title="Link"><LinkIcon className="w-4 h-4" /></button>
                     </div>
                   </div>
 
                   <textarea
+                    ref={textareaRef}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Escreva algo incrível para seus alunos..."
+                    placeholder="Escreva algo incrível para seus alunos... (Use a barra acima para formatar)"
                     className="w-full flex-1 p-6 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 resize-none outline-none leading-relaxed text-sm"
                   />
 
@@ -348,7 +373,7 @@ const FeedPage: React.FC = () => {
                     className={cn("w-full text-xs font-bold uppercase tracking-wide", isScheduled ? "bg-orange-500 hover:bg-orange-600" : "bg-brand-blue hover:bg-brand-blue-dark")}
                     leftIcon={publishing ? Loader2 : (isScheduled ? Calendar : Send)}
                   >
-                    {publishing ? 'Salvando...' : (isScheduled ? 'Agendar Post' : 'Publicar Agora')}
+                    {publishing ? 'Salvando...' : (isScheduled ? 'Agendar' : 'Publicar Agora')}
                   </Button>
                 </div>
               </div>
@@ -361,7 +386,7 @@ const FeedPage: React.FC = () => {
               {(activeTab === 'list' ? posts : scheduled).length === 0 ? (
                 <div className="text-center py-16 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                   <MessageCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="text-sm text-slate-500">Nenhum post encontrado nesta seção.</p>
+                  <p className="text-sm text-slate-500">Nenhum post encontrado.</p>
                 </div>
               ) : (
                 (activeTab === 'list' ? posts : scheduled).map((post) => (
@@ -379,13 +404,12 @@ const FeedPage: React.FC = () => {
                           <span>•</span>
                           <span>{formatDate(post.scheduled_for || post.created_at)}</span>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setDeleteModal({ open: true, postId: post.id })} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <button onClick={() => setDeleteModal({ open: true, postId: post.id })} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
 
+                      {/* PREVIEW DO CONTEÚDO (Sem renderizar formatação complexa aqui, só texto) */}
                       <p className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
                       {post.image_url && (
