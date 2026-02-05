@@ -13,7 +13,7 @@ import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
 import { cn } from '../../lib/utils';
 
-// Tipos Reais do Banco
+// Tipos Reais do Banco de Dados
 interface FeedPost {
   id: string;
   app_id: string;
@@ -24,7 +24,7 @@ interface FeedPost {
   status: 'published' | 'scheduled' | 'draft';
   likes_count: number;
   comments_count: number;
-  liked?: boolean;
+  liked?: boolean; // Estado local para UI Otimista
 }
 
 export default function PwaFeedPage() {
@@ -35,12 +35,13 @@ export default function PwaFeedPage() {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<FeedPost[]>([]);
 
-  // 1. Busca App + Posts Reais
+  // 1. Busca Dados Reais (App + Posts)
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
+        // A. Busca Infos do App
         const { data: app, error: appError } = await supabase
           .from('apps')
           .select('id, name, logo, primary_color')
@@ -50,6 +51,7 @@ export default function PwaFeedPage() {
         if (appError || !app) throw new Error('App não encontrado');
         setAppData(app);
 
+        // B. Busca Posts Publicados
         const { data: feedData, error: feedError } = await supabase
           .from('feed_posts')
           .select('*')
@@ -60,6 +62,7 @@ export default function PwaFeedPage() {
         if (feedError) throw feedError;
 
         if (feedData) {
+          // Adiciona estado inicial de like (false por padrão no front)
           const postsWithLikes = feedData.map(post => ({ ...post, liked: false }));
           setPosts(postsWithLikes);
         }
@@ -92,6 +95,7 @@ export default function PwaFeedPage() {
   };
 
   const handleLike = (postId: string) => {
+    // UI Otimista: Atualiza na hora, depois o backend se vira (implementar chamada API depois)
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return {
@@ -159,7 +163,7 @@ export default function PwaFeedPage() {
               <div className="p-6 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Avatar */}
+                    {/* Avatar do App/Autor */}
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg overflow-hidden"
                       style={{ backgroundColor: primaryColor, boxShadow: `0 8px 15px -4px ${primaryColor}40` }}
@@ -188,22 +192,22 @@ export default function PwaFeedPage() {
                 </div>
               </div>
 
-              {/* Conteúdo do Post (Renderização de HTML) */}
+              {/* Conteúdo do Post (HTML Renderizado - Opção B) */}
               <div className="px-6 pb-6">
                 <div
-                  className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 prose-strong:text-slate-900 dark:prose-strong:text-white prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline"
+                  className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 prose-a:text-blue-500 prose-a:font-bold prose-headings:font-black prose-img:rounded-xl"
                   dangerouslySetInnerHTML={{ __html: post.content }}
                 />
               </div>
 
-              {/* Imagem */}
+              {/* Imagem do Post (Se houver) */}
               {post.image_url && (
                 <div className="px-6 pb-6">
-                  <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group aspect-square">
+                  <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group">
                     <img
                       src={post.image_url}
                       alt="Anexo"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                      className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
