@@ -22,33 +22,61 @@ import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
 import { supabase } from '../../lib/supabase';
 
-// --- TIPO & FUNÇÃO DE CROP (Motor de Imagem) ---
-interface PixelCrop { x: number; y: number; width: number; height: number; unit: 'px'; }
+// --- TIPO PARA O CROP (Definido localmente para não depender de libs externas) ---
+interface PixelCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  unit: 'px';
+}
 
-async function getCroppedImg(image: HTMLImageElement, crop: PixelCrop): Promise<File | null> {
+// --- SUA FUNÇÃO DE CANVAS (INTEGRADA) ---
+async function getCroppedImg(
+  image: HTMLImageElement,
+  crop: PixelCrop,
+  fileName = 'cropped.jpg'
+): Promise<File | null> {
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
 
-  // Tamanho fixo 400x400 para Feed
-  canvas.width = 400;
-  canvas.height = 400;
+  // Define o tamanho final fixo (400x400 como no Husky/Tribebuild)
+  const outputSize = 400;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
 
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
+  // Configurações de qualidade para imagem suave
   ctx.imageSmoothingQuality = 'high';
+
   ctx.drawImage(
     image,
-    crop.x * scaleX, crop.y * scaleY, crop.width * scaleX, crop.height * scaleY,
-    0, 0, 400, 400
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    outputSize,
+    outputSize
   );
 
   return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      resolve(new File([blob], 'post_image.jpg', { type: 'image/jpeg' }));
-    }, 'image/jpeg', 0.95);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          console.error('Canvas is empty');
+          return;
+        }
+        const file = new File([blob], fileName, { type: 'image/jpeg' });
+        resolve(file);
+      },
+      'image/jpeg',
+      0.95 // Qualidade 95%
+    );
   });
 }
 
@@ -56,7 +84,7 @@ async function getCroppedImg(image: HTMLImageElement, crop: PixelCrop): Promise<
 interface Post {
   id: string;
   app_id: string;
-  content: string; // Agora guarda HTML
+  content: string;
   image_url: string | null;
   created_at: string;
   scheduled_for: string | null;
@@ -82,7 +110,7 @@ const FeedPage: React.FC = () => {
   const [htmlContent, setHtmlContent] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Estado para verificar formatação ativa (Negrito, Itálico, etc.)
+  // Estado para verificar formatação ativa
   const [activeFormats, setActiveFormats] = useState({
     bold: false,
     italic: false,
@@ -125,7 +153,7 @@ const FeedPage: React.FC = () => {
 
   useEffect(() => { fetchPosts(); }, [appId]);
 
-  // 2. DETECTOR DE FORMATAÇÃO (Para iluminar os botões)
+  // 2. DETECTOR DE FORMATAÇÃO
   const checkFormats = () => {
     if (!document) return;
     setActiveFormats({
@@ -136,19 +164,18 @@ const FeedPage: React.FC = () => {
     });
   };
 
-  // Adiciona listener para verificar formatação sempre que o cursor mudar
   useEffect(() => {
     document.addEventListener('selectionchange', checkFormats);
     return () => document.removeEventListener('selectionchange', checkFormats);
   }, []);
 
-  // 3. LÓGICA DE EDITOR VISUAL (ExecCommand)
+  // 3. EDITOR VISUAL
   const execCmd = (command: string, value: string | undefined = undefined) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
       setHtmlContent(editorRef.current.innerHTML);
       editorRef.current.focus();
-      checkFormats(); // Força verificação após clique
+      checkFormats();
     }
   };
 
@@ -157,14 +184,18 @@ const FeedPage: React.FC = () => {
     if (url) execCmd('createLink', url);
   };
 
-  // 4. PROCESSAMENTO DE IMAGEM (Auto-Crop)
+  // 4. PROCESSAMENTO DE IMAGEM (AUTO-CENTER CROP)
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const img = new Image();
       img.src = URL.createObjectURL(file);
+
       img.onload = async () => {
+        // Lógica de Auto-Center: Pega o menor lado para fazer o quadrado
         const minSide = Math.min(img.width, img.height);
+
+        // Calcula as coordenadas para centralizar o corte
         const crop: PixelCrop = {
           unit: 'px',
           width: minSide,
@@ -172,7 +203,10 @@ const FeedPage: React.FC = () => {
           x: (img.width - minSide) / 2,
           y: (img.height - minSide) / 2
         };
-        const croppedFile = await getCroppedImg(img, crop);
+
+        // Usa sua função Canvas para gerar o arquivo otimizado
+        const croppedFile = await getCroppedImg(img, crop, file.name);
+
         if (croppedFile) {
           setImageFile(croppedFile);
           setImagePreview(URL.createObjectURL(croppedFile));
@@ -195,15 +229,21 @@ const FeedPage: React.FC = () => {
       let finalImageUrl = null;
 
       if (imageFile) {
+        // Nome único para evitar cache
         const fileExt = 'jpg';
         const fileName = `${appId}-${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('feed-images')
-          .upload(filePath, imageFile);
+          .upload(filePath, imageFile, {
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
+
         const { data: { publicUrl } } = supabase.storage.from('feed-images').getPublicUrl(filePath);
         finalImageUrl = publicUrl;
       }
@@ -227,6 +267,7 @@ const FeedPage: React.FC = () => {
 
       alert(scheduledDateTime ? 'Post agendado!' : 'Post publicado!');
 
+      // Reset Total
       setHtmlContent('');
       if (editorRef.current) editorRef.current.innerHTML = '';
       setImageFile(null);
@@ -234,6 +275,7 @@ const FeedPage: React.FC = () => {
       setIsScheduled(false);
       setScheduleDate('');
       setScheduleTime('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
 
       await fetchPosts();
       setActiveTab(scheduledDateTime ? 'scheduled' : 'list');
@@ -298,31 +340,15 @@ const FeedPage: React.FC = () => {
                 {/* CONTAINER DO EDITOR */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[300px]">
 
-                  {/* Toolbar Funcional com Feedback Visual */}
+                  {/* Toolbar */}
                   <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 rounded-t-xl overflow-x-auto">
                     <div className="flex gap-1 pr-2 border-r border-slate-200 dark:border-slate-700">
-                      <ToolbarBtn
-                        isActive={activeFormats.bold}
-                        onClick={() => execCmd('bold')}
-                        icon={<Bold className="w-4 h-4" />}
-                      />
-                      <ToolbarBtn
-                        isActive={activeFormats.italic}
-                        onClick={() => execCmd('italic')}
-                        icon={<Italic className="w-4 h-4" />}
-                      />
-                      <ToolbarBtn
-                        isActive={activeFormats.underline}
-                        onClick={() => execCmd('underline')}
-                        icon={<Underline className="w-4 h-4" />}
-                      />
+                      <ToolbarBtn isActive={activeFormats.bold} onClick={() => execCmd('bold')} icon={<Bold className="w-4 h-4" />} />
+                      <ToolbarBtn isActive={activeFormats.italic} onClick={() => execCmd('italic')} icon={<Italic className="w-4 h-4" />} />
+                      <ToolbarBtn isActive={activeFormats.underline} onClick={() => execCmd('underline')} icon={<Underline className="w-4 h-4" />} />
                     </div>
                     <div className="flex gap-1 px-2 border-r border-slate-200 dark:border-slate-700">
-                      <ToolbarBtn
-                        isActive={activeFormats.unorderedList}
-                        onClick={() => execCmd('insertUnorderedList')}
-                        icon={<List className="w-4 h-4" />}
-                      />
+                      <ToolbarBtn isActive={activeFormats.unorderedList} onClick={() => execCmd('insertUnorderedList')} icon={<List className="w-4 h-4" />} />
                     </div>
                     <div className="flex gap-1 pl-2">
                       <ToolbarBtn onClick={addLink} icon={<LinkIcon className="w-4 h-4" />} />
@@ -330,13 +356,13 @@ const FeedPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Área Editável - Corrigido para mostrar Bullets */}
+                  {/* Área Editável */}
                   <div
                     ref={editorRef}
                     contentEditable
                     onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)}
-                    onKeyUp={checkFormats} // Atualiza status ao digitar
-                    onClick={checkFormats} // Atualiza status ao clicar
+                    onKeyUp={checkFormats}
+                    onClick={checkFormats}
                     className="w-full flex-1 p-6 bg-transparent text-slate-900 dark:text-white outline-none leading-relaxed text-sm prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                     data-placeholder="Escreva algo incrível..."
                     style={{ minHeight: '150px' }}
@@ -354,6 +380,7 @@ const FeedPage: React.FC = () => {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
+                      <p className="text-[10px] text-slate-400 mt-2 font-medium">Imagem ajustada automaticamente para 400x400px</p>
                     </div>
                   )}
 
@@ -463,14 +490,14 @@ const FeedPage: React.FC = () => {
   );
 };
 
-// Componente Botão Toolbar com Estado Ativo
+// Componente Botão Toolbar
 const ToolbarBtn = ({ onClick, icon, isActive }: { onClick: () => void, icon: React.ReactNode, isActive?: boolean }) => (
   <button
     onClick={(e) => { e.preventDefault(); onClick(); }}
     className={cn(
       "p-1.5 rounded transition-all",
       isActive
-        ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30" // Estado Ativo (Selecionado)
+        ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 shadow-inner ring-1 ring-blue-100 dark:ring-blue-800"
         : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
     )}
   >

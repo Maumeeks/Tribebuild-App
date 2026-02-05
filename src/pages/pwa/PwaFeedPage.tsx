@@ -95,7 +95,7 @@ export default function PwaFeedPage() {
   };
 
   const handleLike = (postId: string) => {
-    // UI Otimista: Atualiza na hora, depois o backend se vira (implementar chamada API depois)
+    // UI Otimista
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return {
@@ -192,10 +192,10 @@ export default function PwaFeedPage() {
                 </div>
               </div>
 
-              {/* Conteúdo do Post (HTML Renderizado - Opção B) */}
+              {/* Conteúdo do Post (HTML Renderizado - ATUALIZADO) */}
               <div className="px-6 pb-6">
                 <div
-                  className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 prose-a:text-blue-500 prose-a:font-bold prose-headings:font-black prose-img:rounded-xl"
+                  className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 prose-a:text-blue-500 prose-a:font-bold prose-headings:font-black prose-img:rounded-xl [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                   dangerouslySetInnerHTML={{ __html: post.content }}
                 />
               </div>
