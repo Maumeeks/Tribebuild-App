@@ -4,7 +4,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { X, Check, Loader2, Move, Maximize2 } from 'lucide-react';
 import { getCroppedImg } from '../../lib/canvasUtils';
 
-// Helper para centralizar o crop inicial
+// Helper: Calcula o maior quadrado possível no centro da imagem
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
     return centerCrop(
         makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
@@ -27,7 +27,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
 
     function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
         const { width, height } = e.currentTarget;
-        // Inicia com crop quadrado centralizado
+        // Força o crop inicial a ser quadrado (aspect 1) e centralizado
         setCrop(centerAspectCrop(width, height, 1));
     }
 
@@ -46,7 +46,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
     };
 
     return (
-        // CAMADA 1: Z-Index 9999 garante que fique SOBRE qualquer navbar do sistema
+        // CAMADA 1: Z-Index 9999 para garantir que fique SOBRE A NAVBAR
         <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
 
             {/* CAMADA 2: O Card (Limitado para não estourar telas pequenas) */}
@@ -67,10 +67,10 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                     </button>
                 </div>
 
-                {/* Área de Edição - O 'min-h-0' é crucial para o Flexbox não estourar */}
+                {/* Área de Edição - O 'min-h-0' impede o flexbox de estourar */}
                 <div className="flex-1 bg-black/50 relative flex items-center justify-center p-6 min-h-0 overflow-hidden select-none">
 
-                    {/* Fundo Xadrez */}
+                    {/* Fundo Xadrez (Padrão de Transparência) */}
                     <div className="absolute inset-0 opacity-20"
                         style={{ backgroundImage: 'radial-gradient(#334155 1px, transparent 1px)', backgroundSize: '16px 16px' }}
                     />
@@ -79,7 +79,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                         crop={crop}
                         onChange={(_, percentCrop) => setCrop(percentCrop)}
                         onComplete={(c) => setCompletedCrop(c)}
-                        aspect={1} // Força Quadrado
+                        aspect={1} // TRAVA O QUADRADO (Opcional: Remova para livre)
                         className="shadow-2xl rounded-sm ring-1 ring-white/10"
                     >
                         <img
@@ -87,9 +87,9 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                             src={imageSrc}
                             alt="Edit"
                             onLoad={onImageLoad}
-                            // AQUI ESTÁ A CORREÇÃO PRINCIPAL:
-                            // max-h-[60vh] garante que a imagem nunca seja maior que 60% da altura da tela
-                            // w-auto e object-contain garantem a proporção correta
+                            // AQUI ESTÁ A MÁGICA:
+                            // max-h-[60vh]: A imagem nunca passará de 60% da altura da tela
+                            // w-auto + object-contain: Mantém a proporção sem distorcer
                             className="max-h-[60vh] w-auto object-contain block"
                         />
                     </ReactCrop>
