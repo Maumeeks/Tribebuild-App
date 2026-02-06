@@ -4,7 +4,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { X, Check, Loader2, Move, Maximize2 } from 'lucide-react';
 import { getCroppedImg } from '../../lib/canvasUtils';
 
-// Helper: Calcula o maior quadrado possível no centro da imagem
+// Helper para centralizar o crop inicial
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
     return centerCrop(
         makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
@@ -46,13 +46,13 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
     };
 
     return (
-        // CAMADA 1: Z-Index 9999 para garantir que fique SOBRE A NAVBAR
+        // Z-Index 9999: Garante que fique na frente de tudo
         <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
 
-            {/* CAMADA 2: O Card (Limitado para não estourar telas pequenas) */}
+            {/* Container Principal: max-h-[90vh] limita a altura total do modal */}
             <div className="bg-slate-950 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] animate-in zoom-in-95 duration-200">
 
-                {/* Header */}
+                {/* Header Premium */}
                 <div className="px-6 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center shrink-0 z-10">
                     <div>
                         <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -67,10 +67,10 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                     </button>
                 </div>
 
-                {/* Área de Edição - O 'min-h-0' impede o flexbox de estourar */}
+                {/* Área de Edição: min-h-0 é essencial para o flexbox não estourar */}
                 <div className="flex-1 bg-black/50 relative flex items-center justify-center p-6 min-h-0 overflow-hidden select-none">
 
-                    {/* Fundo Xadrez (Padrão de Transparência) */}
+                    {/* Fundo Xadrez */}
                     <div className="absolute inset-0 opacity-20"
                         style={{ backgroundImage: 'radial-gradient(#334155 1px, transparent 1px)', backgroundSize: '16px 16px' }}
                     />
@@ -79,7 +79,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                         crop={crop}
                         onChange={(_, percentCrop) => setCrop(percentCrop)}
                         onComplete={(c) => setCompletedCrop(c)}
-                        aspect={1} // TRAVA O QUADRADO (Opcional: Remova para livre)
+                        aspect={1} // TRAVA O QUADRADO
                         className="shadow-2xl rounded-sm ring-1 ring-white/10"
                     >
                         <img
@@ -87,10 +87,11 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                             src={imageSrc}
                             alt="Edit"
                             onLoad={onImageLoad}
-                            // AQUI ESTÁ A MÁGICA:
-                            // max-h-[60vh]: A imagem nunca passará de 60% da altura da tela
-                            // w-auto + object-contain: Mantém a proporção sem distorcer
+                            // AQUI ESTÁ A CORREÇÃO CRÍTICA:
+                            // max-h-[60vh]: A imagem NUNCA passará de 60% da altura da tela
+                            // w-auto + object-contain: Mantém a proporção correta
                             className="max-h-[60vh] w-auto object-contain block"
+                            style={{ maxWidth: '100%' }}
                         />
                     </ReactCrop>
 
@@ -100,7 +101,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                     </div>
                 </div>
 
-                {/* Footer */}
+                {/* Footer Premium */}
                 <div className="p-5 border-t border-slate-800 bg-slate-950 flex justify-end gap-3 shrink-0 z-10">
                     <button
                         onClick={onClose}
