@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 // Importação do NOVO MODAL
 import ImageCropperModal from '../../components/modals/ImageCropperModal';
 
+// --- Interfaces ---
 interface Post {
   id: string;
   app_id: string;
@@ -41,12 +42,12 @@ const FeedPage: React.FC = () => {
   const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false, unorderedList: false });
 
   // Image States
-  const [imageFile, setImageFile] = useState<File | null>(null); // Arquivo Final (Cortado)
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // Preview Final
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Crop Modal States
   const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null); // Imagem bruta para o cropper
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
@@ -94,16 +95,15 @@ const FeedPage: React.FC = () => {
     }
   };
 
-  // 3. FLUXO DE IMAGEM: Seleção -> Modal -> Crop
+  // 3. FLUXO DE IMAGEM
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Cria URL temporária da imagem bruta e abre o modal
       const reader = new FileReader();
       reader.onload = () => {
         setTempImageSrc(reader.result as string);
         setCropModalOpen(true);
-        if (fileInputRef.current) fileInputRef.current.value = ''; // Limpa input para permitir re-seleção
+        if (fileInputRef.current) fileInputRef.current.value = '';
       };
       reader.readAsDataURL(file);
     }
@@ -232,7 +232,7 @@ const FeedPage: React.FC = () => {
               {imagePreview && (
                 <div className="px-6 pb-6">
                   <div className="relative group inline-block">
-                    <img src={imagePreview} className="w-40 h-40 rounded-lg border border-slate-200 object-cover" />
+                    <img src={imagePreview} className="w-40 h-40 rounded-lg border border-slate-200 dark:border-slate-700 object-cover" />
                     <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500"><X className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ const FeedPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Exclusão (Manteve igual) */}
+      {/* Modal de Exclusão */}
       {deleteModal.open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setDeleteModal({ open: false, postId: null })} />

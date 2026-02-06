@@ -97,7 +97,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                     </ReactCrop>
 
                     {/* Dica flutuante */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 pointer-events-none">
                         <Move className="w-3 h-3 text-white/60" />
                         <span className="text-[10px] font-medium text-white/80 uppercase tracking-widest">Arraste para mover</span>
                     </div>
