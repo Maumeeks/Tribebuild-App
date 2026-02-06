@@ -27,7 +27,7 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
 
     function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
         const { width, height } = e.currentTarget;
-        // Inicia com crop quadrado centralizado
+        // Inicia com crop quadrado centralizado (90% da área inicial para dar margem)
         setCrop(centerAspectCrop(width, height, 1));
     }
 
@@ -46,13 +46,13 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
     };
 
     return (
-        // CAMADA 1: Z-Index 9999 (Sobrepõe a Navbar)
+        // CAMADA 1: Modal full-screen com backdrop
         <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
 
-            {/* CAMADA 2: O Card (Limitado para não estourar a altura da tela) */}
+            {/* CAMADA 2: Card principal (limitado em altura) */}
             <div className="bg-slate-950 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] animate-in zoom-in-95 duration-200">
 
-                {/* Header (Fixo, não encolhe) */}
+                {/* Header fixo */}
                 <div className="px-6 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center shrink-0 z-10">
                     <div>
                         <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -67,11 +67,10 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                     </button>
                 </div>
 
-                {/* Área de Edição (Flexível) */}
-                {/* 'min-h-0' é o segredo para o Flexbox respeitar o limite do pai */}
-                <div className="flex-1 bg-black/50 relative flex items-center justify-center p-6 min-h-0 overflow-hidden select-none">
+                {/* Área de edição - flexível, com limite rígido */}
+                <div className="flex-1 bg-black/50 relative flex items-center justify-center p-4 sm:p-6 min-h-0 overflow-hidden select-none">
 
-                    {/* Fundo Xadrez */}
+                    {/* Fundo xadrez para transparência */}
                     <div className="absolute inset-0 opacity-20"
                         style={{ backgroundImage: 'radial-gradient(#334155 1px, transparent 1px)', backgroundSize: '16px 16px' }}
                     />
@@ -80,29 +79,38 @@ export default function ImageCropperModal({ imageSrc, onClose, onCropComplete }:
                         crop={crop}
                         onChange={(_, percentCrop) => setCrop(percentCrop)}
                         onComplete={(c) => setCompletedCrop(c)}
-                        aspect={1} // Força Quadrado
-                        className="shadow-2xl rounded-sm ring-1 ring-white/10"
+                        aspect={1} // Força quadrado
+                        className="max-w-full max-h-full shadow-2xl rounded-sm ring-1 ring-white/10"
+                        style={{ maxHeight: '100%', maxWidth: '100%' }}
                     >
                         <img
                             ref={imgRef}
                             src={imageSrc}
                             alt="Edit"
                             onLoad={onImageLoad}
-                            // AQUI ESTÁ A CORREÇÃO:
-                            // max-h-[60vh]: A imagem nunca passará de 60% da altura da tela
-                            // w-auto: A largura se adapta automaticamente para manter a proporção
-                            className="max-h-[60vh] w-auto object-contain block"
-                            style={{ maxWidth: '100%' }}
+                            className="
+                                max-h-[calc(100vh-220px)]   /* Ajuste principal: subtrai header + footer + paddings */
+                                w-auto
+                                object-contain
+                                block
+                                mx-auto
+                            "
+                            style={{
+                                maxWidth: '100%',
+                                height: 'auto',
+                                // Reforço extra para mobile e telas menores
+                                maxHeight: 'calc(100% - 40px)', // margem de segurança dentro do container
+                            }}
                         />
                     </ReactCrop>
 
-                    {/* Badge flutuante */}
+                    {/* Badge de instrução */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur text-white/70 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 flex items-center gap-2 pointer-events-none z-20">
                         <Move className="w-3 h-3" /> Arraste e Zoom
                     </div>
                 </div>
 
-                {/* Footer (Fixo, não encolhe) */}
+                {/* Footer fixo */}
                 <div className="p-5 border-t border-slate-800 bg-slate-950 flex justify-end gap-3 shrink-0 z-10">
                     <button
                         onClick={onClose}
