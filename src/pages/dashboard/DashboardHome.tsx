@@ -251,7 +251,7 @@ const DashboardHome: React.FC = () => {
 
         <div className="flex items-center gap-4 w-full md:w-auto relative z-10">
           <a
-            href="https://wa.me/5561982199922"
+            href="https://wa.me/5511994066395"
             target="_blank"
             rel="noreferrer"
             className="flex-1 md:flex-none px-8 py-3.5 bg-white text-slate-950 rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all text-center shadow-xl shadow-white/5"

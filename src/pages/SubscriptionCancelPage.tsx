@@ -62,7 +62,7 @@ const SubscriptionCancelPage: React.FC = () => {
             <HelpCircle className="w-3.5 h-3.5" />
             <span>Teve algum problema?</span>
             <a
-              href="https://wa.me/5561982199922"
+              href="https://wa.me/5511994066395"
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-blue hover:underline"

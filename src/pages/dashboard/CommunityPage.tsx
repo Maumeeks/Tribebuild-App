@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, User, Trash2, Heart, MessageCircle, Send,
   X, Clock, Loader2, Eraser, CheckCircle, XCircle, ShieldCheck
 } from 'lucide-react';
-import DOMPurify from 'dompurify'; // Sanitização
+import DOMPurify from 'dompurify';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
 import { supabase } from '../../lib/supabase';
@@ -58,7 +58,6 @@ const CommunityPage: React.FC = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
 
-  // 1. Fetch de Posts (Unificado)
   const fetchPosts = async () => {
     if (!appId) return;
     try {
@@ -80,7 +79,6 @@ const CommunityPage: React.FC = () => {
 
   useEffect(() => { fetchPosts(); }, [appId]);
 
-  // 2. Lógica do Editor Rich Text
   const checkFormats = () => {
     if (!document) return;
     setActiveFormats({
@@ -110,7 +108,6 @@ const CommunityPage: React.FC = () => {
     if (url) execCmd('createLink', url);
   };
 
-  // 3. Gestão de Imagens
   const onAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -140,7 +137,6 @@ const CommunityPage: React.FC = () => {
     }
   };
 
-  // 4. Publicação (Ajustada com Sanitização e Storage)
   const handlePublish = async () => {
     const plainText = htmlContent.replace(/<[^>]*>/g, '').trim();
     if (!appId || (!plainText && !postImage)) return;
@@ -150,7 +146,6 @@ const CommunityPage: React.FC = () => {
       let finalAvatarUrl = authorAvatar;
       let finalImageUrl = null;
 
-      // Upload do Avatar (se foi trocado)
       if (avatarFile) {
         const path = `avatars/${appId}/${Date.now()}.png`;
         const { error: upErr } = await supabase.storage.from('feed-images').upload(path, avatarFile);
@@ -158,7 +153,6 @@ const CommunityPage: React.FC = () => {
         finalAvatarUrl = supabase.storage.from('feed-images').getPublicUrl(path).data.publicUrl;
       }
 
-      // Upload da Imagem do Post
       if (postImage) {
         const path = `posts/${appId}/${Date.now()}-${postImage.name}`;
         const { error: upErr } = await supabase.storage.from('feed-images').upload(path, postImage);
@@ -166,7 +160,6 @@ const CommunityPage: React.FC = () => {
         finalImageUrl = supabase.storage.from('feed-images').getPublicUrl(path).data.publicUrl;
       }
 
-      // Sanitizar HTML antes de enviar ao banco
       const sanitizedHTML = DOMPurify.sanitize(htmlContent);
       const { data: userData } = await supabase.auth.getUser();
 
@@ -185,7 +178,6 @@ const CommunityPage: React.FC = () => {
 
       if (error) throw error;
 
-      // Reset
       setHtmlContent('');
       if (editorRef.current) editorRef.current.innerHTML = '';
       setPostImage(null);
@@ -199,7 +191,6 @@ const CommunityPage: React.FC = () => {
     } finally { setPublishing(false); }
   };
 
-  // 5. Moderação
   const handleApprove = async (postId: string) => {
     try {
       const { error } = await supabase.from('community_posts').update({ status: 'approved' }).eq('id', postId);
@@ -246,8 +237,8 @@ const CommunityPage: React.FC = () => {
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-2 font-bold text-xs uppercase">
             <ArrowLeft className="w-3 h-3" /> Voltar
           </button>
-          <h1 className="text-2xl font-bold">Comunidade</h1>
-          <p className="text-slate-500 text-sm mt-1">Gerencie o engajamento e a moderação do seu PWA.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Comunidade</h1>
+          <p className="text-slate-500 text-sm mt-1 font-medium">Gerencie o engajamento e a moderação do seu PWA.</p>
         </div>
       </div>
 
@@ -284,22 +275,22 @@ const CommunityPage: React.FC = () => {
             {/* Coluna Persona */}
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-wider">Publicar Como</h3>
+                <h3 className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-[0.1em]">Publicar Como</h3>
                 <div className="flex flex-col items-center gap-4">
                   <div
                     onClick={() => avatarInputRef.current?.click()}
-                    className="w-20 h-20 rounded-full border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer overflow-hidden relative group bg-slate-50 dark:bg-slate-800 transition-colors"
+                    className="w-24 h-24 rounded-full border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer overflow-hidden relative group bg-slate-50 dark:bg-slate-800 transition-all duration-300"
                   >
                     {authorAvatar ? (
                       <img src={authorAvatar} className="w-full h-full object-cover" alt="Avatar Preview" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-400 flex-col gap-1">
-                        <User className="w-6 h-6" />
-                        <span className="text-[9px] uppercase font-black">Upload</span>
+                        <User className="w-7 h-7" />
+                        <span className="text-[8px] uppercase font-black tracking-widest">Upload</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ImageIcon className="text-white w-5 h-5" />
+                    <div className="absolute inset-0 bg-blue-600/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ImageIcon className="text-white w-6 h-6" />
                     </div>
                   </div>
                   <input ref={avatarInputRef} type="file" hidden accept="image/*" onChange={onAvatarSelect} />
@@ -307,7 +298,7 @@ const CommunityPage: React.FC = () => {
                     type="text"
                     value={authorName}
                     onChange={e => setAuthorName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-center font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-center font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                     placeholder="Nome da Persona"
                   />
                 </div>
@@ -316,13 +307,13 @@ const CommunityPage: React.FC = () => {
 
             {/* Coluna Editor */}
             <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[350px]">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[400px]">
                 {/* Toolbar */}
-                <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-t-xl">
+                <div className="flex items-center gap-1.5 p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-t-2xl">
                   <ToolbarBtn isActive={activeFormats.bold} onClick={() => execCmd('bold')} icon={<Bold className="w-4 h-4" />} />
                   <ToolbarBtn isActive={activeFormats.italic} onClick={() => execCmd('italic')} icon={<Italic className="w-4 h-4" />} />
                   <ToolbarBtn isActive={activeFormats.underline} onClick={() => execCmd('underline')} icon={<Underline className="w-4 h-4" />} />
-                  <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
+                  <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1.5" />
                   <ToolbarBtn isActive={activeFormats.unorderedList} onClick={() => execCmd('insertUnorderedList')} icon={<List className="w-4 h-4" />} />
                   <ToolbarBtn onClick={addLink} icon={<LinkIcon className="w-4 h-4" />} />
                   <ToolbarBtn onClick={() => execCmd('removeFormat')} icon={<Eraser className="w-4 h-4" />} />
@@ -335,18 +326,18 @@ const CommunityPage: React.FC = () => {
                   onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)}
                   onKeyUp={checkFormats}
                   onClick={checkFormats}
-                  className="w-full flex-1 p-6 outline-none text-slate-700 dark:text-slate-300 text-base prose prose-slate max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5 min-h-[200px]"
-                  data-placeholder="O que você quer compartilhar hoje?"
+                  className="w-full flex-1 p-8 outline-none text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed prose prose-slate max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5 min-h-[250px]"
+                  data-placeholder="No que você está pensando hoje?"
                 />
 
-                {/* Preview da Imagem */}
+                {/* Preview da Imagem no Editor */}
                 {postImagePreview && (
-                  <div className="px-6 pb-6 relative inline-block">
-                    <div className="relative rounded-lg overflow-hidden border dark:border-slate-700 shadow-lg">
-                      <img src={postImagePreview} className="max-h-80 w-auto object-contain bg-slate-50 dark:bg-slate-800" alt="Preview" />
+                  <div className="px-8 pb-8 relative inline-block">
+                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xl group/img">
+                      <img src={postImagePreview} className="max-h-[350px] w-auto object-contain bg-slate-100 dark:bg-slate-800" alt="Preview" />
                       <button
                         onClick={() => { setPostImage(null); setPostImagePreview(null); }}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md transition-all"
+                        className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg transition-all transform hover:scale-110"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -355,21 +346,22 @@ const CommunityPage: React.FC = () => {
                 )}
 
                 {/* Footer do Editor */}
-                <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-950/20">
+                <div className="p-4 px-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/20 dark:bg-slate-950/20">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                    className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors py-2 px-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10"
                   >
-                    <ImageIcon className="w-4 h-4" /> Adicionar Mídia
+                    <ImageIcon className="w-4 h-4" /> Anexar Mídia
                   </button>
                   <input ref={fileInputRef} type="file" hidden accept="image/*" onChange={onPostImageSelect} />
                   <Button
                     onClick={handlePublish}
                     disabled={publishing || (!htmlContent.trim() && !postImage)}
                     size="sm"
+                    className="px-6 rounded-xl"
                     leftIcon={publishing ? Loader2 : Send}
                   >
-                    {publishing ? 'Enviando...' : 'Publicar Agora'}
+                    {publishing ? 'Publicando...' : 'Postar Agora'}
                   </Button>
                 </div>
               </div>
@@ -379,74 +371,80 @@ const CommunityPage: React.FC = () => {
 
         {/* Feed e Moderação */}
         {activeTab !== 'create' && (
-          <div className="max-w-3xl mx-auto space-y-6">
+          <div className="max-w-3xl mx-auto space-y-8">
             {(activeTab === 'moderation' ? pendingPosts : posts).length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                <div className="bg-slate-100 dark:bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                  <MessageCircle className="w-8 h-8" />
+              <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-800 shadow-inner">
+                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-400">
+                  <MessageCircle className="w-10 h-10" />
                 </div>
-                <h3 className="font-bold text-slate-900 dark:text-white">Nenhum post encontrado</h3>
-                <p className="text-slate-500 text-sm">Os posts aparecerão aqui conforme os alunos interagirem.</p>
+                <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-2">A comunidade está silenciosa</h3>
+                <p className="text-slate-500 text-sm max-w-xs mx-auto font-medium">Os posts aprovados aparecerão aqui em tempo real.</p>
               </div>
             ) :
               (activeTab === 'moderation' ? pendingPosts : posts).map(post => (
-                <div key={post.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden group">
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex gap-3 items-center">
+                <div key={post.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden group/card hover:shadow-md transition-shadow">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex gap-4 items-center">
                         <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2",
-                          post.author_type === 'admin' ? "border-blue-500/20 bg-blue-50" : "border-slate-100 bg-slate-50"
+                          "w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border-2 shadow-sm",
+                          post.author_type === 'admin' ? "border-blue-500/30 bg-blue-50" : "border-slate-100 bg-slate-50"
                         )}>
                           {post.author_avatar ? (
                             <img src={post.author_avatar} className="w-full h-full object-cover" alt={post.author_name} />
-                          ) : <User className="text-slate-400 w-5 h-5" />}
+                          ) : <User className="text-slate-400 w-6 h-6" />}
                         </div>
                         <div>
-                          <h4 className="font-bold text-sm flex items-center gap-1.5">
+                          <h4 className="font-bold text-[15px] flex items-center gap-2">
                             {post.author_name}
-                            {post.author_type === 'admin' && <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />}
+                            {post.author_type === 'admin' && (
+                              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-1 rounded-full">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                              </span>
+                            )}
                           </h4>
-                          <span className="text-[11px] text-slate-400 font-medium">{formatDate(post.created_at)}</span>
+                          <span className="text-xs text-slate-400 font-bold uppercase tracking-tight">{formatDate(post.created_at)}</span>
                         </div>
                       </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
                         {activeTab === 'moderation' && (
                           <button
                             onClick={() => handleApprove(post.id)}
-                            className="text-green-600 bg-green-50 dark:bg-green-900/20 font-bold text-[10px] uppercase px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
+                            className="text-white bg-green-600 font-bold text-[10px] uppercase px-4 py-2 rounded-xl hover:bg-green-700 shadow-lg shadow-green-500/20 transition-all"
                           >
                             Aprovar
                           </button>
                         )}
                         <button
                           onClick={() => activeTab === 'moderation' ? handleReject(post.id) : setDeleteModal({ open: true, postId: post.id })}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                          className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4.5 h-4.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div
-                      className="text-sm text-slate-700 dark:text-slate-300 mb-4 prose prose-slate dark:prose-invert max-w-none"
-                      dangerouslySetInnerHTML={{ __html: post.content }}
-                    />
+                    <div className="space-y-6">
+                      <div
+                        className="text-sm text-slate-700 dark:text-slate-300 prose prose-slate dark:prose-invert max-w-none leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: post.content }}
+                      />
 
-                    {post.image_url && (
-                      <div className="mt-4 rounded-xl overflow-hidden border dark:border-slate-800 shadow-sm bg-slate-50 dark:bg-slate-950">
-                        <img src={post.image_url} className="w-full max-h-[500px] object-contain" alt="Post content" />
-                      </div>
-                    )}
+                      {post.image_url && (
+                        <div className="rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-slate-50 dark:bg-slate-950">
+                          <img src={post.image_url} className="w-full max-h-[550px] object-contain" alt="Conteúdo do Post" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {activeTab === 'feed' && (
-                    <div className="px-5 py-3 bg-slate-50/50 dark:bg-slate-800/30 flex gap-4 text-xs font-bold text-slate-400 border-t border-slate-100 dark:border-slate-800">
-                      <span className="flex items-center gap-1.5 hover:text-red-500 cursor-default transition-colors">
-                        <Heart className="w-4 h-4" /> {post.likes_count}
+                    <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/20 flex gap-5 text-xs font-black text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                      <span className="flex items-center gap-1.5 hover:text-red-500 transition-colors cursor-pointer group/stat">
+                        <Heart className="w-4.5 h-4.5 group-hover/stat:fill-red-500 transition-all" /> {post.likes_count}
                       </span>
-                      <span className="flex items-center gap-1.5 hover:text-blue-500 cursor-default transition-colors">
-                        <MessageCircle className="w-4 h-4" /> {post.comments_count}
+                      <span className="flex items-center gap-1.5 hover:text-blue-500 transition-colors cursor-pointer group/stat">
+                        <MessageCircle className="w-4.5 h-4.5 group-hover/stat:fill-blue-500 transition-all" /> {post.comments_count}
                       </span>
                     </div>
                   )}
@@ -458,25 +456,25 @@ const CommunityPage: React.FC = () => {
 
       {/* Modal de Exclusão */}
       {deleteModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 shadow-2xl">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-4">
-              <Trash2 className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] w-full max-w-sm border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-2xl flex items-center justify-center mb-6 rotate-3">
+              <Trash2 className="w-7 h-7" />
             </div>
-            <h3 className="font-bold text-xl mb-2 text-slate-900 dark:text-white">Excluir este post?</h3>
-            <p className="text-slate-500 text-sm mb-6">Esta ação não pode ser desfeita e o conteúdo será removido para todos os alunos.</p>
-            <div className="flex gap-3">
+            <h3 className="font-bold text-2xl mb-2 text-slate-900 dark:text-white tracking-tight">Excluir conteúdo?</h3>
+            <p className="text-slate-500 text-[15px] mb-8 leading-relaxed font-medium">Esta ação é irreversível e o post desaparecerá do PWA de todos os alunos imediatamente.</p>
+            <div className="flex gap-4">
               <button
                 onClick={() => setDeleteModal({ open: false, postId: null })}
-                className="flex-1 py-2.5 font-bold text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="flex-1 py-3 font-bold text-sm text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
-                Cancelar
+                Voltar
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 py-2.5 font-bold text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-lg shadow-red-500/20 transition-all"
+                className="flex-1 py-3 font-bold text-sm bg-red-600 text-white rounded-2xl hover:bg-red-700 shadow-xl shadow-red-500/30 transition-all transform active:scale-95"
               >
-                Excluir
+                Confirmar
               </button>
             </div>
           </div>
@@ -486,14 +484,13 @@ const CommunityPage: React.FC = () => {
   );
 };
 
-// Componente Auxiliar ToolbarBtn
 const ToolbarBtn = ({ onClick, icon, isActive }: any) => (
   <button
     onClick={(e) => { e.preventDefault(); onClick(); }}
     className={cn(
-      "p-2 rounded-lg transition-all",
+      "p-2.5 rounded-xl transition-all",
       isActive
-        ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 shadow-inner"
+        ? "text-blue-600 bg-blue-100 dark:bg-blue-900/40 shadow-inner"
         : "text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
     )}
   >
