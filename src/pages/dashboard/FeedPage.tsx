@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Bold, Italic, Underline, List, Link as LinkIcon,
-  Image as ImageIcon, Calendar, Clock, Trash2, Heart, MessageCircle,
+  Image as ImageIcon, Clock, Trash2, Heart, MessageCircle,
   Send, X, Loader2, Eraser
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -10,8 +10,9 @@ import Button from '../../components/Button';
 import { supabase } from '../../lib/supabase';
 // Importação do NOVO MODAL
 import ImageCropperModal from '../../components/modals/ImageCropperModal';
+import DOMPurify from 'dompurify'; // Segurança Importante
 
-// --- Interfaces ---
+// --- Interfaces alinhadas com o Banco ---
 interface Post {
   id: string;
   app_id: string;
@@ -61,14 +62,28 @@ const FeedPage: React.FC = () => {
     if (!appId) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('feed_posts').select('*').eq('app_id', appId).order('created_at', { ascending: false });
+      // Busca na tabela feed_posts que agora tem as colunas corretas
+      const { data, error } = await supabase
+        .from('feed_posts')
+        .select('*')
+        .eq('app_id', appId)
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
+
       if (data) {
-        setPosts(data.filter(p => p.status === 'published'));
-        setScheduled(data.filter(p => p.status === 'scheduled'));
+        // Tipagem forçada para garantir que o TS aceite o retorno
+        const typedData = data as any[];
+        setPosts(typedData.filter(p => p.status === 'published'));
+        setScheduled(typedData.filter(p => p.status === 'scheduled'));
       }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) {
+      console.error("Erro ao buscar posts:", err);
+    } finally {
+      setLoading(false);
+    }
   };
+
   useEffect(() => { fetchPosts(); }, [appId]);
 
   // 2. DETECTOR DE FORMATAÇÃO
@@ -81,6 +96,7 @@ const FeedPage: React.FC = () => {
       unorderedList: document.queryCommandState('insertUnorderedList'),
     });
   };
+
   useEffect(() => {
     document.addEventListener('selectionchange', checkFormats);
     return () => document.removeEventListener('selectionchange', checkFormats);
@@ -119,6 +135,8 @@ const FeedPage: React.FC = () => {
   // 4. PUBLICAR
   const handlePublish = async () => {
     if (!appId) return;
+
+    // Limpa HTML para ver se tem texto real
     const plainText = htmlContent.replace(/<[^>]*>/g, '').trim();
     if (!plainText && !imageFile) { alert('Adicione texto ou imagem.'); return; }
 
@@ -126,41 +144,73 @@ const FeedPage: React.FC = () => {
       setPublishing(true);
       let finalImageUrl = null;
 
+      // Upload da Imagem
       if (imageFile) {
-        const fileExt = 'jpg';
-        const fileName = `${appId}-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('feed-images').upload(fileName, imageFile, { contentType: 'image/jpeg' });
+        const fileExt = imageFile.name.split('.').pop() || 'jpg';
+        // Caminho organizado: feed/appId/timestamp
+        const fileName = `feed/${appId}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('feed-images')
+          .upload(fileName, imageFile, { upsert: true });
+
         if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('feed-images').getPublicUrl(fileName);
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('feed-images')
+          .getPublicUrl(fileName);
+
         finalImageUrl = publicUrl;
       }
 
-      const scheduledFor = (isScheduled && scheduleDate && scheduleTime) ? `${scheduleDate}T${scheduleTime}:00` : null;
+      // Prepara dados
+      const scheduledFor = (isScheduled && scheduleDate && scheduleTime)
+        ? `${scheduleDate}T${scheduleTime}:00`
+        : null;
+
+      // Sanitização de HTML
+      const sanitizedHTML = DOMPurify.sanitize(htmlContent);
+
       const newPost = {
         app_id: appId,
-        content: htmlContent,
-        image_url: finalImageUrl,
-        status: scheduledFor ? 'scheduled' : 'published',
-        scheduled_for: scheduledFor,
-        likes_count: 0, comments_count: 0
+        content: sanitizedHTML,
+        image_url: finalImageUrl, // Agora a coluna existe no banco!
+        status: scheduledFor ? 'scheduled' : 'published', // Agora a coluna existe!
+        scheduled_for: scheduledFor, // Agora a coluna existe!
+        likes_count: 0,
+        comments_count: 0
       };
 
       const { error } = await supabase.from('feed_posts').insert([newPost]);
       if (error) throw error;
 
       alert(scheduledFor ? 'Agendado!' : 'Publicado!');
-      setHtmlContent(''); if (editorRef.current) editorRef.current.innerHTML = '';
-      setImageFile(null); setImagePreview(null); setIsScheduled(false); setScheduleDate(''); setScheduleTime('');
+
+      // Reset
+      setHtmlContent('');
+      if (editorRef.current) editorRef.current.innerHTML = '';
+      setImageFile(null);
+      setImagePreview(null);
+      setIsScheduled(false);
+      setScheduleDate('');
+      setScheduleTime('');
 
       await fetchPosts();
       setActiveTab(scheduledFor ? 'scheduled' : 'list');
-    } catch (err) { console.error(err); alert('Erro ao publicar.'); } finally { setPublishing(false); }
+
+    } catch (err: any) {
+      console.error(err);
+      alert(`Erro ao publicar: ${err.message}`);
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteModal.postId) return;
     try {
-      await supabase.from('feed_posts').delete().eq('id', deleteModal.postId);
+      const { error } = await supabase.from('feed_posts').delete().eq('id', deleteModal.postId);
+      if (error) throw error;
       setPosts(prev => prev.filter(p => p.id !== deleteModal.postId));
       setScheduled(prev => prev.filter(p => p.id !== deleteModal.postId));
       setDeleteModal({ open: false, postId: null });
@@ -195,7 +245,7 @@ const FeedPage: React.FC = () => {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-1 overflow-x-auto">
         {['create', 'list', 'scheduled'].map(t => (
-          <button key={t} onClick={() => setActiveTab(t as Tab)} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all", activeTab === t ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900")}>
+          <button key={t} onClick={() => setActiveTab(t as Tab)} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all whitespace-nowrap", activeTab === t ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300")}>
             {t === 'create' ? 'Criar Post' : t === 'list' ? `Publicados (${posts.length})` : `Agendados (${scheduled.length})`}
           </button>
         ))}
@@ -225,7 +275,7 @@ const FeedPage: React.FC = () => {
                 ref={editorRef} contentEditable
                 onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)}
                 onKeyUp={checkFormats} onClick={checkFormats}
-                className="w-full flex-1 p-6 outline-none text-sm prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5"
+                className="w-full flex-1 p-6 outline-none text-slate-700 dark:text-slate-300 text-sm prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5"
                 data-placeholder="Escreva..."
               />
 
@@ -233,12 +283,12 @@ const FeedPage: React.FC = () => {
                 <div className="px-6 pb-6">
                   <div className="relative group inline-block">
                     <img src={imagePreview} className="w-40 h-40 rounded-lg border border-slate-200 dark:border-slate-700 object-cover" />
-                    <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500"><X className="w-4 h-4" /></button>
+                    <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500 transition-colors"><X className="w-4 h-4" /></button>
                   </div>
                 </div>
               )}
 
-              <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 rounded-b-xl">
+              <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/20 rounded-b-xl">
                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-brand-blue rounded-lg transition-colors">
                   <ImageIcon className="w-4 h-4" /> Anexar Imagem
                 </button>
@@ -250,17 +300,17 @@ const FeedPage: React.FC = () => {
           {/* SIDEBAR */}
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase mb-4 border-b pb-2">Publicação</h3>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Publicação</h3>
               <div className="flex justify-between items-center mb-4">
-                <div className="flex gap-2 text-sm text-slate-600 dark:text-slate-300"><Clock className="w-4 h-4" /><span>Agendar</span></div>
+                <div className="flex gap-2 text-sm text-slate-600 dark:text-slate-300 items-center"><Clock className="w-4 h-4" /><span>Agendar</span></div>
                 <button onClick={() => setIsScheduled(!isScheduled)} className={cn("w-10 h-5 rounded-full relative transition-colors", isScheduled ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700")}>
                   <div className={cn("w-3 h-3 bg-white rounded-full absolute top-1 transition-all", isScheduled ? "left-6" : "left-1")} />
                 </button>
               </div>
               {isScheduled && (
-                <div className="space-y-3 mb-4 animate-fade-in bg-orange-50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100">
-                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full p-2 rounded border text-xs dark:bg-slate-800 dark:border-slate-700" />
-                  <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="w-full p-2 rounded border text-xs dark:bg-slate-800 dark:border-slate-700" />
+                <div className="space-y-3 mb-4 animate-fade-in bg-orange-50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-800/30">
+                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full p-2 rounded border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+                  <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="w-full p-2 rounded border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
                 </div>
               )}
               <Button onClick={handlePublish} disabled={publishing} className={cn("w-full text-xs font-bold uppercase", isScheduled ? "bg-orange-500" : "bg-brand-blue")} leftIcon={publishing ? Loader2 : Send}>
@@ -273,7 +323,7 @@ const FeedPage: React.FC = () => {
 
       {/* LISTA DE POSTS */}
       {(activeTab === 'list' || activeTab === 'scheduled') && (
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-4 animate-fade-in">
           {(activeTab === 'list' ? posts : scheduled).length === 0 ? (
             <div className="text-center py-16 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               <MessageCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -285,13 +335,13 @@ const FeedPage: React.FC = () => {
                 {activeTab === 'scheduled' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>}
                 <div className="p-5 pl-6">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                       <span className={cn("px-2 py-0.5 rounded font-bold text-[10px] uppercase", activeTab === 'scheduled' ? "bg-orange-100 text-orange-700" : "bg-blue-50 text-brand-blue")}>{activeTab === 'scheduled' ? 'Agendado' : 'Publicado'}</span>
                       <span>•</span>
                       <span>{formatDate(post.scheduled_for || post.created_at)}</span>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setDeleteModal({ open: true, postId: post.id })} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteModal({ open: true, postId: post.id })} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <div
@@ -303,7 +353,7 @@ const FeedPage: React.FC = () => {
                       <img src={post.image_url} alt="Post" className="w-full h-64 object-cover rounded-lg border border-slate-100 dark:border-slate-800" />
                     </div>
                   )}
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-4 text-xs font-bold text-slate-500">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-4 text-xs font-bold text-slate-500 dark:text-slate-400">
                     <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {post.likes_count}</span>
                     <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> {post.comments_count}</span>
                   </div>

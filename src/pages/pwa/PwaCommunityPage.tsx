@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Heart, MessageCircle, Image as ImageIcon, Send, X, Crown,
   MoreHorizontal, Trash2, Flag, Bell, Sparkles, Share2, Loader2,
-  Bold, Italic, Underline, List, Link as LinkIcon, Eraser, User // <--- Adicionado aqui
+  Bold, Italic, Underline, List, Link as LinkIcon, Eraser, User // ✅ Import User Adicionado
 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
@@ -19,7 +19,7 @@ interface CommunityPost {
   author_avatar: string | null;
   content: string;
   image_url: string | null;
-  status: 'pending' | 'approved' | 'rejected'; // <--- Adicionado aqui
+  status: 'pending' | 'approved' | 'rejected'; // ✅ Status Adicionado
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -48,38 +48,26 @@ export default function PwaCommunityPage() {
   const [isPosting, setIsPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // 1. Inicialização e Busca de Dados do Aluno
+  // Inicialização
   useEffect(() => {
     const init = async () => {
       try {
         setLoading(true);
-        // Busca App
         const { data: app, error: appError } = await supabase
           .from('apps').select('id, name, logo, primary_color').eq('slug', appSlug).single();
         if (appError || !app) throw new Error('App não encontrado');
         setAppData(app);
 
-        // Busca Usuário Autenticado (Aluno)
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setCurrentUserId(user.id);
-          // Busca perfil do aluno na tabela 'clients'
           const { data: client } = await supabase
-            .from('clients')
-            .select('name, avatar_url')
-            .eq('id', user.id)
-            .single();
-
-          setUserData({
-            name: client?.name || 'Aluno',
-            avatar: client?.avatar_url || null
-          });
+            .from('clients').select('name, avatar_url').eq('id', user.id).single();
+          setUserData({ name: client?.name || 'Aluno', avatar: client?.avatar_url || null });
         }
 
-        // Busca Feed (Apenas aprovados ou do próprio usuário)
         const { data: feedData } = await supabase
           .from('community_posts')
           .select('*')
@@ -88,7 +76,6 @@ export default function PwaCommunityPage() {
           .order('created_at', { ascending: false });
 
         if (feedData) {
-          // Cast forçado para garantir que o TS entenda o status vindo do banco
           const typedPosts = feedData as CommunityPost[];
           setPosts(typedPosts.map(post => ({ ...post, liked: false })));
         }
@@ -97,7 +84,7 @@ export default function PwaCommunityPage() {
     if (appSlug) init();
   }, [appSlug]);
 
-  // 2. Lógica do Editor
+  // Editor Logic
   const checkFormats = () => {
     if (!document) return;
     setActiveFormats({
@@ -132,7 +119,6 @@ export default function PwaCommunityPage() {
     }
   };
 
-  // 3. Publicar Post (Status: Pending)
   const handleCreatePost = async () => {
     const plainText = htmlContent.replace(/<[^>]*>/g, '').trim();
     if (!plainText && !newPostImage) return;
@@ -165,7 +151,6 @@ export default function PwaCommunityPage() {
       if (error) throw error;
 
       if (data) {
-        // Cast para garantir compatibilidade de tipo no estado local
         const newPostTyped = data as CommunityPost;
         setPosts([newPostTyped, ...posts]);
       }
@@ -185,7 +170,6 @@ export default function PwaCommunityPage() {
       await supabase.from('community_posts').delete().eq('id', postId).eq('author_id', currentUserId);
       setPosts(posts.filter(p => p.id !== postId));
     } catch (err) { alert('Erro ao excluir.'); }
-    setMenuOpenId(null);
   };
 
   const handleLike = (postId: string) => {
@@ -205,7 +189,7 @@ export default function PwaCommunityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 font-['inter'] transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 font-['inter']">
       <header className="sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-lg" style={{ backgroundColor: appData.primary_color }}>
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20">
@@ -222,7 +206,7 @@ export default function PwaCommunityPage() {
       </header>
 
       <main className="p-6 space-y-6 animate-slide-up max-w-xl mx-auto">
-        {/* Editor de Post do Aluno */}
+        {/* Editor de Post */}
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 overflow-x-auto scrollbar-hide">
             <ToolbarBtn isActive={activeFormats.bold} onClick={() => execCmd('bold')} icon={<Bold size={16} />} />
@@ -230,19 +214,12 @@ export default function PwaCommunityPage() {
             <ToolbarBtn isActive={activeFormats.unorderedList} onClick={() => execCmd('insertUnorderedList')} icon={<List size={16} />} />
             <ToolbarBtn onClick={() => execCmd('removeFormat')} icon={<Eraser size={16} />} />
           </div>
-
           <div className="p-4 flex gap-4">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-lg flex-shrink-0" style={{ backgroundColor: appData.primary_color }}>
               {userData?.name.charAt(0) || 'A'}
             </div>
             <div className="flex-1">
-              <div
-                ref={editorRef}
-                contentEditable
-                onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)}
-                className="w-full min-h-[80px] outline-none text-slate-700 dark:text-slate-300 text-sm prose prose-sm max-w-none dark:prose-invert"
-                data-placeholder="No que você está pensando?"
-              />
+              <div ref={editorRef} contentEditable onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)} className="w-full min-h-[80px] outline-none text-slate-700 dark:text-slate-300 text-sm prose prose-sm max-w-none dark:prose-invert" data-placeholder="No que você está pensando?" />
               {newPostImagePreview && (
                 <div className="relative mt-4 inline-block">
                   <img src={newPostImagePreview} className="h-32 w-auto rounded-xl object-cover" />
@@ -251,25 +228,16 @@ export default function PwaCommunityPage() {
               )}
             </div>
           </div>
-
           <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800">
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase shadow-sm">
-              <ImageIcon size={14} /> Foto
-            </button>
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase shadow-sm"><ImageIcon size={14} /> Foto</button>
             <input ref={fileInputRef} type="file" hidden accept="image/*" onChange={handleSelectImage} />
-
-            <button
-              onClick={handleCreatePost}
-              disabled={(!htmlContent.trim() && !newPostImage) || isPosting}
-              className="px-6 py-2 rounded-xl font-black uppercase text-[10px] text-white shadow-lg disabled:opacity-50"
-              style={{ backgroundColor: appData.primary_color }}
-            >
+            <button onClick={handleCreatePost} disabled={(!htmlContent.trim() && !newPostImage) || isPosting} className="px-6 py-2 rounded-xl font-black uppercase text-[10px] text-white shadow-lg disabled:opacity-50" style={{ backgroundColor: appData.primary_color }}>
               {isPosting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Publicar'}
             </button>
           </div>
         </div>
 
-        {/* Listagem do Feed */}
+        {/* Lista de Posts */}
         <div className="space-y-6">
           {posts.map((post) => (
             <article key={post.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -289,27 +257,16 @@ export default function PwaCommunityPage() {
                     </p>
                   </div>
                 </div>
-                {post.author_id === currentUserId && (
-                  <button onClick={() => handleDeletePost(post.id)} className="p-2 text-slate-300 hover:text-red-500"><Trash2 size={18} /></button>
-                )}
+                {post.author_id === currentUserId && <button onClick={() => handleDeletePost(post.id)} className="p-2 text-slate-300 hover:text-red-500"><Trash2 size={18} /></button>}
               </div>
-
               <div className="px-6 pb-6">
-                <div
-                  className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
-                  dangerouslySetInnerHTML={{ __html: post.content }}
-                />
+                <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: post.content }} />
                 {post.image_url && <img src={post.image_url} className="mt-4 rounded-[1.5rem] w-full h-auto border dark:border-slate-800" />}
               </div>
-
               <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div className="flex gap-6">
-                  <button onClick={() => handleLike(post.id)} className={cn("flex gap-2 items-center text-xs font-black", post.liked ? "text-red-500" : "text-slate-400")}>
-                    <Heart className={cn("w-4 h-4", post.liked && "fill-current")} /> {post.likes_count}
-                  </button>
-                  <button className="flex gap-2 items-center text-xs font-black text-slate-400">
-                    <MessageCircle className="w-4 h-4" /> {post.comments_count}
-                  </button>
+                  <button onClick={() => handleLike(post.id)} className={cn("flex gap-2 items-center text-xs font-black", post.liked ? "text-red-500" : "text-slate-400")}><Heart className={cn("w-4 h-4", post.liked && "fill-current")} /> {post.likes_count}</button>
+                  <button className="flex gap-2 items-center text-xs font-black text-slate-400"><MessageCircle className="w-4 h-4" /> {post.comments_count}</button>
                 </div>
                 <Share2 size={16} className="text-slate-300" />
               </div>

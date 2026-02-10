@@ -9,22 +9,23 @@ import {
   Share2,
   Loader2
 } from 'lucide-react';
+import DOMPurify from 'dompurify'; // ✅ Adicionado para segurança na leitura
 import { supabase } from '../../lib/supabase';
 import BottomNavigation from '../../components/pwa/BottomNavigation';
 import { cn } from '../../lib/utils';
 
-// Tipos Reais do Banco de Dados
+// Tipos Reais do Banco de Dados (Sincronizado com o Dashboard)
 interface FeedPost {
   id: string;
   app_id: string;
-  content: string; // HTML vindo do Dashboard
+  content: string;
   image_url: string | null;
   created_at: string;
   scheduled_for: string | null;
   status: 'published' | 'scheduled' | 'draft';
   likes_count: number;
   comments_count: number;
-  liked?: boolean; // Estado local para UI Otimista
+  liked?: boolean; // Estado local
 }
 
 export default function PwaFeedPage() {
@@ -51,19 +52,21 @@ export default function PwaFeedPage() {
         if (appError || !app) throw new Error('App não encontrado');
         setAppData(app);
 
-        // B. Busca Posts Publicados
+        // B. Busca Posts Publicados (Tabela feed_posts)
         const { data: feedData, error: feedError } = await supabase
-          .from('feed_posts')
+          .from('feed_posts') // ✅ Tabela correta
           .select('*')
           .eq('app_id', app.id)
-          .eq('status', 'published')
+          .eq('status', 'published') // ✅ Apenas publicados
+          .order('scheduled_for', { ascending: false, nullsFirst: false }) // Prioriza data de agendamento ou criação
           .order('created_at', { ascending: false });
 
         if (feedError) throw feedError;
 
         if (feedData) {
-          // Adiciona estado inicial de like (false por padrão no front)
-          const postsWithLikes = feedData.map(post => ({ ...post, liked: false }));
+          // Tipagem segura e estado inicial de like
+          const typedPosts = feedData as FeedPost[];
+          const postsWithLikes = typedPosts.map(post => ({ ...post, liked: false }));
           setPosts(postsWithLikes);
         }
 
@@ -95,7 +98,7 @@ export default function PwaFeedPage() {
   };
 
   const handleLike = (postId: string) => {
-    // UI Otimista
+    // Lógica Otimista (Visual apenas, backend pendente)
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return {
@@ -119,7 +122,7 @@ export default function PwaFeedPage() {
   const primaryColor = appData.primary_color || '#2563EB';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 transition-colors duration-300 font-['inter']">
 
       {/* Header Premium */}
       <header
@@ -163,7 +166,7 @@ export default function PwaFeedPage() {
               <div className="p-6 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Avatar do App/Autor */}
+                    {/* Avatar do App (Feed Oficial) */}
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg overflow-hidden"
                       style={{ backgroundColor: primaryColor, boxShadow: `0 8px 15px -4px ${primaryColor}40` }}
@@ -192,18 +195,18 @@ export default function PwaFeedPage() {
                 </div>
               </div>
 
-              {/* Conteúdo do Post (HTML Renderizado - ATUALIZADO) */}
+              {/* Conteúdo do Post (Sanitizado) */}
               <div className="px-6 pb-6">
                 <div
                   className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-2 prose-li:my-0 prose-a:text-blue-500 prose-a:font-bold prose-headings:font-black prose-img:rounded-xl [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                  dangerouslySetInnerHTML={{ __html: post.content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} // ✅ Sanitização Extra
                 />
               </div>
 
-              {/* Imagem do Post (Se houver) */}
+              {/* Imagem do Post */}
               {post.image_url && (
                 <div className="px-6 pb-6">
-                  <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group">
+                  <div className="rounded-[1.5rem] overflow-hidden shadow-sm relative group bg-slate-100 dark:bg-slate-950">
                     <img
                       src={post.image_url}
                       alt="Anexo"

@@ -13,12 +13,10 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ CORREÇÃO: Pega o slug diretamente do Roteador (ex: '01', 'feijao')
-  // Isso evita erros se a URL tiver prefixos extras como /app/
+  // Captura o slug da URL (ex: '001')
   const { appSlug } = useParams<{ appSlug: string }>();
 
-  // Fallback de segurança: se o hook falhar, tenta pegar da URL (mas o hook é prioridade)
-  // Ajustado para pegar o último segmento relevante se houver confusão
+  // Garante que temos um slug válido, senão tenta pegar da URL bruta
   const slug = appSlug || location.pathname.split('/').filter(Boolean)[0] || '';
 
   const navItems = [
@@ -34,22 +32,22 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       label: 'Feed',
       icon: Newspaper,
       path: `/${slug}/feed`,
-      enabled: false // Em breve
+      enabled: true // ✅ HABILITADO
     },
     {
       id: 'community',
       label: 'Comunidade',
       icon: Users,
       path: `/${slug}/community`,
-      enabled: false // Em breve
+      enabled: true // ✅ HABILITADO
     },
     {
       id: 'profile',
       label: 'Perfil',
       icon: User,
-      path: `/${slug}/profile`, // ✅ Agora gera o link certo: /01/profile
+      path: `/${slug}/profile`,
       enabled: true
-    },
+    }
   ];
 
   const isActive = (itemId: string) => {
@@ -72,16 +70,20 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       alert('Esta funcionalidade estará disponível em breve!');
       return;
     }
-    navigate(path);
+    if (slug) {
+      navigate(path);
+    } else {
+      console.error("Slug não encontrado, navegação bloqueada");
+    }
   };
 
-  // Se não tiver slug, não renderiza o menu para evitar erros
   if (!slug) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
       <div className="w-full max-w-md pointer-events-auto">
-        <div className="bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-2 flex items-center justify-around">
+        {/* Container com Blur e Borda */}
+        <div className="bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-2 flex items-center justify-around pb-safe">
           {navItems.map((item) => {
             const active = isActive(item.id);
             const Icon = item.icon;
@@ -95,7 +97,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
                   active
                     ? "bg-slate-800"
                     : "hover:bg-slate-800/50 active:scale-95",
-                  !item.enabled && "opacity-50"
+                  !item.enabled && "opacity-50 grayscale"
                 )}
               >
                 <Icon
@@ -116,7 +118,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           })}
         </div>
 
-        {/* Safe area para iPhone */}
+        {/* Espaçador para iPhone (Safe Area) */}
         <div className="h-safe-area-inset-bottom bg-slate-900/95" />
       </div>
     </nav>
