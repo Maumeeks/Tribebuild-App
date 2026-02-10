@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Bold, Italic, Underline, List, Link as LinkIcon,
   Image as ImageIcon, User, Trash2, Heart, MessageCircle, Send,
-  X, MoreHorizontal, Clock, Loader2, Eraser, Crown
+  X, Clock, Loader2, Eraser
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
 import { supabase } from '../../lib/supabase';
+// Importamos o Modal de Recorte que consertamos antes
+import ImageCropperModal from '../../components/modals/ImageCropperModal';
 
 // Tipos Reais
 interface CommunityPost {
@@ -35,21 +37,26 @@ const CommunityPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
 
-  // Estados do Editor
+  // Estados do Editor Visual
   const [htmlContent, setHtmlContent] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false, unorderedList: false });
 
-  // Uploads
+  // Identidade do Admin (Persona)
   const [authorName, setAuthorName] = useState('Admin');
-  const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [authorAvatar, setAuthorAvatar] = useState<string | null>(null); // URL ou Base64 para preview
+  const [avatarFile, setAvatarFile] = useState<File | null>(null); // Arquivo real para upload
 
-  const [postImage, setPostImage] = useState<File | null>(null);
-  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  // Imagem do Post
+  const [postImage, setPostImage] = useState<File | null>(null); // Arquivo real
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null); // Preview
 
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const postImageInputRef = useRef<HTMLInputElement>(null);
+  // Controle do Modal de Recorte
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperType, setCropperType] = useState<'avatar' | 'post'>('avatar'); // Saber o que estamos cortando
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null); // Imagem bruta para o modal
+
+  const fileInputRef = useRef<HTMLInputElement>(null); // Input único reutilizável
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
 
   // 1. Buscar Posts
@@ -57,14 +64,23 @@ const CommunityPage: React.FC = () => {
     if (!appId) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('community_posts').select('*').eq('app_id', appId).order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('community_posts')
+        .select('*')
+        .eq('app_id', appId)
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
       if (data) setPosts(data);
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) {
+      console.error('Erro ao buscar posts:', err);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { fetchPosts(); }, [appId]);
 
-  // 2. Editor Visual
+  // 2. Editor de Texto
   const checkFormats = () => {
     if (!document) return;
     setActiveFormats({
@@ -88,74 +104,111 @@ const CommunityPage: React.FC = () => {
     }
   };
 
-  // 3. Uploads (Preview)
-  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 3. Gerenciamento de Upload e Crop
+  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'post') => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
       const reader = new FileReader();
-      reader.onload = () => setAuthorAvatar(reader.result as string);
+      reader.onload = () => {
+        setTempImageSrc(reader.result as string);
+        setCropperType(type);
+        setCropperOpen(true);
+        // Reseta o input para permitir selecionar a mesma foto se errar
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
       reader.readAsDataURL(file);
     }
   };
 
-  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPostImage(file);
-      const reader = new FileReader();
-      reader.onload = () => setPostImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleCropComplete = (croppedFile: File) => {
+    const previewUrl = URL.createObjectURL(croppedFile);
+
+    if (cropperType === 'avatar') {
+      setAvatarFile(croppedFile);
+      setAuthorAvatar(previewUrl);
+    } else {
+      setPostImage(croppedFile);
+      setPostImagePreview(previewUrl);
     }
+
+    setCropperOpen(false);
+    setTempImageSrc(null);
   };
 
-  // 4. Publicar
+  // 4. Publicar Post
   const handlePublish = async () => {
+    // Validação básica
     const plainText = htmlContent.replace(/<[^>]*>/g, '').trim();
-    if (!appId || (!plainText && !postImage)) return;
+    if (!appId) return;
+    if (!plainText && !postImage) {
+      alert('Escreva algo ou adicione uma imagem.');
+      return;
+    }
 
     setPublishing(true);
     try {
-      let finalAvatarUrl = authorAvatar; // Se for string (já existente), mantém
+      let finalAvatarUrl = authorAvatar; // Mantém se for URL antiga, substitui se for upload
       let finalImageUrl = null;
 
-      // Upload Avatar se for arquivo novo
+      // A. Upload do Avatar (se for arquivo novo)
       if (avatarFile) {
-        const path = `avatars/${Date.now()}-${avatarFile.name}`;
-        await supabase.storage.from('feed-images').upload(path, avatarFile);
-        const { data } = supabase.storage.from('feed-images').getPublicUrl(path);
+        const fileExt = 'jpg';
+        const fileName = `avatars/${appId}-${Date.now()}.${fileExt}`;
+        const { error: upError } = await supabase.storage.from('feed-images').upload(fileName, avatarFile, { contentType: 'image/jpeg' });
+        if (upError) throw upError;
+        const { data } = supabase.storage.from('feed-images').getPublicUrl(fileName);
         finalAvatarUrl = data.publicUrl;
       }
 
-      // Upload Post Image
+      // B. Upload da Imagem do Post
       if (postImage) {
-        const path = `community/${Date.now()}-${postImage.name}`;
-        await supabase.storage.from('feed-images').upload(path, postImage);
-        const { data } = supabase.storage.from('feed-images').getPublicUrl(path);
+        const fileExt = 'jpg';
+        const fileName = `community/${appId}-${Date.now()}.${fileExt}`;
+        const { error: upError } = await supabase.storage.from('feed-images').upload(fileName, postImage, { contentType: 'image/jpeg' });
+        if (upError) throw upError;
+        const { data } = supabase.storage.from('feed-images').getPublicUrl(fileName);
         finalImageUrl = data.publicUrl;
       }
 
-      const { error } = await supabase.from('community_posts').insert([{
+      // C. Salvar no Banco
+      const newPost = {
         app_id: appId,
-        author_id: 'admin-dashboard',
-        author_type: 'admin', // Flag de Admin
+        author_id: 'admin-dashboard', // ID fixo para identificar admin
+        author_type: 'admin',
         author_name: authorName,
-        author_avatar: finalAvatarUrl,
-        content: htmlContent, // Salva HTML
+        author_avatar: finalAvatarUrl?.startsWith('blob:') ? null : finalAvatarUrl, // Evita salvar blob URL no banco
+        content: htmlContent,
         image_url: finalImageUrl,
         likes_count: 0,
         comments_count: 0
-      }]);
+      };
 
-      if (error) throw error;
+      console.log('Enviando post:', newPost);
 
-      alert('Post publicado!');
-      setHtmlContent(''); if (editorRef.current) editorRef.current.innerHTML = '';
-      setPostImage(null); setPostImagePreview(null);
+      const { error } = await supabase.from('community_posts').insert([newPost]);
+
+      if (error) {
+        console.error('Erro Supabase:', error);
+        throw error;
+      }
+
+      // Sucesso
+      alert('Post publicado com sucesso!');
+      setHtmlContent('');
+      if (editorRef.current) editorRef.current.innerHTML = '';
+      setPostImage(null);
+      setPostImagePreview(null);
+      setAvatarFile(null); // Limpa arquivo do avatar mas mantém o nome/preview visual para o próximo post
+
       setActiveTab('list');
       fetchPosts();
 
-    } catch (err) { console.error(err); alert('Erro ao publicar.'); } finally { setPublishing(false); }
+    } catch (err: any) {
+      console.error('Erro detalhado:', err);
+      alert(`Erro ao publicar: ${err.message || 'Verifique o console'}`);
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -171,6 +224,16 @@ const CommunityPage: React.FC = () => {
 
   return (
     <div className="space-y-8 font-['inter'] pb-20 animate-fade-in">
+
+      {/* MODAL DE RECORTE */}
+      {cropperOpen && tempImageSrc && (
+        <ImageCropperModal
+          imageSrc={tempImageSrc}
+          onClose={() => setCropperOpen(false)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
@@ -192,16 +255,34 @@ const CommunityPage: React.FC = () => {
         {activeTab === 'create' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            {/* Coluna Esquerda: Identidade do Autor */}
+            {/* Coluna Esquerda: Identidade (Avatar com Crop) */}
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                 <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Identidade</h3>
                 <div className="space-y-4">
                   <div className="flex flex-col items-center">
-                    <div onClick={() => avatarInputRef.current?.click()} className="w-24 h-24 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-blue cursor-pointer overflow-hidden relative group transition-all">
-                      {authorAvatar ? <img src={authorAvatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1"><User className="w-6 h-6" /><span className="text-[9px] uppercase font-bold">Foto</span></div>}
-                    </div>
-                    <input ref={avatarInputRef} type="file" hidden accept="image/*" onChange={handleAvatarSelect} />
+                    {/* Botão invisível sobre o avatar para abrir file dialog */}
+                    <label className="cursor-pointer group relative">
+                      <div className="w-24 h-24 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-blue flex items-center justify-center overflow-hidden transition-all bg-slate-50 dark:bg-slate-800">
+                        {authorAvatar ? (
+                          <img src={authorAvatar} className="w-full h-full object-cover" alt="Avatar" />
+                        ) : (
+                          <div className="flex flex-col items-center text-slate-400 gap-1">
+                            <User className="w-6 h-6" />
+                            <span className="text-[9px] uppercase font-bold">Foto</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ImageIcon className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={(e) => onFileSelect(e, 'avatar')}
+                      />
+                    </label>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase">Nome de Exibição</label>
@@ -240,7 +321,7 @@ const CommunityPage: React.FC = () => {
                   data-placeholder="Escreva algo relevante para a comunidade..."
                 />
 
-                {/* Preview de Imagem */}
+                {/* Preview de Imagem do Post */}
                 {postImagePreview && (
                   <div className="px-6 pb-6 relative group inline-block">
                     <img src={postImagePreview} className="max-h-60 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm" />
@@ -250,10 +331,10 @@ const CommunityPage: React.FC = () => {
 
                 {/* Footer Actions */}
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                  <button onClick={() => postImageInputRef.current?.click()} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-colors">
+                  <label className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-brand-blue hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-colors cursor-pointer">
                     <ImageIcon className="w-4 h-4" /> <span className="hidden sm:inline">Adicionar Mídia</span>
-                  </button>
-                  <input ref={postImageInputRef} type="file" hidden accept="image/*" onChange={handlePostImageSelect} />
+                    <input type="file" hidden accept="image/*" onChange={(e) => onFileSelect(e, 'post')} />
+                  </label>
 
                   <Button onClick={handlePublish} disabled={publishing} size="sm" leftIcon={publishing ? Loader2 : Send} className="text-xs font-bold uppercase tracking-wide">
                     {publishing ? 'Publicando...' : 'Publicar Agora'}
@@ -264,7 +345,7 @@ const CommunityPage: React.FC = () => {
           </div>
         )}
 
-        {/* LISTA */}
+        {/* LISTA DE POSTS */}
         {activeTab === 'list' && (
           <div className="max-w-3xl mx-auto space-y-6">
             {posts.length === 0 ? (
