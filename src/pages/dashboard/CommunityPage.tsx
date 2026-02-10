@@ -5,6 +5,7 @@ import {
   Image as ImageIcon, User, Trash2, Heart, MessageCircle, Send,
   X, Clock, Loader2, Eraser, CheckCircle, XCircle, ShieldCheck
 } from 'lucide-react';
+import DOMPurify from 'dompurify'; // Sanitização
 import { cn } from '../../lib/utils';
 import Button from '../../components/Button';
 import { supabase } from '../../lib/supabase';
@@ -42,7 +43,7 @@ const CommunityPage: React.FC = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false, unorderedList: false });
 
-  // Uploads
+  // Uploads & Persona
   const [authorName, setAuthorName] = useState('Suporte');
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -57,7 +58,7 @@ const CommunityPage: React.FC = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
 
-  // 1. Fetch
+  // 1. Fetch de Posts (Unificado)
   const fetchPosts = async () => {
     if (!appId) return;
     try {
@@ -74,11 +75,12 @@ const CommunityPage: React.FC = () => {
         setPosts(data.filter(p => p.status === 'approved'));
         setPendingPosts(data.filter(p => p.status === 'pending'));
       }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) { console.error("Erro ao buscar posts:", err); } finally { setLoading(false); }
   };
+
   useEffect(() => { fetchPosts(); }, [appId]);
 
-  // 2. Editor
+  // 2. Lógica do Editor Rich Text
   const checkFormats = () => {
     if (!document) return;
     setActiveFormats({
@@ -88,6 +90,7 @@ const CommunityPage: React.FC = () => {
       unorderedList: document.queryCommandState('insertUnorderedList'),
     });
   };
+
   useEffect(() => {
     document.addEventListener('selectionchange', checkFormats);
     return () => document.removeEventListener('selectionchange', checkFormats);
@@ -107,7 +110,7 @@ const CommunityPage: React.FC = () => {
     if (url) execCmd('createLink', url);
   };
 
-  // 3. Uploads
+  // 3. Gestão de Imagens
   const onAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -137,7 +140,7 @@ const CommunityPage: React.FC = () => {
     }
   };
 
-  // 4. Publish
+  // 4. Publicação (Ajustada com Sanitização e Storage)
   const handlePublish = async () => {
     const plainText = htmlContent.replace(/<[^>]*>/g, '').trim();
     if (!appId || (!plainText && !postImage)) return;
@@ -147,181 +150,304 @@ const CommunityPage: React.FC = () => {
       let finalAvatarUrl = authorAvatar;
       let finalImageUrl = null;
 
+      // Upload do Avatar (se foi trocado)
       if (avatarFile) {
-        const path = `avatars/${Date.now()}-${avatarFile.name}`;
-        await supabase.storage.from('feed-images').upload(path, avatarFile);
-        const { data } = supabase.storage.from('feed-images').getPublicUrl(path);
-        finalAvatarUrl = data.publicUrl;
+        const path = `avatars/${appId}/${Date.now()}.png`;
+        const { error: upErr } = await supabase.storage.from('feed-images').upload(path, avatarFile);
+        if (upErr) throw upErr;
+        finalAvatarUrl = supabase.storage.from('feed-images').getPublicUrl(path).data.publicUrl;
       }
+
+      // Upload da Imagem do Post
       if (postImage) {
-        const path = `community/${Date.now()}-${postImage.name}`;
-        await supabase.storage.from('feed-images').upload(path, postImage);
-        const { data } = supabase.storage.from('feed-images').getPublicUrl(path);
-        finalImageUrl = data.publicUrl;
+        const path = `posts/${appId}/${Date.now()}-${postImage.name}`;
+        const { error: upErr } = await supabase.storage.from('feed-images').upload(path, postImage);
+        if (upErr) throw upErr;
+        finalImageUrl = supabase.storage.from('feed-images').getPublicUrl(path).data.publicUrl;
       }
+
+      // Sanitizar HTML antes de enviar ao banco
+      const sanitizedHTML = DOMPurify.sanitize(htmlContent);
+      const { data: userData } = await supabase.auth.getUser();
 
       const { error } = await supabase.from('community_posts').insert([{
         app_id: appId,
-        author_id: 'admin',
+        author_id: `admin_${userData.user?.id}`,
         author_type: 'admin',
         author_name: authorName,
-        author_avatar: finalAvatarUrl?.startsWith('blob:') ? null : finalAvatarUrl,
-        content: htmlContent,
+        author_avatar: finalAvatarUrl,
+        content: sanitizedHTML,
         image_url: finalImageUrl,
         status: 'approved',
-        likes_count: 0, comments_count: 0
+        likes_count: 0,
+        comments_count: 0
       }]);
 
       if (error) throw error;
 
-      alert('Post publicado!');
-      setHtmlContent(''); if (editorRef.current) editorRef.current.innerHTML = '';
-      setPostImage(null); setPostImagePreview(null);
+      // Reset
+      setHtmlContent('');
+      if (editorRef.current) editorRef.current.innerHTML = '';
+      setPostImage(null);
+      setPostImagePreview(null);
       setActiveTab('feed');
       fetchPosts();
 
     } catch (err: any) {
       console.error(err);
-      alert(`Erro ao publicar: ${err.message || 'Erro desconhecido'}`);
+      alert(`Erro: ${err.message}`);
     } finally { setPublishing(false); }
   };
 
-  // Moderação e Delete
+  // 5. Moderação
   const handleApprove = async (postId: string) => {
     try {
-      await supabase.from('community_posts').update({ status: 'approved' }).eq('id', postId);
-      const post = pendingPosts.find(p => p.id === postId);
-      if (post) {
-        setPendingPosts(prev => prev.filter(p => p.id !== postId));
-        setPosts(prev => [{ ...post, status: 'approved' }, ...prev]);
-      }
-    } catch (err) { alert('Erro.'); }
+      const { error } = await supabase.from('community_posts').update({ status: 'approved' }).eq('id', postId);
+      if (error) throw error;
+      fetchPosts();
+    } catch (err) { alert('Erro ao aprovar.'); }
   };
 
   const handleReject = async (postId: string) => {
-    if (!confirm('Rejeitar e excluir?')) return;
+    if (!confirm('Deseja realmente rejeitar e excluir este post?')) return;
     try {
-      await supabase.from('community_posts').delete().eq('id', postId);
-      setPendingPosts(prev => prev.filter(p => p.id !== postId));
-    } catch (err) { alert('Erro.'); }
+      const { error } = await supabase.from('community_posts').delete().eq('id', postId);
+      if (error) throw error;
+      fetchPosts();
+    } catch (err) { alert('Erro ao rejeitar.'); }
   };
 
   const handleDelete = async () => {
     if (!deleteModal.postId) return;
     try {
-      await supabase.from('community_posts').delete().eq('id', deleteModal.postId);
+      const { error } = await supabase.from('community_posts').delete().eq('id', deleteModal.postId);
+      if (error) throw error;
       setPosts(prev => prev.filter(p => p.id !== deleteModal.postId));
       setDeleteModal({ open: false, postId: null });
-    } catch (err) { alert('Erro.'); }
+    } catch (err) { alert('Erro ao deletar.'); }
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="space-y-8 font-['inter'] pb-20 animate-fade-in">
+    <div className="space-y-8 font-['inter'] pb-20 animate-fade-in text-slate-900 dark:text-slate-100">
 
       {cropperOpen && tempAvatarSrc && (
-        <ImageCropperModal imageSrc={tempAvatarSrc} onClose={() => setCropperOpen(false)} onCropComplete={handleCropComplete} />
+        <ImageCropperModal
+          imageSrc={tempAvatarSrc}
+          onClose={() => setCropperOpen(false)}
+          onCropComplete={handleCropComplete}
+        />
       )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
-          <button onClick={() => navigate('/dashboard/apps')} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-2 font-bold text-xs uppercase"><ArrowLeft className="w-3 h-3" /> Voltar</button>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Comunidade</h1>
-          <p className="text-slate-500 text-sm mt-1">Interaja com seus alunos.</p>
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-2 font-bold text-xs uppercase">
+            <ArrowLeft className="w-3 h-3" /> Voltar
+          </button>
+          <h1 className="text-2xl font-bold">Comunidade</h1>
+          <p className="text-slate-500 text-sm mt-1">Gerencie o engajamento e a moderação do seu PWA.</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
-        <button onClick={() => setActiveTab('create')} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all", activeTab === 'create' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900")}>Criar Post</button>
-        <button onClick={() => setActiveTab('feed')} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all", activeTab === 'feed' ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-900")}>Feed ({posts.length})</button>
-        <button onClick={() => setActiveTab('moderation')} className={cn("px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2", activeTab === 'moderation' ? "bg-orange-50 text-orange-600" : "text-slate-500 hover:text-orange-600")}>
-          Moderação {pendingPosts.length > 0 && <span className="bg-orange-500 text-white px-1.5 py-0.5 rounded-full text-[10px]">{pendingPosts.length}</span>}
-        </button>
+        {[
+          { id: 'create', label: 'Criar Post' },
+          { id: 'feed', label: `Feed (${posts.length})` },
+          { id: 'moderation', label: 'Moderação', count: pendingPosts.length }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as Tab)}
+            className={cn(
+              "px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2",
+              activeTab === tab.id
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="bg-orange-500 text-white px-1.5 py-0.5 rounded-full text-[10px] animate-pulse">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="animate-slide-up">
         {activeTab === 'create' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Persona */}
+            {/* Coluna Persona */}
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                <h3 className="text-xs font-bold text-slate-500 uppercase mb-4">Persona</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-wider">Publicar Como</h3>
                 <div className="flex flex-col items-center gap-4">
-                  <div onClick={() => avatarInputRef.current?.click()} className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 hover:border-brand-blue cursor-pointer overflow-hidden relative group bg-slate-50">
-                    {authorAvatar ? <img src={authorAvatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 gap-1 flex-col"><User /><span className="text-[9px] uppercase font-bold">Foto</span></div>}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ImageIcon className="text-white" /></div>
+                  <div
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="w-20 h-20 rounded-full border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 cursor-pointer overflow-hidden relative group bg-slate-50 dark:bg-slate-800 transition-colors"
+                  >
+                    {authorAvatar ? (
+                      <img src={authorAvatar} className="w-full h-full object-cover" alt="Avatar Preview" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 flex-col gap-1">
+                        <User className="w-6 h-6" />
+                        <span className="text-[9px] uppercase font-black">Upload</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ImageIcon className="text-white w-5 h-5" />
+                    </div>
                   </div>
                   <input ref={avatarInputRef} type="file" hidden accept="image/*" onChange={onAvatarSelect} />
-                  <input type="text" value={authorName} onChange={e => setAuthorName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm text-center font-bold dark:bg-slate-800 dark:border-slate-700" placeholder="Nome do Autor" />
+                  <input
+                    type="text"
+                    value={authorName}
+                    onChange={e => setAuthorName(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-center font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                    placeholder="Nome da Persona"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Editor */}
+            {/* Coluna Editor */}
             <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[300px]">
-                <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 rounded-t-xl">
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[350px]">
+                {/* Toolbar */}
+                <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-t-xl">
                   <ToolbarBtn isActive={activeFormats.bold} onClick={() => execCmd('bold')} icon={<Bold className="w-4 h-4" />} />
                   <ToolbarBtn isActive={activeFormats.italic} onClick={() => execCmd('italic')} icon={<Italic className="w-4 h-4" />} />
                   <ToolbarBtn isActive={activeFormats.underline} onClick={() => execCmd('underline')} icon={<Underline className="w-4 h-4" />} />
-                  <div className="w-px h-4 bg-slate-300 mx-1" />
+                  <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
                   <ToolbarBtn isActive={activeFormats.unorderedList} onClick={() => execCmd('insertUnorderedList')} icon={<List className="w-4 h-4" />} />
                   <ToolbarBtn onClick={addLink} icon={<LinkIcon className="w-4 h-4" />} />
                   <ToolbarBtn onClick={() => execCmd('removeFormat')} icon={<Eraser className="w-4 h-4" />} />
                 </div>
+
+                {/* Área Editável */}
                 <div
-                  ref={editorRef} contentEditable
+                  ref={editorRef}
+                  contentEditable
                   onInput={(e) => setHtmlContent(e.currentTarget.innerHTML)}
-                  onKeyUp={checkFormats} onClick={checkFormats}
-                  className="w-full flex-1 p-6 outline-none text-slate-700 dark:text-slate-300 text-sm prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5"
-                  data-placeholder="Escreva algo..."
+                  onKeyUp={checkFormats}
+                  onClick={checkFormats}
+                  className="w-full flex-1 p-6 outline-none text-slate-700 dark:text-slate-300 text-base prose prose-slate max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:pl-5 min-h-[200px]"
+                  data-placeholder="O que você quer compartilhar hoje?"
                 />
+
+                {/* Preview da Imagem */}
                 {postImagePreview && (
                   <div className="px-6 pb-6 relative inline-block">
-                    <img src={postImagePreview} className="max-h-60 rounded-lg border shadow-sm" />
-                    <button onClick={() => { setPostImage(null); setPostImagePreview(null); }} className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors"><X className="w-3 h-3" /></button>
+                    <div className="relative rounded-lg overflow-hidden border dark:border-slate-700 shadow-lg">
+                      <img src={postImagePreview} className="max-h-80 w-auto object-contain bg-slate-50 dark:bg-slate-800" alt="Preview" />
+                      <button
+                        onClick={() => { setPostImage(null); setPostImagePreview(null); }}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className="p-4 border-t flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                  <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-brand-blue"><ImageIcon className="w-4 h-4" /> Adicionar Mídia</button>
+
+                {/* Footer do Editor */}
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-950/20">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                  >
+                    <ImageIcon className="w-4 h-4" /> Adicionar Mídia
+                  </button>
                   <input ref={fileInputRef} type="file" hidden accept="image/*" onChange={onPostImageSelect} />
-                  <Button onClick={handlePublish} disabled={publishing} size="sm" leftIcon={publishing ? Loader2 : Send}>{publishing ? 'Publicando...' : 'Publicar'}</Button>
+                  <Button
+                    onClick={handlePublish}
+                    disabled={publishing || (!htmlContent.trim() && !postImage)}
+                    size="sm"
+                    leftIcon={publishing ? Loader2 : Send}
+                  >
+                    {publishing ? 'Enviando...' : 'Publicar Agora'}
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Listas (Moderation + Feed) */}
+        {/* Feed e Moderação */}
         {activeTab !== 'create' && (
           <div className="max-w-3xl mx-auto space-y-6">
-            {(activeTab === 'moderation' ? pendingPosts : posts).length === 0 ? <div className="text-center py-16 text-slate-400">Nada por aqui.</div> :
+            {(activeTab === 'moderation' ? pendingPosts : posts).length === 0 ? (
+              <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <div className="bg-slate-100 dark:bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                  <MessageCircle className="w-8 h-8" />
+                </div>
+                <h3 className="font-bold text-slate-900 dark:text-white">Nenhum post encontrado</h3>
+                <p className="text-slate-500 text-sm">Os posts aparecerão aqui conforme os alunos interagirem.</p>
+              </div>
+            ) :
               (activeTab === 'moderation' ? pendingPosts : posts).map(post => (
-                <div key={post.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex gap-3 items-center">
-                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center overflow-hidden", post.author_type === 'admin' ? "bg-brand-blue text-white" : "bg-slate-100")}>
-                        {post.author_avatar ? <img src={post.author_avatar} className="w-full h-full object-cover" /> : <User />}
+                <div key={post.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden group">
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex gap-3 items-center">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2",
+                          post.author_type === 'admin' ? "border-blue-500/20 bg-blue-50" : "border-slate-100 bg-slate-50"
+                        )}>
+                          {post.author_avatar ? (
+                            <img src={post.author_avatar} className="w-full h-full object-cover" alt={post.author_name} />
+                          ) : <User className="text-slate-400 w-5 h-5" />}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm flex items-center gap-1.5">
+                            {post.author_name}
+                            {post.author_type === 'admin' && <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />}
+                          </h4>
+                          <span className="text-[11px] text-slate-400 font-medium">{formatDate(post.created_at)}</span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{post.author_name}</h4>
-                        <span className="text-xs text-slate-500">{formatDate(post.created_at)}</span>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {activeTab === 'moderation' && (
+                          <button
+                            onClick={() => handleApprove(post.id)}
+                            className="text-green-600 bg-green-50 dark:bg-green-900/20 font-bold text-[10px] uppercase px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
+                          >
+                            Aprovar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => activeTab === 'moderation' ? handleReject(post.id) : setDeleteModal({ open: true, postId: post.id })}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {activeTab === 'moderation' && <button onClick={() => handleApprove(post.id)} className="text-green-500 font-bold text-xs uppercase border border-green-200 px-3 py-1 rounded hover:bg-green-50">Aprovar</button>}
-                      <button onClick={() => activeTab === 'moderation' ? handleReject(post.id) : setDeleteModal({ open: true, postId: post.id })} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+
+                    <div
+                      className="text-sm text-slate-700 dark:text-slate-300 mb-4 prose prose-slate dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: post.content }}
+                    />
+
+                    {post.image_url && (
+                      <div className="mt-4 rounded-xl overflow-hidden border dark:border-slate-800 shadow-sm bg-slate-50 dark:bg-slate-950">
+                        <img src={post.image_url} className="w-full max-h-[500px] object-contain" alt="Post content" />
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm text-slate-700 dark:text-slate-300 mb-4 prose prose-sm max-w-none dark:prose-invert [&_a]:text-blue-500 [&_a]:underline" dangerouslySetInnerHTML={{ __html: post.content }} />
-                  {post.image_url && <img src={post.image_url} className="w-full rounded-lg max-h-96 object-cover mb-4" />}
+
                   {activeTab === 'feed' && (
-                    <div className="flex gap-4 text-xs font-bold text-slate-500 border-t pt-3">
-                      <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {post.likes_count}</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {post.comments_count}</span>
+                    <div className="px-5 py-3 bg-slate-50/50 dark:bg-slate-800/30 flex gap-4 text-xs font-bold text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                      <span className="flex items-center gap-1.5 hover:text-red-500 cursor-default transition-colors">
+                        <Heart className="w-4 h-4" /> {post.likes_count}
+                      </span>
+                      <span className="flex items-center gap-1.5 hover:text-blue-500 cursor-default transition-colors">
+                        <MessageCircle className="w-4 h-4" /> {post.comments_count}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -330,14 +456,28 @@ const CommunityPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Delete */}
+      {/* Modal de Exclusão */}
       {deleteModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl w-full max-w-sm border border-slate-200 dark:border-slate-800">
-            <h3 className="font-bold text-lg mb-2 dark:text-white">Excluir Post?</h3>
-            <div className="flex gap-2">
-              <button onClick={() => setDeleteModal({ open: false, postId: null })} className="flex-1 py-2 border rounded dark:border-slate-700 dark:text-slate-300">Cancelar</button>
-              <button onClick={handleDelete} className="flex-1 py-2 bg-red-600 text-white rounded hover:bg-red-700">Excluir</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-xl mb-2 text-slate-900 dark:text-white">Excluir este post?</h3>
+            <p className="text-slate-500 text-sm mb-6">Esta ação não pode ser desfeita e o conteúdo será removido para todos os alunos.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ open: false, postId: null })}
+                className="flex-1 py-2.5 font-bold text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 py-2.5 font-bold text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-lg shadow-red-500/20 transition-all"
+              >
+                Excluir
+              </button>
             </div>
           </div>
         </div>
@@ -346,8 +486,19 @@ const CommunityPage: React.FC = () => {
   );
 };
 
+// Componente Auxiliar ToolbarBtn
 const ToolbarBtn = ({ onClick, icon, isActive }: any) => (
-  <button onClick={(e) => { e.preventDefault(); onClick(); }} className={cn("p-1.5 rounded transition-all", isActive ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 shadow-inner" : "text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800")}>{icon}</button>
+  <button
+    onClick={(e) => { e.preventDefault(); onClick(); }}
+    className={cn(
+      "p-2 rounded-lg transition-all",
+      isActive
+        ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 shadow-inner"
+        : "text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+    )}
+  >
+    {icon}
+  </button>
 );
 
 export default CommunityPage;
