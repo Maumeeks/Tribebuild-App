@@ -15,26 +15,22 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import SubscriptionSuccessPage from './pages/SubscriptionSuccessPage';
 import SubscriptionCancelPage from './pages/SubscriptionCancelPage';
-
-// Auth Callback
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AuthCallback from './pages/AuthCallback';
 
-// ✅ MUDANÇA CRÍTICA: Importação ESTÁTICA para PWA Community
-// Isso resolve o loop de atualização/redirect se o lazy loading falhar
+// ✅ MUDANÇA: Importação ESTÁTICA para PWA (Resolve o crash de navegação)
+import PwaHomePage from './pages/pwa/PwaHomePage';
+import PwaFeedPage from './pages/pwa/PwaFeedPage';
 import PwaCommunityPage from './pages/pwa/PwaCommunityPage';
+import PwaProfilePage from './pages/pwa/PwaProfilePage';
+import PwaProductPage from './pages/pwa/PwaProductPage';
+import PwaLessonPage from './pages/pwa/PwaLessonPage';
 
-// Importações Dinâmicas (Lazy Loading) mantidas para os demais
+// Auth PWA pode continuar Lazy
 const PwaLoginPage = React.lazy(() => import('./pages/pwa/PwaLoginPage'));
 const PwaRegisterPage = React.lazy(() => import('./pages/pwa/PwaRegisterPage'));
 const PwaForgotPasswordPage = React.lazy(() => import('./pages/pwa/PwaForgotPasswordPage'));
 const PwaUpdatePasswordPage = React.lazy(() => import('./pages/pwa/PwaUpdatePasswordPage'));
-const PwaHomePage = React.lazy(() => import('./pages/pwa/PwaHomePage'));
-const PwaProductPage = React.lazy(() => import('./pages/pwa/PwaProductPage'));
-const PwaLessonPage = React.lazy(() => import('./pages/pwa/PwaLessonPage'));
-const PwaFeedPage = React.lazy(() => import('./pages/pwa/PwaFeedPage'));
-// const PwaCommunityPage = React.lazy(() => import('./pages/pwa/PwaCommunityPage')); // 🔴 REMOVIDO PARA EVITAR ERRO
-const PwaProfilePage = React.lazy(() => import('./pages/pwa/PwaProfilePage'));
 
 // Dashboard
 import DashboardLayout from './layout/DashboardLayout';
@@ -63,7 +59,6 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSubscriptionsPage from './pages/admin/AdminSubscriptionsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminSecurityPage from './pages/admin/AdminSecurityPage';
-
 import DevToolsPage from './pages/DevToolsPage';
 
 // Layout
@@ -78,7 +73,6 @@ const PageLoader = () => (
 const RedirectStripAppPrefix = ({ targetPath }: { targetPath?: string }) => {
   const { appSlug } = useParams<{ appSlug: string }>();
   const finalPath = targetPath || '';
-
   if (!appSlug) return <Navigate to="/" replace />;
   return <Navigate to={`/${appSlug}/${finalPath}`} replace />;
 };
@@ -93,9 +87,6 @@ const AppRoutes: React.FC = () => {
   const hostname = window.location.hostname;
   const isStudentSubdomain = hostname.startsWith('app.') || hostname.includes('localhost');
 
-  // =========================================================
-  // 1️⃣ ROTAS DO ALUNO (PWA)
-  // =========================================================
   if (isStudentSubdomain) {
     return (
       <Suspense fallback={<PageLoader />}>
@@ -108,15 +99,13 @@ const AppRoutes: React.FC = () => {
             <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
             <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
+            {/* Rotas Estáticas (Navegação Rápida) */}
             <Route path="/:appSlug/home" element={<PwaHomePage />} />
+            <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
+            <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
+            <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
             <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
             <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
-            <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
-
-            {/* ✅ Rota agora usa o componente importado estaticamente */}
-            <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
-
-            <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
           </Route>
 
           <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
@@ -125,15 +114,13 @@ const AppRoutes: React.FC = () => {
           <Route path="/app/:appSlug" element={<RedirectStripAppPrefix targetPath="" />} />
           <Route path="/app/:appSlug/*" element={<RedirectStripAppPrefix targetPath="home" />} />
 
-          <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada no App.</div>} />
+          <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada (404)</div>} />
         </Routes>
       </Suspense>
     );
   }
 
-  // =========================================================
-  // 2️⃣ ROTAS DO DASHBOARD / SITE
-  // =========================================================
+  // Rotas do Dashboard (mantidas iguais)
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -157,14 +144,7 @@ const AppRoutes: React.FC = () => {
         <Route path="security" element={<AdminSecurityPage />} />
       </Route>
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardHome />} />
         <Route path="academia" element={<AcademiaPage />} />
         <Route path="apps" element={<AppsPage />} />
@@ -187,24 +167,21 @@ const AppRoutes: React.FC = () => {
       <Route path="/app/:appSlug" element={<RedirectToLogin />} />
       <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} />
       <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
-
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
 
-const App: React.FC = () => {
-  return (
-    <AuthProvider>
-      <AppsProvider>
-        <ThemeProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ThemeProvider>
-      </AppsProvider>
-    </AuthProvider>
-  );
-};
+const App: React.FC = () => (
+  <AuthProvider>
+    <AppsProvider>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </ThemeProvider>
+    </AppsProvider>
+  </AuthProvider>
+);
 
 export default App;
