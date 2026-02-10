@@ -20,22 +20,23 @@ import SubscriptionCancelPage from './pages/SubscriptionCancelPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AuthCallback from './pages/AuthCallback';
 
-// ✅ MUDANÇA CRÍTICA: Importação ESTÁTICA para as páginas principais do PWA
-// Isso resolve o erro de "Refresh/Redirect" causado por falha no Lazy Loading
-import PwaFeedPage from './pages/pwa/PwaFeedPage';
+// ✅ MUDANÇA CRÍTICA: Importação ESTÁTICA para PWA Community
+// Isso resolve o loop de atualização/redirect se o lazy loading falhar
 import PwaCommunityPage from './pages/pwa/PwaCommunityPage';
-import PwaHomePage from './pages/pwa/PwaHomePage'; // Home também é bom ser estática para velocidade
 
-// Otimização: Mantemos Lazy Loading apenas para páginas secundárias ou de Auth do PWA
+// Importações Dinâmicas (Lazy Loading) mantidas para os demais
 const PwaLoginPage = React.lazy(() => import('./pages/pwa/PwaLoginPage'));
 const PwaRegisterPage = React.lazy(() => import('./pages/pwa/PwaRegisterPage'));
 const PwaForgotPasswordPage = React.lazy(() => import('./pages/pwa/PwaForgotPasswordPage'));
 const PwaUpdatePasswordPage = React.lazy(() => import('./pages/pwa/PwaUpdatePasswordPage'));
+const PwaHomePage = React.lazy(() => import('./pages/pwa/PwaHomePage'));
 const PwaProductPage = React.lazy(() => import('./pages/pwa/PwaProductPage'));
 const PwaLessonPage = React.lazy(() => import('./pages/pwa/PwaLessonPage'));
+const PwaFeedPage = React.lazy(() => import('./pages/pwa/PwaFeedPage'));
+// const PwaCommunityPage = React.lazy(() => import('./pages/pwa/PwaCommunityPage')); // 🔴 REMOVIDO PARA EVITAR ERRO
 const PwaProfilePage = React.lazy(() => import('./pages/pwa/PwaProfilePage'));
 
-// Dashboard Imports
+// Dashboard
 import DashboardLayout from './layout/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import AppsPage from './pages/dashboard/AppsPage';
@@ -54,7 +55,7 @@ import DomainsPage from './pages/dashboard/DomainsPage';
 import BonusPage from './pages/dashboard/BonusPage';
 import AcademiaPage from './pages/dashboard/AcademiaPage';
 
-// Admin Imports
+// Admin
 import AdminLayout from './layouts/AdminLayout';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -65,7 +66,7 @@ import AdminSecurityPage from './pages/admin/AdminSecurityPage';
 
 import DevToolsPage from './pages/DevToolsPage';
 
-// Layout PWA
+// Layout
 import StudentLayout from './layouts/StudentLayout';
 
 const PageLoader = () => (
@@ -90,7 +91,6 @@ const RedirectToLogin = () => {
 
 const AppRoutes: React.FC = () => {
   const hostname = window.location.hostname;
-  // Detecta subdomínio (produção) ou localhost (dev)
   const isStudentSubdomain = hostname.startsWith('app.') || hostname.includes('localhost');
 
   // =========================================================
@@ -100,37 +100,32 @@ const AppRoutes: React.FC = () => {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Redirecionamentos de Segurança */}
           <Route path="/:appSlug" element={<RedirectToLogin />} />
 
-          {/* Layout Principal do Aluno */}
           <Route element={<StudentLayout />}>
-            {/* Rotas Públicas do App (Lazy) */}
             <Route path="/:appSlug/login" element={<PwaLoginPage />} />
             <Route path="/:appSlug/register" element={<PwaRegisterPage />} />
             <Route path="/:appSlug/forgot-password" element={<PwaForgotPasswordPage />} />
             <Route path="/:appSlug/update-password" element={<PwaUpdatePasswordPage />} />
 
-            {/* Rotas Logadas (ESTÁTICAS para evitar crash de navegação) */}
             <Route path="/:appSlug/home" element={<PwaHomePage />} />
-            <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
-            <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
-
-            {/* Rotas Logadas Secundárias (Lazy) */}
             <Route path="/:appSlug/product/:productId" element={<PwaProductPage />} />
             <Route path="/:appSlug/lesson/:lessonId" element={<PwaLessonPage />} />
+            <Route path="/:appSlug/feed" element={<PwaFeedPage />} />
+
+            {/* ✅ Rota agora usa o componente importado estaticamente */}
+            <Route path="/:appSlug/community" element={<PwaCommunityPage />} />
+
             <Route path="/:appSlug/profile" element={<PwaProfilePage />} />
           </Route>
 
-          {/* Tratamento de rotas legadas (/app/slug) */}
           <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
           <Route path="/app/:appSlug/home" element={<RedirectStripAppPrefix targetPath="home" />} />
           <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} />
           <Route path="/app/:appSlug" element={<RedirectStripAppPrefix targetPath="" />} />
           <Route path="/app/:appSlug/*" element={<RedirectStripAppPrefix targetPath="home" />} />
 
-          {/* 404 */}
-          <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada.</div>} />
+          <Route path="*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Página não encontrada no App.</div>} />
         </Routes>
       </Suspense>
     );
@@ -153,7 +148,6 @@ const AppRoutes: React.FC = () => {
       <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
       <Route path="/dev" element={<DevToolsPage />} />
 
-      {/* Admin */}
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboardPage />} />
@@ -163,7 +157,6 @@ const AppRoutes: React.FC = () => {
         <Route path="security" element={<AdminSecurityPage />} />
       </Route>
 
-      {/* Dashboard Produtor */}
       <Route
         path="/dashboard"
         element={
@@ -191,7 +184,6 @@ const AppRoutes: React.FC = () => {
         <Route path="bonus" element={<BonusPage />} />
       </Route>
 
-      {/* Fallbacks Dashboard */}
       <Route path="/app/:appSlug" element={<RedirectToLogin />} />
       <Route path="/app/:appSlug/login" element={<RedirectStripAppPrefix targetPath="login" />} />
       <Route path="/app/:appSlug/profile" element={<RedirectStripAppPrefix targetPath="profile" />} />
